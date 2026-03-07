@@ -2,15 +2,13 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// TODO: Add your Firebase config here.
-// Get this from: Firebase Console > Project Settings > General > Your apps > SDK setup and configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAPPC4iXYhSGH5_wUghb2Wts7fGPmqtBPE",
-  authDomain: "pingstudio-backend.firebaseapp.com",
-  projectId: "pingstudio-backend",
-  storageBucket: "pingstudio-backend.firebasestorage.app",
-  messagingSenderId: "13328994180",
-  appId: "1:13328994180:web:065fbf49194fed95a2d7d1",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
