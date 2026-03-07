@@ -1,0 +1,8 @@
+{
+  "name": "Photovise 2.0",
+  "description": "A personal workflow assistant for landscape, street, and photojournalism photographers to plan shoots, guide culling, and manage editing sessions.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
