@@ -1,0 +1,80 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photovise | Photography Workflow Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --slate-black: #1e2328;
+            --bone-white: #f7f5f0;
+            --cool-gray: #6b6b6b;
+            --coastal-blue: #8fa5b2;
+            --dusty-rose: #d4a5a5;
+        }
+        
+        body { 
+            font-family: 'Inter', Arial, sans-serif; 
+            background-color: var(--bone-white);
+        }
+        
+        .font-display { 
+            font-family: 'Bebas Neue', cursive; 
+            letter-spacing: 0.05em;
+        }
+        
+        /* Utility to hide scrollbars while keeping functionality */
+        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .no-scrollbar {
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+        
+        /* Custom scrollbar for main content area */
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: var(--bone-white);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: var(--coastal-blue);
+            border-radius: 10px;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            black: '#1e2328',
+                            white: '#f7f5f0',
+                            gray: '#6b6b6b',
+                            blue: '#8fa5b2',
+                            rose: '#d4a5a5',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+<link rel="stylesheet" href="/index.css">
+  <script type="module" crossorigin src="/PhotoVise/assets/index-RBS8Fj_1.js"></script>
+</head>
+<body class="bg-brand-white text-brand-black">
+    <div id="root"></div>
+</body>
+</html>
