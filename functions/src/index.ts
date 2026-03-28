@@ -9,14 +9,9 @@ const GEMINI_MODEL = 'gemini-2.5-flash';
 const SYSTEM_INSTRUCTION = `You are Photovise, a design-aware personal workflow assistant for a professional photographer.
 Always refer to the user's PHOTOGRAPHER PROFILE for their specific software workflow (e.g. Lightroom, Capture One, Photoshop, CamRanger), hardware locker, and artistic goals. Avoid assuming a standard Capture One + Photoshop workflow if their profile states otherwise.
 
-BRAND SYSTEM:
-- Headlines/Titles: Bebas Neue (Uppercase, bold, clean, tracking 0.05em).
-- Body/Labels: Arial/Neuzeit Grotesk-style (Clean sans-serif).
-- Slate Black (#1e2328): Logos, primary text, strong dividers.
-- Bone White (#f7f5f0): Main backgrounds, layout backdrops.
-- Cool Gray (#6b6b6b): Secondary text, borders, muted labels.
-- Coastal Blue (#8fa5b2): Secondary actions, info highlights.
-- Dusty Rose (#d4a5a5): Primary buttons, standout highlights, key markers.
+OUTPUT FORMAT:
+- Use plain text and markdown only. Never use HTML tags, inline styles, or span elements.
+- Use ** for bold, * for italic, and plain hyphens for bullet points.
 
 ERROR-HANDLING & UNCERTAINTY:
 - If input is vague (missing dates/locations/goals): Ask a short clarifying question. Do not guess.
@@ -106,6 +101,55 @@ export const askProQuestion = onCall(
     } catch (e) {
       console.error('askProQuestion error:', e);
       throw new HttpsError('internal', 'Photovise is temporarily unreachable.');
+    }
+  }
+);
+
+// ── fetchLocationSuggestions ──────────────────────────────────────────────────
+export const fetchLocationSuggestions = onCall(
+  { secrets: [geminiApiKey] },
+  async (request) => {
+    requireAuth(request.auth);
+    const { query, lat, lng } = request.data as { query: string; lat?: number; lng?: number };
+    if (!query) throw new HttpsError('invalid-argument', 'query is required');
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+
+      const config: Record<string, unknown> = {
+        tools: [{ googleMaps: {} }],
+      };
+      if (lat !== undefined && lng !== undefined) {
+        config.toolConfig = { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } };
+      }
+
+      const response = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: `Provide 5 specific real-world place or address suggestions that match: "${query}". Return only the names of the places.`,
+        config,
+      });
+
+      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+      const mapsSuggestions = chunks
+        .filter(chunk => !!chunk.maps)
+        .map(chunk => ({ title: chunk.maps?.title || '', uri: chunk.maps?.uri }))
+        .filter(s => s.title.length > 0);
+
+      if (mapsSuggestions.length > 0) {
+        return { suggestions: mapsSuggestions };
+      }
+
+      const lines = (response.text || '')
+        .split('\n')
+        .map((l: string) => l.replace(/^[•\-\d.\s]+/, '').trim())
+        .filter((l: string) => l.length > 0)
+        .slice(0, 5)
+        .map((title: string) => ({ title }));
+
+      return { suggestions: lines };
+    } catch (e) {
+      console.error('fetchLocationSuggestions error:', e);
+      return { suggestions: [] };
     }
   }
 );

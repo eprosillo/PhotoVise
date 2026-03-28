@@ -46,6 +46,24 @@ export async function askProQuestion(prompt: string): Promise<string> {
   }
 }
 
+export async function fetchLocationSuggestions(
+  query: string,
+  lat?: number,
+  lng?: number
+): Promise<{ title: string; uri?: string }[]> {
+  try {
+    const fn = getFn<
+      { query: string; lat?: number; lng?: number },
+      { suggestions: { title: string; uri?: string }[] }
+    >('fetchLocationSuggestions');
+    const result = await fn({ query, lat, lng });
+    return result.data.suggestions;
+  } catch (error) {
+    console.error('Photovise: Location suggestions failed', error);
+    return [];
+  }
+}
+
 export async function fetchBulletinEvents(genre: string, region: string): Promise<CfeBulletinItem[]> {
   try {
     const fn = getFn<{ genre: string; region: string }, { items: CfeBulletinItem[] }>('fetchBulletinEvents');

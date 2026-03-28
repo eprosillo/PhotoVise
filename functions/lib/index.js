@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchBulletinEvents = exports.askProQuestion = exports.generateAssignmentGuide = exports.generateWeeklyPlan = void 0;
+exports.fetchBulletinEvents = exports.fetchLocationSuggestions = exports.askProQuestion = exports.generateAssignmentGuide = exports.generateWeeklyPlan = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
 const genai_1 = require("@google/genai");
@@ -9,14 +9,9 @@ const GEMINI_MODEL = 'gemini-2.5-flash';
 const SYSTEM_INSTRUCTION = `You are Photovise, a design-aware personal workflow assistant for a professional photographer.
 Always refer to the user's PHOTOGRAPHER PROFILE for their specific software workflow (e.g. Lightroom, Capture One, Photoshop, CamRanger), hardware locker, and artistic goals. Avoid assuming a standard Capture One + Photoshop workflow if their profile states otherwise.
 
-BRAND SYSTEM:
-- Headlines/Titles: Bebas Neue (Uppercase, bold, clean, tracking 0.05em).
-- Body/Labels: Arial/Neuzeit Grotesk-style (Clean sans-serif).
-- Slate Black (#1e2328): Logos, primary text, strong dividers.
-- Bone White (#f7f5f0): Main backgrounds, layout backdrops.
-- Cool Gray (#6b6b6b): Secondary text, borders, muted labels.
-- Coastal Blue (#8fa5b2): Secondary actions, info highlights.
-- Dusty Rose (#d4a5a5): Primary buttons, standout highlights, key markers.
+OUTPUT FORMAT:
+- Use plain text and markdown only. Never use HTML tags, inline styles, or span elements.
+- Use ** for bold, * for italic, and plain hyphens for bullet points.
 
 ERROR-HANDLING & UNCERTAINTY:
 - If input is vague (missing dates/locations/goals): Ask a short clarifying question. Do not guess.
@@ -97,6 +92,47 @@ exports.askProQuestion = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async 
     catch (e) {
         console.error('askProQuestion error:', e);
         throw new https_1.HttpsError('internal', 'Photovise is temporarily unreachable.');
+    }
+});
+// ── fetchLocationSuggestions ──────────────────────────────────────────────────
+exports.fetchLocationSuggestions = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
+    var _a, _b, _c;
+    requireAuth(request.auth);
+    const { query, lat, lng } = request.data;
+    if (!query)
+        throw new https_1.HttpsError('invalid-argument', 'query is required');
+    try {
+        const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
+        const config = {
+            tools: [{ googleMaps: {} }],
+        };
+        if (lat !== undefined && lng !== undefined) {
+            config.toolConfig = { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } };
+        }
+        const response = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: `Provide 5 specific real-world place or address suggestions that match: "${query}". Return only the names of the places.`,
+            config,
+        });
+        const chunks = ((_c = (_b = (_a = response.candidates) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.groundingMetadata) === null || _c === void 0 ? void 0 : _c.groundingChunks) || [];
+        const mapsSuggestions = chunks
+            .filter(chunk => !!chunk.maps)
+            .map(chunk => { var _a, _b; return ({ title: ((_a = chunk.maps) === null || _a === void 0 ? void 0 : _a.title) || '', uri: (_b = chunk.maps) === null || _b === void 0 ? void 0 : _b.uri }); })
+            .filter(s => s.title.length > 0);
+        if (mapsSuggestions.length > 0) {
+            return { suggestions: mapsSuggestions };
+        }
+        const lines = (response.text || '')
+            .split('\n')
+            .map((l) => l.replace(/^[•\-\d.\s]+/, '').trim())
+            .filter((l) => l.length > 0)
+            .slice(0, 5)
+            .map((title) => ({ title }));
+        return { suggestions: lines };
+    }
+    catch (e) {
+        console.error('fetchLocationSuggestions error:', e);
+        return { suggestions: [] };
     }
 });
 // ── fetchBulletinEvents ───────────────────────────────────────────────────────

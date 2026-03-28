@@ -30,7 +30,10 @@ export interface Session {
   genre: Genre[];
   status: SessionStatus;
   name: string;
+  title?: string;
   notes: string;
+  strategy?: string;
+  dayPlan?: string;
 }
 
 export type GearCategory = 'Body' | 'Lens' | 'Flash' | 'Modifier' | 'Support' | 'Accessory';

@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import { fetchLocationSuggestions } from '../services/geminiService';
 
 interface LocationAutocompleteProps {
   name: string;
   placeholder?: string;
   required?: boolean;
   className?: string;
+  initialValue?: string;
+  onChange?: (value: string) => void;
 }
 
 interface Suggestion {
   title: string;
-  address?: string;
   uri?: string;
 }
 
@@ -18,16 +19,17 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   name,
   placeholder,
   required,
-  className
+  className,
+  initialValue,
+  onChange,
 }) => {
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(initialValue || '');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const debounceTimerRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -38,12 +40,9 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Clean up debounce timer on unmount
   useEffect(() => {
     return () => {
-      if (debounceTimerRef.current) {
-        window.clearTimeout(debounceTimerRef.current);
-      }
+      if (debounceTimerRef.current) window.clearTimeout(debounceTimerRef.current);
     };
   }, []);
 
@@ -52,64 +51,25 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
       setSuggestions([]);
       return;
     }
-
     setIsLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-      let latLng = undefined;
+      let lat: number | undefined;
+      let lng: number | undefined;
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
         });
-        latLng = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-      } catch (e) {
-        console.debug("Photovise: Location access denied or timed out, proceeding without coordinates.");
+        lat = position.coords.latitude;
+        lng = position.coords.longitude;
+      } catch {
+        // proceed without coordinates
       }
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `Provide 5 specific real-world place or address suggestions that match: "${query}". Return only the names of the places.`,
-        config: {
-          tools: [{ googleMaps: {} }],
-          toolConfig: {
-            retrievalConfig: {
-              latLng: latLng
-            }
-          }
-        },
-      });
-
-      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-      const mapsSuggestions: Suggestion[] = chunks
-        .filter(chunk => chunk.maps)
-        .map(chunk => ({
-          title: chunk.maps?.title || '',
-          uri: chunk.maps?.uri
-        }))
-        .filter(s => s.title.length > 0);
-
-      if (mapsSuggestions.length > 0) {
-        setSuggestions(mapsSuggestions);
-      } else {
-        const textOutput = response.text || "";
-        const lines = textOutput.split('\n')
-          .map(l => l.replace(/^[•\-\d.\s]+/, '').trim())
-          .filter(l => l.length > 0)
-          .slice(0, 5);
-        setSuggestions(lines.map(l => ({ title: l })));
-      }
-      setShowDropdown(true);
-    } catch (err: unknown) {
-      const errStr = err instanceof Error ? err.message : JSON.stringify(err);
-      if (errStr.includes("429")) {
-        console.warn("Photovise: Maps Quota Exhausted.");
-      } else {
-        console.error("Photovise: Location suggestion fetch failed", err);
-      }
+      const results = await fetchLocationSuggestions(query, lat, lng);
+      setSuggestions(results);
+      setShowDropdown(results.length > 0);
+    } catch (err) {
+      console.error('Photovise: Location suggestion fetch failed', err);
       setSuggestions([]);
     } finally {
       setIsLoading(false);
@@ -119,15 +79,10 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInputValue(val);
-
-    if (debounceTimerRef.current) {
-      window.clearTimeout(debounceTimerRef.current);
-    }
-
+    onChange?.(val);
+    if (debounceTimerRef.current) window.clearTimeout(debounceTimerRef.current);
     if (val.length >= 3) {
-      debounceTimerRef.current = window.setTimeout(() => {
-        fetchSuggestions(val);
-      }, 600);
+      debounceTimerRef.current = window.setTimeout(() => fetchSuggestions(val), 600);
     } else {
       setSuggestions([]);
       setShowDropdown(false);
@@ -136,14 +91,8 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
 
   const handleSelect = (s: Suggestion) => {
     setInputValue(s.title);
+    onChange?.(s.title);
     setShowDropdown(false);
-
-    const hiddenInput = containerRef.current?.querySelector('input[type="hidden"]') as HTMLInputElement;
-    if (hiddenInput) {
-      hiddenInput.value = s.title;
-      const event = new Event('change', { bubbles: true });
-      hiddenInput.dispatchEvent(event);
-    }
   };
 
   return (
@@ -153,7 +102,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
           type="text"
           value={inputValue}
           onChange={handleInputChange}
-          onFocus={() => inputValue.length >= 3 && setShowDropdown(true)}
+          onFocus={() => inputValue.length >= 3 && suggestions.length > 0 && setShowDropdown(true)}
           placeholder={placeholder}
           className={`${className} pr-10`}
           autoComplete="off"

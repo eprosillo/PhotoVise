@@ -37,7 +37,7 @@ const SessionSelector: React.FC<SessionSelectorProps> = ({ sessions, selectedIds
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold text-brand-black truncate">
-                      {session.name.split('_').slice(1).join(' ').toUpperCase()}
+                      {session.title ? session.title.toUpperCase() : session.name.split('_').slice(1).join(' ').toUpperCase()}
                     </span>
                     <span className="text-[8px] text-brand-gray font-bold tracking-tighter">
                       {session.date}

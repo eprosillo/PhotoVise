@@ -773,12 +773,17 @@ const App: React.FC = () => {
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [selectedPlannerSessionIds, setSelectedPlannerSessionIds] = useState<string[]>([]);
   const [plannerCopied, setPlannerCopied] = useState(false);
-  
+  const [plannerAttachId, setPlannerAttachId] = useState('');
+  const [plannerAttached, setPlannerAttached] = useState(false);
+
   const [assignmentInput, setAssignmentInput] = useState('');
   const [assignmentOutput, setAssignmentOutput] = useState('');
   const [isGeneratingAssignment, setIsGeneratingAssignment] = useState(false);
   const [selectedAssignmentSessionIds, setSelectedAssignmentSessionIds] = useState<string[]>([]);
   const [assignmentCopied, setAssignmentCopied] = useState(false);
+  const [assignmentAttachId, setAssignmentAttachId] = useState('');
+  const [assignmentAttached, setAssignmentAttached] = useState(false);
+  const [includeAttachedStrategy, setIncludeAttachedStrategy] = useState(false);
   const [assignmentTimeframe, setAssignmentTimeframe] = useState<AssignmentTimeframe>('2hr');
 
   // Derived Genre Focus based on selected sessions
@@ -939,12 +944,14 @@ const App: React.FC = () => {
     const location = formData.get('location') as string;
     const genre = formData.get('genre') as Genre;
     const notes = formData.get('notes') as string;
-    
+    const title = (formData.get('title') as string).trim();
+
     const name = `${date}_${location.replace(/\s+/g, '_')}_${genre}`;
-    
+
     const newSession: Session = {
       id: Date.now().toString(),
       name,
+      title: title || undefined,
       date,
       location,
       genre: [genre],
@@ -964,6 +971,16 @@ const App: React.FC = () => {
 
   const updateStatus = (id: string, status: SessionStatus) => {
     setSessions(prev => prev.map(s => s.id === id ? { ...s, status } : s));
+  };
+
+  const updateSession = (id: string, updates: Partial<Session>) => {
+    setSessions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
+  const attachStrategyToSession = (sessionId: string, text: string, field: 'strategy' | 'dayPlan', onDone: () => void) => {
+    if (!sessionId) return;
+    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, [field]: text } : s));
+    onDone();
   };
 
   const deleteSession = (id: string) => {
@@ -1148,6 +1165,17 @@ const App: React.FC = () => {
     if (context.trim()) pieces.push(context);
     if (assignmentInput.trim()) {
       pieces.push('ASSIGNMENT DETAILS:\n' + assignmentInput.trim());
+    }
+    if (includeAttachedStrategy) {
+      const strategies = sessions
+        .filter(s => selectedAssignmentSessionIds.includes(s.id) && s.strategy)
+        .map(s => {
+          const label = s.title || s.location;
+          return `--- Strategy for ${label} ---\n${s.strategy}`;
+        });
+      if (strategies.length > 0) {
+        pieces.push('ATTACHED ASSIGNMENT STRATEGY (use this as the foundation and adapt it into an execution-ready day-of plan):\n\n' + strategies.join('\n\n'));
+      }
     }
     pieces.push(`ASSIGNMENT GENRE FOCUS: ${genreLabel.toUpperCase()}`);
     pieces.push(`TIME WINDOW FOR THIS ASSIGNMENT: ${timeframeLabel.toUpperCase()}`);
@@ -1421,6 +1449,12 @@ const App: React.FC = () => {
           <section className="bg-brand-black rounded-sm p-8 text-brand-white mb-12 shadow-xl border border-white/5">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-rose mb-6">LOG NEW SESSION</h3>
             <form onSubmit={addSession} className="space-y-4">
+              <input
+                name="title"
+                type="text"
+                placeholder="SESSION TITLE (OPTIONAL)"
+                className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all placeholder:text-white/20 uppercase"
+              />
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                 <input 
                   name="date" 
@@ -1465,10 +1499,11 @@ const App: React.FC = () => {
               </div>
             ) : (
               sessions.filter(s => s.status !== 'archived').map(session => (
-                <SessionCard 
-                  key={session.id} 
-                  session={session} 
-                  onUpdateStatus={updateStatus} 
+                <SessionCard
+                  key={session.id}
+                  session={session}
+                  onUpdateStatus={updateStatus}
+                  onUpdate={updateSession}
                   onDelete={deleteSession}
                   hasJournal={journalEntries.some(e => e.sessionIds.includes(session.id))}
                   onGoToJournal={() => setActiveTab('journal')}
@@ -1818,15 +1853,37 @@ const App: React.FC = () => {
 
           {plannerOutput && (
             <div className="bg-brand-black rounded-sm shadow-2xl overflow-hidden border border-white/10">
-              <div className="px-8 py-5 border-b border-white/10 flex items-center justify-between">
+              <div className="px-8 py-5 border-b border-white/10 flex items-center justify-between flex-wrap gap-3">
                 <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-rose">DOCUMENT: ASSIGNMENT STRATEGY</span>
-                <div className="flex items-center gap-4">
-                  <button 
+                <div className="flex items-center gap-3 flex-wrap">
+                  <button
                     onClick={() => handleCopy(plannerOutput, setPlannerCopied)}
                     className="text-[9px] font-bold uppercase tracking-widest text-brand-blue hover:text-white transition-colors border border-brand-blue/30 px-3 py-1 rounded-sm bg-brand-blue/5"
                   >
                     {plannerCopied ? 'COPIED' : 'COPY TEXT'}
                   </button>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={plannerAttachId}
+                      onChange={e => { setPlannerAttachId(e.target.value); setPlannerAttached(false); }}
+                      className="bg-white/5 border border-white/10 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-sm outline-none focus:ring-1 focus:ring-brand-rose"
+                    >
+                      <option value="" className="text-brand-black">ATTACH TO SESSION...</option>
+                      {sessions.filter(s => s.status !== 'archived').map(s => (
+                        <option key={s.id} value={s.id} className="text-brand-black">
+                          {s.title ? s.title.toUpperCase() : `${s.location} — ${s.date}`}
+                        </option>
+                      ))}
+                    </select>
+                    {plannerAttachId && (
+                      <button
+                        onClick={() => attachStrategyToSession(plannerAttachId, plannerOutput, 'strategy', () => setPlannerAttached(true))}
+                        className="text-[9px] font-bold uppercase tracking-widest text-brand-rose hover:text-white transition-colors border border-brand-rose/40 px-3 py-1 rounded-sm bg-brand-rose/5"
+                      >
+                        {plannerAttached ? '✓ ATTACHED' : 'ATTACH'}
+                      </button>
+                    )}
+                  </div>
                   <i className="fa-solid fa-file-contract text-brand-blue"></i>
                 </div>
               </div>
@@ -1857,12 +1914,33 @@ const App: React.FC = () => {
                 {!isFieldMode && <h3 className="text-2xl font-display mb-6 tracking-widest text-brand-rose">ASSIGNMENT BRIEF</h3>}
                 <div className="flex flex-col gap-6">
                   <div className="bg-white/5 p-6 rounded-sm border border-white/10 mb-2">
-                    <SessionSelector 
-                      sessions={sessions.filter(s => s.status !== 'archived')} 
-                      selectedIds={selectedAssignmentSessionIds} 
+                    <SessionSelector
+                      sessions={sessions.filter(s => s.status !== 'archived')}
+                      selectedIds={selectedAssignmentSessionIds}
                       onToggle={toggleSessionInAssignment}
                       label="ATTACH RELEVANT ASSIGNMENT SESSIONS"
                     />
+                    {sessions.some(s => selectedAssignmentSessionIds.includes(s.id) && s.strategy) && (
+                      <button
+                        type="button"
+                        onClick={() => setIncludeAttachedStrategy(v => !v)}
+                        className={`mt-3 flex items-center gap-3 w-full px-4 py-3 rounded-sm border transition-all ${
+                          includeAttachedStrategy
+                            ? 'bg-brand-rose/10 border-brand-rose/40 text-brand-rose'
+                            : 'bg-white/5 border-white/10 text-white/40 hover:border-white/30 hover:text-white/60'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded-sm border flex items-center justify-center flex-shrink-0 transition-all ${
+                          includeAttachedStrategy ? 'bg-brand-rose border-brand-rose' : 'border-white/20'
+                        }`}>
+                          {includeAttachedStrategy && <i className="fa-solid fa-check text-[9px] text-white"></i>}
+                        </div>
+                        <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
+                          INCLUDE ATTACHED STRATEGY AS FOUNDATION
+                        </span>
+                        <i className="fa-solid fa-file-contract ml-auto text-[10px] opacity-50"></i>
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-3 mb-2">
@@ -1944,15 +2022,37 @@ const App: React.FC = () => {
 
           {assignmentOutput && (
             <div className="bg-brand-black rounded-sm shadow-2xl overflow-hidden border border-white/10">
-               <div className="px-8 py-5 border-b border-white/10 flex items-center justify-between">
+              <div className="px-8 py-5 border-b border-white/10 flex items-center justify-between flex-wrap gap-3">
                 <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-blue">DOCUMENT: ACCELERATED DELIVERY PLAN</span>
-                <div className="flex items-center gap-4">
-                  <button 
+                <div className="flex items-center gap-3 flex-wrap">
+                  <button
                     onClick={() => handleCopy(assignmentOutput, setAssignmentCopied)}
                     className="text-[9px] font-bold uppercase tracking-widest text-brand-rose hover:text-white transition-colors border border-brand-rose/30 px-3 py-1 rounded-sm bg-brand-rose/5"
                   >
                     {assignmentCopied ? 'COPIED' : 'COPY TEXT'}
                   </button>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={assignmentAttachId}
+                      onChange={e => { setAssignmentAttachId(e.target.value); setAssignmentAttached(false); }}
+                      className="bg-white/5 border border-white/10 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-sm outline-none focus:ring-1 focus:ring-brand-blue"
+                    >
+                      <option value="" className="text-brand-black">ATTACH TO SESSION...</option>
+                      {sessions.filter(s => s.status !== 'archived').map(s => (
+                        <option key={s.id} value={s.id} className="text-brand-black">
+                          {s.title ? s.title.toUpperCase() : `${s.location} — ${s.date}`}
+                        </option>
+                      ))}
+                    </select>
+                    {assignmentAttachId && (
+                      <button
+                        onClick={() => attachStrategyToSession(assignmentAttachId, assignmentOutput, 'dayPlan', () => setAssignmentAttached(true))}
+                        className="text-[9px] font-bold uppercase tracking-widest text-brand-blue hover:text-white transition-colors border border-brand-blue/40 px-3 py-1 rounded-sm bg-brand-blue/5"
+                      >
+                        {assignmentAttached ? '✓ ATTACHED' : 'ATTACH'}
+                      </button>
+                    )}
+                  </div>
                   <i className="fa-solid fa-stopwatch text-brand-rose"></i>
                 </div>
               </div>
@@ -2547,10 +2647,11 @@ const App: React.FC = () => {
               </div>
             ) : (
               sessions.filter(s => s.status === 'archived').map(session => (
-                <SessionCard 
-                  key={session.id} 
-                  session={session} 
-                  onUpdateStatus={updateStatus} 
+                <SessionCard
+                  key={session.id}
+                  session={session}
+                  onUpdateStatus={updateStatus}
+                  onUpdate={updateSession}
                   onDelete={deleteSession}
                   hasJournal={journalEntries.some(e => e.sessionIds.includes(session.id))}
                   onGoToJournal={() => setActiveTab('journal')}
