@@ -1528,6 +1528,31 @@ const App: React.FC = () => {
             )}
           </header>
 
+          {user && (
+            <div className="mb-8 flex items-center justify-between bg-white border border-brand-black/5 rounded-sm px-6 py-4 shadow-sm">
+              <div className="flex items-center gap-4">
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover border border-brand-black/10" />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-brand-rose/10 flex items-center justify-center">
+                    <i className="fa-solid fa-user text-brand-rose text-sm"></i>
+                  </div>
+                )}
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-brand-black">{user.displayName || 'Photographer'}</p>
+                  <p className="text-[10px] text-brand-gray mt-0.5">{user.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={signOut}
+                className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-brand-gray border border-brand-black/10 px-4 py-2 rounded-sm hover:bg-brand-rose hover:text-white hover:border-brand-rose transition-all"
+              >
+                <i className="fa-solid fa-arrow-right-from-bracket text-[10px]"></i>
+                SIGN OUT
+              </button>
+            </div>
+          )}
+
           <section className="bg-white rounded-sm border border-brand-black/5 p-10 shadow-sm">
             <div className="space-y-12">
               <div>
