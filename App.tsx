@@ -895,9 +895,12 @@ const App: React.FC = () => {
   }, [gear]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist journal entries (localStorage + Firestore)
+  // Images are base64 and can exceed Firestore's 1MB document limit,
+  // so we strip them before the cloud write. They remain intact in localStorage.
   useEffect(() => {
     localStorage.setItem('pingstudio_journal', JSON.stringify(journalEntries));
-    saveUserData({ journal: journalEntries });
+    const journalWithoutImages = journalEntries.map(entry => ({ ...entry, images: [] }));
+    saveUserData({ journal: journalWithoutImages });
   }, [journalEntries]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist profile (localStorage + Firestore — only when applied)
@@ -1246,15 +1249,39 @@ const App: React.FC = () => {
     });
   };
 
+  // Compress an image file to a max dimension of 800px at 70% JPEG quality
+  const compressImage = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onloadend = () => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          const MAX = 800;
+          let { width, height } = img;
+          if (width > MAX || height > MAX) {
+            if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
+            else { width = Math.round((width * MAX) / height); height = MAX; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = reader.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+
   const handleJournalImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-
-    // Fix: Explicitly typing 'file' as File to resolve 'unknown' type errors for .name and parameter passing
+    // Reset input so the same file can be re-selected after removal
+    e.target.value = '';
     Array.from(files).forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
+      compressImage(file).then(dataUrl => {
         setJournalForm(prev => ({
           ...prev,
           images: [
@@ -1262,12 +1289,13 @@ const App: React.FC = () => {
             {
               id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
               name: file.name,
-              dataUrl: dataUrl
+              dataUrl
             }
           ]
         }));
-      };
-      reader.readAsDataURL(file);
+      }).catch(() => {
+        console.warn('Image compression failed for', file.name);
+      });
     });
   };
 
@@ -2302,13 +2330,12 @@ const App: React.FC = () => {
                    <label className="cursor-pointer bg-white/5 border border-white/10 rounded-sm px-8 py-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3">
                       <i className="fa-solid fa-camera-retro text-2xl text-brand-rose"></i>
                       <span className="text-[9px] font-bold uppercase tracking-widest text-white/40">SELECT FILES OR CAMERA</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        multiple 
-                        capture="environment" 
-                        onChange={handleJournalImageUpload} 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleJournalImageUpload}
+                        className="hidden"
                       />
                    </label>
                    <div className="flex flex-wrap gap-3">
