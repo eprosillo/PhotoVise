@@ -1038,7 +1038,16 @@ const App: React.FC = () => {
     setIsFetchingBulletin(true);
     const items = await fetchBulletinEvents(genreFilter, regionFilter, typeFilter);
     if (items.length > 0) {
-      setAiBulletinItems(items);
+      // Preserve items the user has already tracked (considering/applied) that
+      // aren't present in the new results, so statuses are never silently lost.
+      setAiBulletinItems(prev => {
+        const newIds = new Set(items.map(i => i.id));
+        const kept = prev.filter(existing => {
+          const s = bulletinState[existing.id];
+          return (s === 'considering' || s === 'applied') && !newIds.has(existing.id);
+        });
+        return [...kept, ...items];
+      });
       setBulletinFetchedAt(Date.now());
     }
     setIsFetchingBulletin(false);
