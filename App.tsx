@@ -871,7 +871,18 @@ const App: React.FC = () => {
       if (cancelled || !data) return;
       if (data.sessions)         setSessions(data.sessions);
       if (data.gear)             setGear(data.gear);
-      if (data.journal)          setJournalEntries(data.journal);
+      if (data.journal) {
+        // Firestore journal entries have images stripped to stay under 1MB.
+        // Re-merge images from localStorage so they aren't lost on navigation.
+        const localJournal = loadFromStorage<JournalEntry[]>('pingstudio_journal', []);
+        const localById = Object.fromEntries(localJournal.map(e => [e.id, e]));
+        const merged = data.journal.map(entry =>
+          localById[entry.id]
+            ? { ...entry, images: localById[entry.id].images }
+            : entry
+        );
+        setJournalEntries(merged);
+      }
       if (data.profile)          setProfile(data.profile);
       if (data.bulletinState)    setBulletinState(data.bulletinState);
       if (data.bulletinItems)    setAiBulletinItems(data.bulletinItems);
