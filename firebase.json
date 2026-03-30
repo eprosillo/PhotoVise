@@ -3,5 +3,8 @@
     "source": "functions",
     "runtime": "nodejs20",
     "predeploy": ["npm --prefix functions run build"]
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }

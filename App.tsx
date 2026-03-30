@@ -11,6 +11,8 @@ import { PHOTO_QUOTES } from './quotes';
 import { useAuth } from './AuthContext';
 import LoginScreen from './LoginScreen';
 import { useFirestore } from './hooks/useFirestore';
+import { storage } from './firebase';
+import { ref as storageRef, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 
 // Helper to determine which genres are currently active for the guidance system
 function getActiveGenres(profile: PhotographerProfile, assignmentGenre: Genre | 'All'): Genre[] {
@@ -872,16 +874,7 @@ const App: React.FC = () => {
       if (data.sessions)         setSessions(data.sessions);
       if (data.gear)             setGear(data.gear);
       if (data.journal) {
-        // Firestore journal entries have images stripped to stay under 1MB.
-        // Re-merge images from localStorage so they aren't lost on navigation.
-        const localJournal = loadFromStorage<JournalEntry[]>('pingstudio_journal', []);
-        const localById = Object.fromEntries(localJournal.map(e => [e.id, e]));
-        const merged = data.journal.map(entry =>
-          localById[entry.id]
-            ? { ...entry, images: localById[entry.id].images }
-            : entry
-        );
-        setJournalEntries(merged);
+        setJournalEntries(data.journal);
       }
       if (data.profile)          setProfile(data.profile);
       if (data.bulletinState)    setBulletinState(data.bulletinState);
@@ -906,12 +899,10 @@ const App: React.FC = () => {
   }, [gear]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist journal entries (localStorage + Firestore)
-  // Images are base64 and can exceed Firestore's 1MB document limit,
-  // so we strip them before the cloud write. They remain intact in localStorage.
+  // Images are now Firebase Storage URLs (not base64), so they're safe to store in Firestore.
   useEffect(() => {
     localStorage.setItem('pingstudio_journal', JSON.stringify(journalEntries));
-    const journalWithoutImages = journalEntries.map(entry => ({ ...entry, images: [] }));
-    saveUserData({ journal: journalWithoutImages });
+    saveUserData({ journal: journalEntries });
   }, [journalEntries]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist profile (localStorage + Firestore — only when applied)
@@ -1289,33 +1280,35 @@ const App: React.FC = () => {
   const handleJournalImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    // Snapshot the FileList into an array BEFORE resetting the input,
-    // because clearing value can invalidate the live FileList in some browsers
     const fileArray = Array.from(files) as File[];
     e.target.value = '';
     fileArray.forEach((file: File) => {
+      const imageId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
       compressImage(file)
-        .catch(() => {
-          // Fallback: read original file without compression
-          return new Promise<string>((resolve, reject) => {
-            const r = new FileReader();
-            r.onerror = reject;
-            r.onloadend = () => resolve(r.result as string);
-            r.readAsDataURL(file);
-          });
-        })
-        .then(dataUrl => {
-          setJournalForm(prev => ({
-            ...prev,
-            images: [
-              ...prev.images,
-              {
-                id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-                name: file.name,
-                dataUrl
-              }
-            ]
-          }));
+        .catch(() => new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onerror = reject;
+          r.onloadend = () => resolve(r.result as string);
+          r.readAsDataURL(file);
+        }))
+        .then(async (dataUrl) => {
+          // If user is signed in, upload to Firebase Storage and use the URL
+          if (user?.uid) {
+            const path = `journal/${user.uid}/${imageId}`;
+            const imgRef = storageRef(storage, path);
+            await uploadString(imgRef, dataUrl, 'data_url');
+            const url = await getDownloadURL(imgRef);
+            setJournalForm(prev => ({
+              ...prev,
+              images: [...prev.images, { id: imageId, name: file.name, dataUrl: url }]
+            }));
+          } else {
+            // Fallback: store base64 locally when not signed in
+            setJournalForm(prev => ({
+              ...prev,
+              images: [...prev.images, { id: imageId, name: file.name, dataUrl }]
+            }));
+          }
         })
         .catch(err => console.error('Journal image upload failed:', err));
     });
@@ -1323,6 +1316,13 @@ const App: React.FC = () => {
 
   const deleteJournalEntry = (id: string) => {
     if (confirm("Permanently delete this journal entry?")) {
+      const entry = journalEntries.find(e => e.id === id);
+      if (entry && user?.uid) {
+        entry.images.forEach(img => {
+          const path = `journal/${user.uid}/${img.id}`;
+          deleteObject(storageRef(storage, path)).catch(() => {});
+        });
+      }
       setJournalEntries(prev => prev.filter(e => e.id !== id));
     }
   };
