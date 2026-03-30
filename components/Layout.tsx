@@ -88,7 +88,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
   })();
 
   return (
-    <div className={`flex flex-col md:flex-row min-h-screen ${isFieldMode ? 'pb-20' : ''}`}>
+    <div className={`flex flex-col md:flex-row md:h-screen ${isFieldMode ? 'pb-20' : ''}`}>
       {/* Mobile Navigation Header */}
       <nav className="md:hidden bg-brand-black text-brand-white sticky top-0 z-50 border-b border-white/5">
         <div className="px-6 py-4 flex items-center justify-between">
@@ -156,8 +156,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
       </nav>
 
       {/* Desktop Sidebar Navigation */}
-      <nav className="hidden md:flex flex-col w-64 bg-brand-black text-brand-white flex-shrink-0 border-r border-white/5 z-20 sticky top-0 h-screen">
-        <div className="p-10">
+      <nav className="hidden md:flex flex-col w-64 bg-brand-black text-brand-white flex-shrink-0 border-r border-white/5 z-20 h-screen">
+        <div className="p-10 flex-shrink-0">
           <button onClick={handleLogoClick} className="text-left focus:outline-none">
             <h1 className="text-4xl font-display leading-none text-brand-rose cursor-pointer">
               PHOTOVISE
@@ -166,7 +166,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
           <p className="text-[9px] text-brand-gray mt-2 uppercase tracking-[0.3em] font-bold">Photography workflow assistant</p>
         </div>
 
-        <div className="flex flex-col mt-4">
+        <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar mt-4">
           {navItems.map((item) => {
             const fieldClasses = isFieldMode
               ? isCoreFieldItem(item.label)
@@ -194,7 +194,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
 
         {/* Desktop-only System Status */}
         {!isFieldMode && (
-          <div className="mt-auto p-10 space-y-4">
+          <div className="flex-shrink-0 p-10 space-y-4 border-t border-white/5">
             <div className="bg-white/5 p-5 rounded-sm border border-white/5">
               <p className="text-[9px] font-bold text-brand-gray uppercase tracking-[0.3em] mb-4">SYSTEM STATUS</p>
               <div className="space-y-3">
