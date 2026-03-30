@@ -1277,25 +1277,36 @@ const App: React.FC = () => {
 
   const handleJournalImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
-    // Reset input so the same file can be re-selected after removal
+    if (!files || files.length === 0) return;
+    // Snapshot the FileList into an array BEFORE resetting the input,
+    // because clearing value can invalidate the live FileList in some browsers
+    const fileArray = Array.from(files) as File[];
     e.target.value = '';
-    Array.from(files).forEach((file: File) => {
-      compressImage(file).then(dataUrl => {
-        setJournalForm(prev => ({
-          ...prev,
-          images: [
-            ...prev.images,
-            {
-              id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-              name: file.name,
-              dataUrl
-            }
-          ]
-        }));
-      }).catch(() => {
-        console.warn('Image compression failed for', file.name);
-      });
+    fileArray.forEach((file: File) => {
+      compressImage(file)
+        .catch(() => {
+          // Fallback: read original file without compression
+          return new Promise<string>((resolve, reject) => {
+            const r = new FileReader();
+            r.onerror = reject;
+            r.onloadend = () => resolve(r.result as string);
+            r.readAsDataURL(file);
+          });
+        })
+        .then(dataUrl => {
+          setJournalForm(prev => ({
+            ...prev,
+            images: [
+              ...prev.images,
+              {
+                id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+                name: file.name,
+                dataUrl
+              }
+            ]
+          }));
+        })
+        .catch(err => console.error('Journal image upload failed:', err));
     });
   };
 
