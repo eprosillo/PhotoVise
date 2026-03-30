@@ -159,7 +159,7 @@ export const fetchBulletinEvents = onCall(
   { secrets: [geminiApiKey] },
   async (request) => {
     requireAuth(request.auth);
-    const { genre, region } = request.data as { genre: string; region: string };
+    const { genre, region, type } = request.data as { genre: string; region: string; type?: string };
     if (!genre || !region) throw new HttpsError('invalid-argument', 'genre and region are required');
 
     const today = new Date().toISOString().split('T')[0];
@@ -167,8 +167,19 @@ export const fetchBulletinEvents = onCall(
       ? 'all photography genres (Street, Landscape, Portrait, Architecture, Sports, Photojournalism, Fashion, Wildlife, Documentary)'
       : `${genre} photography`;
     const regionContext = region === 'All' ? 'worldwide' : `the ${region} region`;
+    const typeContext = (!type || type === 'All')
+      ? 'competitions, grants, fellowships, residencies, open calls, calls for entry, portfolio reviews, festivals, and events'
+      : type === 'Competition' ? 'photography competitions and contests'
+      : type === 'Grant' ? 'photography grants and funding opportunities'
+      : type === 'Fellowship' ? 'photography fellowships and artist-in-residence programs'
+      : type === 'Residency' ? 'photography residencies'
+      : type === 'Open Call' ? 'open calls for photographers'
+      : type === 'Call for Entry' ? 'calls for entry and submission opportunities'
+      : type === 'Portfolio Review' ? 'portfolio review events and programs'
+      : type === 'Festival' ? 'photography festivals and exhibitions'
+      : 'photography events and opportunities';
 
-    const prompt = `Today is ${today}. List 12 real upcoming photography competitions, grants, open calls, festivals, and residencies relevant to ${genreContext} in ${regionContext}. Only include events with deadlines after ${today} or rolling/ongoing applications. Return ONLY a valid JSON array with no markdown. Each object must match this schema exactly: {"id":"ai-1","name":"","organizer":"","type":"Competition","url":"https://example.com","location":"","deadline":"YYYY-MM-DD","genres":[""],"blurb":"","fee":"","status":"unmarked","region":"Global","priority":"high"}. Valid type values: Competition, Grant, Festival, Residency, Open Call, Event. Valid region values: Global, US, Europe, Asia, Latin America, Africa, Other. Valid priority values: high, medium, low. Use "Rolling" for deadline if the application is ongoing.`;
+    const prompt = `Today is ${today}. List 12 real upcoming ${typeContext} relevant to ${genreContext} in ${regionContext}. Only include opportunities with deadlines after ${today} or rolling/ongoing applications. Return ONLY a valid JSON array with no markdown. Each object must match this schema exactly: {"id":"ai-1","name":"","organizer":"","type":"Competition","url":"https://example.com","location":"","deadline":"YYYY-MM-DD","genres":[""],"blurb":"","fee":"","status":"unmarked","region":"Global","priority":"high"}. Valid type values: Competition, Grant, Fellowship, Residency, Open Call, Call for Entry, Portfolio Review, Festival, Event. Valid region values: Global, US, Europe, Asia, Latin America, Africa, Other. Valid priority values: high, medium, low. Use "Rolling" for deadline if the application is ongoing.`;
 
     try {
       const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });

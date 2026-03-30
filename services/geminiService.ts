@@ -64,10 +64,10 @@ export async function fetchLocationSuggestions(
   }
 }
 
-export async function fetchBulletinEvents(genre: string, region: string): Promise<CfeBulletinItem[]> {
+export async function fetchBulletinEvents(genre: string, region: string, type: string = 'All'): Promise<CfeBulletinItem[]> {
   try {
-    const fn = getFn<{ genre: string; region: string }, { items: CfeBulletinItem[] }>('fetchBulletinEvents');
-    const result = await fn({ genre, region });
+    const fn = getFn<{ genre: string; region: string; type: string }, { items: CfeBulletinItem[] }>('fetchBulletinEvents');
+    const result = await fn({ genre, region, type });
     return result.data.items;
   } catch (error) {
     console.error('Photovise: Failed to fetch bulletin events', error);

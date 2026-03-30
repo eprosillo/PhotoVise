@@ -3,7 +3,7 @@ import Layout from './components/Layout';
 import SessionCard from './components/SessionCard';
 import SessionSelector from './components/SessionSelector';
 import LocationAutocomplete from './components/LocationAutocomplete';
-import { Session, SessionStatus, Genre, GearItem, GearCategory, CfeBulletinItem, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, JournalEntry, JournalImage, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe } from './types';
+import { Session, SessionStatus, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, JournalEntry, JournalImage, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe } from './types';
 import { generateWeeklyPlan, generateAssignmentGuide, askProQuestion, fetchBulletinEvents } from './services/geminiService';
 import { createCalendarEventForSession } from './services/calendarService';
 import { GENRE_ICONS } from './constants';
@@ -620,6 +620,7 @@ const App: React.FC = () => {
   const [regionFilter, setRegionFilter] = useState<BulletinRegion | 'All'>('All');
   const [statusFilter, setStatusFilter] = useState<BulletinStatus | 'All'>('All');
   const [priorityFilter, setPriorityFilter] = useState<BulletinPriority | 'All'>('All');
+  const [typeFilter, setTypeFilter] = useState<CfeType | 'All'>('All');
 
   // Persistence for sessions
   const [sessions, setSessions] = useState<Session[]>(() => {
@@ -1035,7 +1036,7 @@ const App: React.FC = () => {
 
   const refreshBulletinEvents = async () => {
     setIsFetchingBulletin(true);
-    const items = await fetchBulletinEvents(genreFilter, regionFilter);
+    const items = await fetchBulletinEvents(genreFilter, regionFilter, typeFilter);
     if (items.length > 0) {
       setAiBulletinItems(items);
       setBulletinFetchedAt(Date.now());
@@ -1402,7 +1403,8 @@ const App: React.FC = () => {
       const matchGenre = genreFilter === 'All' || (item.genres && item.genres.includes(genreFilter));
       const matchRegion = regionFilter === 'All' || item.region === regionFilter;
       const matchPriority = priorityFilter === 'All' || item.priority === priorityFilter;
-      return matchGenre && matchRegion && matchPriority && item.status === 'unmarked';
+      const matchType = typeFilter === 'All' || item.type === typeFilter;
+      return matchGenre && matchRegion && matchPriority && matchType && item.status === 'unmarked';
     });
 
     return filtered.sort((a, b) => {
@@ -1413,7 +1415,7 @@ const App: React.FC = () => {
       if (b.deadline === 'Rolling') return -1;
       return (a.deadline || 'TBA').localeCompare(b.deadline || 'TBA');
     });
-  }, [enrichedBulletin, genreFilter, regionFilter, priorityFilter]);
+  }, [enrichedBulletin, genreFilter, regionFilter, priorityFilter, typeFilter]);
 
   const consideringItems = useMemo(() => {
     return enrichedBulletin.filter(item => item.status === 'considering')
@@ -2508,7 +2510,7 @@ const App: React.FC = () => {
           <header className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div>
               <h2 className="text-4xl font-display text-brand-black tracking-wide">BULLETIN BOARD</h2>
-              <p className="text-brand-gray mt-2 text-sm font-medium">AI-powered calls for entry and upcoming photography events.</p>
+              <p className="text-brand-gray mt-2 text-sm font-medium">Competitions, grants, fellowships, portfolio reviews, calls for entry, and more.</p>
             </div>
             <button
               onClick={refreshBulletinEvents}
@@ -2521,51 +2523,67 @@ const App: React.FC = () => {
           </header>
 
           <section className="bg-white border border-brand-black/5 rounded-sm p-8 shadow-sm space-y-8">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">FILTERS & PRIORITIES</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">FILTERS & SEARCH</h3>
+            <div className="space-y-6">
+              {/* Opportunity Type */}
               <div>
-                <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">Genre Focus</label>
+                <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">Opportunity Type</label>
                 <div className="flex flex-wrap gap-2">
-                  <button 
-                    onClick={() => setGenreFilter('All')}
-                    className={`text-[9px] font-bold px-3 py-1.5 rounded-sm border transition-all ${genreFilter === 'All' ? 'bg-brand-rose text-white border-brand-rose' : 'bg-white text-brand-gray border-brand-black/5'}`}
-                  >ALL</button>
-                  {genreOptions.slice(0, 5).map((g: Genre) => (
-                    <button 
-                      key={g}
-                      onClick={() => setGenreFilter(g)}
-                      className={`text-[9px] font-bold px-3 py-1.5 rounded-sm border transition-all ${genreFilter === g ? 'bg-brand-rose text-white border-brand-rose' : 'bg-white text-brand-gray border-brand-black/5'}`}
-                    >{g.toUpperCase()}</button>
+                  {(['All', 'Competition', 'Grant', 'Fellowship', 'Residency', 'Open Call', 'Call for Entry', 'Portfolio Review', 'Festival', 'Event'] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTypeFilter(t)}
+                      className={`text-[9px] font-bold px-3 py-1.5 rounded-sm border transition-all ${typeFilter === t ? 'bg-brand-rose text-white border-brand-rose' : 'bg-white text-brand-gray border-brand-black/5 hover:border-brand-rose/30'}`}
+                    >{t === 'All' ? 'ALL TYPES' : t.toUpperCase()}</button>
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">Region</label>
-                <select 
-                  value={regionFilter} 
-                  onChange={(e) => setRegionFilter(e.target.value as BulletinRegion | 'All')}
-                  className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-brand-rose outline-none"
-                >
-                  <option value="All">All Regions</option>
-                  {['Global', 'US', 'Europe', 'Asia', 'Latin America', 'Africa', 'Other'].map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">Priority Level</label>
-                <div className="flex flex-wrap gap-2">
-                  <button 
-                    onClick={() => setPriorityFilter('All')}
-                    className={`text-[9px] font-bold px-3 py-1.5 rounded-sm border transition-all ${priorityFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/5'}`}
-                  >ALL</button>
-                  {(['high', 'medium', 'low'] as BulletinPriority[]).map((p) => (
-                    <button 
-                      key={p}
-                      onClick={() => setPriorityFilter(p)}
-                      className={`text-[9px] font-bold px-3 py-1.5 rounded-sm border transition-all ${priorityFilter === p ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/5'}`}
-                    >{p.toUpperCase()}</button>
-                  ))}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Genre */}
+                <div>
+                  <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">Genre Focus</label>
+                  <select
+                    value={genreFilter}
+                    onChange={(e) => setGenreFilter(e.target.value as Genre | 'All')}
+                    className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-brand-rose outline-none"
+                  >
+                    <option value="All">All Genres</option>
+                    {genreOptions.map((g: Genre) => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                {/* Region */}
+                <div>
+                  <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">Region</label>
+                  <select
+                    value={regionFilter}
+                    onChange={(e) => setRegionFilter(e.target.value as BulletinRegion | 'All')}
+                    className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-brand-rose outline-none"
+                  >
+                    <option value="All">All Regions</option>
+                    {(['Global', 'US', 'Europe', 'Asia', 'Latin America', 'Africa', 'Other'] as const).map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                {/* Priority */}
+                <div>
+                  <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">Priority Level</label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setPriorityFilter('All')}
+                      className={`text-[9px] font-bold px-3 py-1.5 rounded-sm border transition-all ${priorityFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/5'}`}
+                    >ALL</button>
+                    {(['high', 'medium', 'low'] as BulletinPriority[]).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setPriorityFilter(p)}
+                        className={`text-[9px] font-bold px-3 py-1.5 rounded-sm border transition-all ${priorityFilter === p ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/5'}`}
+                      >{p.toUpperCase()}</button>
+                    ))}
+                  </div>
                 </div>
               </div>
+              <p className="text-[9px] text-brand-gray/60 uppercase tracking-widest">
+                <i className="fa-solid fa-circle-info mr-1"></i> Filters apply instantly to loaded results. Hit <span className="font-bold text-brand-rose">REFRESH EVENTS</span> to fetch a new set matching your selection.
+              </p>
             </div>
           </section>
 

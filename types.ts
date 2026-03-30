@@ -47,7 +47,7 @@ export interface GearItem {
   available: boolean;
 }
 
-export type CfeType = 'Competition' | 'Grant' | 'Festival' | 'Residency' | 'Open Call' | 'Event';
+export type CfeType = 'Competition' | 'Grant' | 'Fellowship' | 'Residency' | 'Open Call' | 'Call for Entry' | 'Portfolio Review' | 'Festival' | 'Event';
 
 export type BulletinStatus = 'unmarked' | 'considering' | 'applied' | 'archived';
 
