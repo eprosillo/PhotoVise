@@ -1,40 +1,87 @@
 import React, { useState, useMemo } from 'react';
 import { Session, SessionStatus } from '../types';
+import { generateWeeklyPlan } from '../services/geminiService';
 
 interface CalendarViewProps {
   sessions: Session[];
   onGoToSession: (sessionId: string) => void;
 }
 
+// ── Shared constants ──────────────────────────────────────────────────────────
+
 const STATUS_DOT: Record<SessionStatus, string> = {
-  shot:       'bg-brand-rose',
-  culled:     'bg-brand-blue',
-  edited:     'bg-amber-400',
-  'backed up':'bg-emerald-500',
-  posted:     'bg-purple-500',
-  archived:   'bg-brand-gray/40',
+  shot:        'bg-brand-rose',
+  culled:      'bg-brand-blue',
+  edited:      'bg-amber-400',
+  'backed up': 'bg-emerald-500',
+  posted:      'bg-purple-500',
+  archived:    'bg-brand-gray/40',
 };
 
 const STATUS_CHIP: Record<SessionStatus, string> = {
-  shot:       'bg-brand-rose/10 text-brand-rose border-brand-rose/20',
-  culled:     'bg-brand-blue/10 text-brand-blue border-brand-blue/20',
-  edited:     'bg-amber-50 text-amber-700 border-amber-200',
-  'backed up':'bg-emerald-50 text-emerald-700 border-emerald-200',
-  posted:     'bg-purple-50 text-purple-700 border-purple-200',
-  archived:   'bg-zinc-100 text-zinc-400 border-zinc-200',
+  shot:        'bg-brand-rose/10 text-brand-rose border-brand-rose/20',
+  culled:      'bg-brand-blue/10 text-brand-blue border-brand-blue/20',
+  edited:      'bg-amber-50 text-amber-700 border-amber-200',
+  'backed up': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  posted:      'bg-purple-50 text-purple-700 border-purple-200',
+  archived:    'bg-zinc-100 text-zinc-400 border-zinc-200',
 };
 
-const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const GRID_DAYS  = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const WEEK_DAYS  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const TIME_SLOTS = ['Morning', 'Afternoon', 'Evening'] as const;
+type  TimeSlot   = typeof TIME_SLOTS[number];
+const MONTHS     = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 const toYMD = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+// ── Simple markdown → text renderer ──────────────────────────────────────────
+const MarkdownBlock: React.FC<{ text: string }> = ({ text }) => (
+  <div className="space-y-1.5">
+    {text.split('\n').map((line, i) => {
+      if (!line.trim()) return <div key={i} className="h-2" />;
+      // Heading: ## or ###
+      if (/^###\s/.test(line))
+        return <p key={i} className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-gray mt-4 mb-1">{line.replace(/^###\s/, '')}</p>;
+      if (/^##\s/.test(line))
+        return <p key={i} className="text-[11px] font-bold uppercase tracking-[0.3em] text-brand-black mt-5 mb-1">{line.replace(/^##\s/, '')}</p>;
+      if (/^#\s/.test(line))
+        return <p key={i} className="text-sm font-bold uppercase tracking-[0.3em] text-brand-black mt-5 mb-2">{line.replace(/^#\s/, '')}</p>;
+      // Bold **text**
+      const boldParsed = line.split(/\*\*([^*]+)\*\*/g).map((part, j) =>
+        j % 2 === 1 ? <strong key={j} className="font-bold text-brand-black">{part}</strong> : part
+      );
+      // Bullet
+      if (/^[-•]\s/.test(line))
+        return <p key={i} className="text-[11px] text-brand-gray leading-relaxed flex gap-2"><span className="text-brand-rose flex-shrink-0">—</span><span>{boldParsed}</span></p>;
+      return <p key={i} className="text-[11px] text-brand-gray leading-relaxed">{boldParsed}</p>;
+    })}
+  </div>
+);
+
+// ── Day availability row ──────────────────────────────────────────────────────
+interface DayAvailability { enabled: boolean; times: Set<TimeSlot> }
+const defaultAvailability = (): Record<string, DayAvailability> =>
+  Object.fromEntries(WEEK_DAYS.map(d => [d, { enabled: false, times: new Set<TimeSlot>() }]));
+
+// ── Main component ────────────────────────────────────────────────────────────
 const CalendarView: React.FC<CalendarViewProps> = ({ sessions, onGoToSession }) => {
-  const today = new Date();
-  const [current, setCurrent] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const today   = new Date();
+  const [view, setView]           = useState<'calendar' | 'planner'>('calendar');
+
+  // ── Calendar state ──
+  const [current, setCurrent]     = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
+  // ── Planner state ──
+  const [plannerSessions, setPlannerSessions]   = useState<Set<string>>(new Set());
+  const [availability, setAvailability]         = useState<Record<string, DayAvailability>>(defaultAvailability);
+  const [limitations, setLimitations]           = useState('');
+  const [planResult, setPlanResult]             = useState('');
+  const [isGenerating, setIsGenerating]         = useState(false);
+
+  // Calendar helpers
   const prevMonth = () => setCurrent(new Date(current.getFullYear(), current.getMonth() - 1, 1));
   const nextMonth = () => setCurrent(new Date(current.getFullYear(), current.getMonth() + 1, 1));
   const goToday   = () => {
@@ -42,41 +89,28 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, onGoToSession }) 
     setSelectedDate(toYMD(today));
   };
 
-  // Build the grid cells for the current month view
   const cells = useMemo(() => {
-    const year = current.getFullYear();
-    const month = current.getMonth();
-    const firstDow = new Date(year, month, 1).getDay();          // 0=Sun
+    const year = current.getFullYear(), month = current.getMonth();
+    const firstDow = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const daysInPrev = new Date(year, month, 0).getDate();
-
+    const daysInPrev  = new Date(year, month, 0).getDate();
     const result: { date: string; inMonth: boolean }[] = [];
-
-    // Leading days from previous month
-    for (let i = firstDow - 1; i >= 0; i--) {
-      const d = new Date(year, month - 1, daysInPrev - i);
-      result.push({ date: toYMD(d), inMonth: false });
-    }
-    // Current month days
-    for (let d = 1; d <= daysInMonth; d++) {
+    for (let i = firstDow - 1; i >= 0; i--)
+      result.push({ date: toYMD(new Date(year, month - 1, daysInPrev - i)), inMonth: false });
+    for (let d = 1; d <= daysInMonth; d++)
       result.push({ date: toYMD(new Date(year, month, d)), inMonth: true });
-    }
-    // Trailing days to complete last row
     const remaining = 7 - (result.length % 7);
-    if (remaining < 7) {
-      for (let d = 1; d <= remaining; d++) {
+    if (remaining < 7)
+      for (let d = 1; d <= remaining; d++)
         result.push({ date: toYMD(new Date(year, month + 1, d)), inMonth: false });
-      }
-    }
     return result;
   }, [current]);
 
-  // Map date string → sessions
   const sessionsByDate = useMemo(() => {
     const map: Record<string, Session[]> = {};
     sessions.forEach(s => {
       if (!s.date) return;
-      const key = s.date.slice(0, 10); // normalise to YYYY-MM-DD
+      const key = s.date.slice(0, 10);
       if (!map[key]) map[key] = [];
       map[key].push(s);
     });
@@ -85,100 +119,142 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, onGoToSession }) 
 
   const todayStr = toYMD(today);
   const selectedSessions = selectedDate ? (sessionsByDate[selectedDate] ?? []) : [];
+  const activeSessions   = sessions.filter(s => s.status !== 'archived');
 
-  return (
-    <div className="animate-in fade-in duration-700 space-y-8">
+  // ── Planner helpers ──────────────────────────────────────────────────────
+  const togglePlannerSession = (id: string) =>
+    setPlannerSessions(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+
+  const toggleDay = (day: string) =>
+    setAvailability(prev => ({
+      ...prev,
+      [day]: { ...prev[day], enabled: !prev[day].enabled }
+    }));
+
+  const toggleTime = (day: string, time: TimeSlot) =>
+    setAvailability(prev => {
+      const times = new Set(prev[day].times);
+      times.has(time) ? times.delete(time) : times.add(time);
+      return { ...prev, [day]: { ...prev[day], times } };
+    });
+
+  const canGenerate = plannerSessions.size > 0 && WEEK_DAYS.some(d => availability[d].enabled);
+
+  const handleGenerate = async () => {
+    if (!canGenerate) return;
+    setIsGenerating(true);
+    setPlanResult('');
+
+    const selectedSessionData = sessions
+      .filter(s => plannerSessions.has(s.id))
+      .map(s => {
+        const lines = [
+          `- Session: "${s.title || s.location || 'Untitled'}"`,
+          `  Date: ${s.date}`,
+          `  Location: ${s.location || 'N/A'}`,
+          `  Genre: ${s.genre?.join(', ') || 'N/A'}`,
+          `  Status: ${s.status}`,
+        ];
+        if (s.strategy) lines.push(`  Strategy: ${s.strategy.slice(0, 400)}...`);
+        if (s.dayPlan)  lines.push(`  Day Plan: ${s.dayPlan.slice(0, 400)}...`);
+        return lines.join('\n');
+      })
+      .join('\n\n');
+
+    const availableDaysText = WEEK_DAYS
+      .filter(d => availability[d].enabled)
+      .map(d => {
+        const times = [...availability[d].times];
+        return times.length > 0 ? `${d}: ${times.join(', ')}` : `${d}: any time`;
+      })
+      .join('\n');
+
+    const prompt = `You are a professional photography scheduling assistant. Create a practical week-by-week shooting and workflow schedule for the photographer based on the sessions below.
+
+SESSIONS TO SCHEDULE:
+${selectedSessionData}
+
+PHOTOGRAPHER'S AVAILABLE DAYS & TIMES THIS WEEK:
+${availableDaysText}
+
+ADDITIONAL CONSTRAINTS & NOTES:
+${limitations.trim() || 'None provided.'}
+
+TODAY'S DATE: ${toYMD(today)}
+
+INSTRUCTIONS:
+- Assign specific sessions or session tasks (scouting, shooting, culling, editing, backup) to specific available days and times.
+- Respect the session's existing strategy and day plan if provided — use them to inform what tasks are appropriate for each phase.
+- Keep shoots on days with enough time and energy (avoid cramming multiple full shoots on the same day unless explicitly allowed).
+- Include brief reasoning for each day's assignment (1 sentence).
+- End with a short checklist of what to prepare before the week starts.
+- Format clearly with each day as a heading.`;
+
+    const result = await generateWeeklyPlan(prompt);
+    setPlanResult(result);
+    setIsGenerating(false);
+  };
+
+  // ── Calendar render ──────────────────────────────────────────────────────
+  const renderCalendar = () => (
+    <div className="space-y-8">
+      {/* Month nav */}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <h2 className="text-4xl font-display text-brand-black tracking-wide">CALENDAR</h2>
           <p className="text-brand-gray mt-2 text-sm font-medium">Sessions mapped by shoot date.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={goToday}
-            className="text-[9px] font-bold uppercase tracking-widest px-4 py-2 border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all"
-          >
-            Today
-          </button>
-          <button
-            onClick={prevMonth}
-            className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all"
-          >
+          <button onClick={goToday} className="text-[9px] font-bold uppercase tracking-widest px-4 py-2 border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">Today</button>
+          <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">
             <i className="fa-solid fa-chevron-left text-[10px]"></i>
           </button>
           <span className="text-[13px] font-display tracking-widest text-brand-black min-w-[160px] text-center uppercase">
             {MONTHS[current.getMonth()]} {current.getFullYear()}
           </span>
-          <button
-            onClick={nextMonth}
-            className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all"
-          >
+          <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">
             <i className="fa-solid fa-chevron-right text-[10px]"></i>
           </button>
         </div>
       </header>
 
-      {/* Calendar grid */}
+      {/* Grid */}
       <div className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden">
-        {/* Day-of-week header */}
         <div className="grid grid-cols-7 border-b border-brand-black/5">
-          {DAYS.map(d => (
-            <div key={d} className="py-3 text-center text-[9px] font-bold uppercase tracking-[0.2em] text-brand-gray">
-              {d}
-            </div>
+          {GRID_DAYS.map(d => (
+            <div key={d} className="py-3 text-center text-[9px] font-bold uppercase tracking-[0.2em] text-brand-gray">{d}</div>
           ))}
         </div>
-
-        {/* Date cells */}
         <div className="grid grid-cols-7">
           {cells.map(({ date, inMonth }) => {
             const daySessions = sessionsByDate[date] ?? [];
-            const isToday = date === todayStr;
+            const isToday    = date === todayStr;
             const isSelected = date === selectedDate;
-            const hasArchivedOnly = daySessions.length > 0 && daySessions.every(s => s.status === 'archived');
-
             return (
               <button
                 key={date}
                 onClick={() => setSelectedDate(date === selectedDate ? null : date)}
-                className={`min-h-[80px] md:min-h-[100px] p-2 md:p-3 text-left border-b border-r border-brand-black/5 transition-all relative
+                className={`min-h-[80px] md:min-h-[100px] p-2 md:p-3 text-left border-b border-r border-brand-black/5 transition-all
                   ${isSelected ? 'bg-brand-rose/5 ring-1 ring-inset ring-brand-rose/30' : 'hover:bg-brand-black/[0.02]'}
                   ${!inMonth ? 'bg-brand-black/[0.015]' : ''}
                 `}
               >
-                {/* Date number */}
                 <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold mb-1
                   ${isToday ? 'bg-brand-rose text-white' : inMonth ? 'text-brand-black' : 'text-brand-gray/30'}
                 `}>
                   {new Date(date + 'T12:00:00').getDate()}
                 </span>
-
-                {/* Session chips (desktop: title labels; mobile: dots only) */}
                 <div className="space-y-1 hidden md:block">
                   {daySessions.slice(0, 3).map(s => (
-                    <div
-                      key={s.id}
-                      className={`text-[8px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded-sm border truncate leading-tight
-                        ${STATUS_CHIP[s.status]}
-                        ${s.status === 'archived' ? 'opacity-50' : ''}
-                      `}
-                    >
+                    <div key={s.id} className={`text-[8px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded-sm border truncate leading-tight ${STATUS_CHIP[s.status]} ${s.status === 'archived' ? 'opacity-50' : ''}`}>
                       {s.title || s.location || 'Untitled'}
                     </div>
                   ))}
-                  {daySessions.length > 3 && (
-                    <div className="text-[8px] font-bold text-brand-gray/50 uppercase tracking-widest pl-1">
-                      +{daySessions.length - 3} more
-                    </div>
-                  )}
+                  {daySessions.length > 3 && <div className="text-[8px] font-bold text-brand-gray/50 uppercase tracking-widest pl-1">+{daySessions.length - 3} more</div>}
                 </div>
-
-                {/* Mobile: dot indicators */}
                 {daySessions.length > 0 && (
                   <div className="flex gap-0.5 flex-wrap mt-1 md:hidden">
-                    {daySessions.slice(0, 4).map(s => (
-                      <span key={s.id} className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status]} ${hasArchivedOnly ? 'opacity-40' : ''}`}></span>
-                    ))}
+                    {daySessions.slice(0, 4).map(s => <span key={s.id} className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status]}`}></span>)}
                     {daySessions.length > 4 && <span className="text-[7px] text-brand-gray/40 font-bold">+{daySessions.length - 4}</span>}
                   </div>
                 )}
@@ -188,7 +264,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, onGoToSession }) 
         </div>
       </div>
 
-      {/* Status legend */}
+      {/* Legend */}
       <div className="flex flex-wrap gap-4">
         {(Object.keys(STATUS_DOT) as SessionStatus[]).filter(s => s !== 'archived').map(s => (
           <div key={s} className="flex items-center gap-2">
@@ -198,7 +274,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, onGoToSession }) 
         ))}
       </div>
 
-      {/* Selected-day panel */}
+      {/* Day detail panel */}
       {selectedDate && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="flex items-center justify-between mb-4">
@@ -209,7 +285,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, onGoToSession }) 
               <i className="fa-solid fa-xmark text-sm"></i>
             </button>
           </div>
-
           {selectedSessions.length === 0 ? (
             <div className="py-12 text-center border border-dashed border-brand-black/10 rounded-sm">
               <p className="text-brand-gray/40 text-[10px] font-bold uppercase tracking-widest">No sessions on this day</p>
@@ -217,37 +292,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, onGoToSession }) 
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {selectedSessions.map(s => (
-                <div
-                  key={s.id}
-                  className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all group"
-                >
+                <div key={s.id} className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all">
                   <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
                     <div>
-                      <p className="font-display text-lg text-white leading-none tracking-widest">
-                        {(s.title || s.location || 'Untitled Session').toUpperCase()}
-                      </p>
-                      {s.title && s.location && (
-                        <p className="text-[9px] text-brand-gray mt-1 uppercase tracking-widest">{s.location}</p>
-                      )}
+                      <p className="font-display text-lg text-white leading-none tracking-widest">{(s.title || s.location || 'Untitled Session').toUpperCase()}</p>
+                      {s.title && s.location && <p className="text-[9px] text-brand-gray mt-1 uppercase tracking-widest">{s.location}</p>}
                     </div>
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT[s.status]}`}></span>
                   </div>
                   <div className="px-5 py-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className={`text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm border ${STATUS_CHIP[s.status]}`}>
-                        {s.status}
-                      </span>
-                      {s.genre && s.genre.length > 0 && (
-                        <span className="text-[8px] text-brand-gray uppercase tracking-widest font-bold">{s.genre.join(' · ')}</span>
-                      )}
+                      <span className={`text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
+                      {s.genre && s.genre.length > 0 && <span className="text-[8px] text-brand-gray uppercase tracking-widest font-bold">{s.genre.join(' · ')}</span>}
                     </div>
-                    {s.notes && (
-                      <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-2">{s.notes}</p>
-                    )}
-                    <button
-                      onClick={() => onGoToSession(s.id)}
-                      className="w-full text-[9px] font-bold uppercase tracking-widest py-2.5 bg-brand-black/5 hover:bg-brand-rose hover:text-white text-brand-black rounded-sm transition-all active:scale-95"
-                    >
+                    {s.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-2">{s.notes}</p>}
+                    <button onClick={() => onGoToSession(s.id)} className="w-full text-[9px] font-bold uppercase tracking-widest py-2.5 bg-brand-black/5 hover:bg-brand-rose hover:text-white text-brand-black rounded-sm transition-all active:scale-95">
                       Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                     </button>
                   </div>
@@ -257,6 +316,197 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, onGoToSession }) 
           )}
         </div>
       )}
+    </div>
+  );
+
+  // ── Week Planner render ──────────────────────────────────────────────────
+  const renderPlanner = () => (
+    <div className="space-y-10">
+      <header>
+        <h2 className="text-4xl font-display text-brand-black tracking-wide">WEEK PLANNER</h2>
+        <p className="text-brand-gray mt-2 text-sm font-medium">AI schedules your sessions around your availability.</p>
+      </header>
+
+      {activeSessions.length === 0 ? (
+        <div className="py-24 text-center border border-dashed border-brand-black/10 rounded-sm">
+          <i className="fa-solid fa-calendar-days text-brand-gray/20 text-3xl mb-4 block"></i>
+          <p className="text-brand-gray/40 text-[10px] font-bold uppercase tracking-widest">No active sessions to schedule</p>
+          <p className="text-brand-gray/30 text-[10px] mt-2">Add sessions from the Production Logbook first.</p>
+        </div>
+      ) : (
+        <>
+          {/* Step 1 — Select sessions */}
+          <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
+              <span className="text-brand-rose mr-2">01</span> SELECT SESSIONS TO SCHEDULE
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {activeSessions.map(s => {
+                const selected = plannerSessions.has(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => togglePlannerSession(s.id)}
+                    className={`flex items-center gap-4 p-4 rounded-sm border text-left transition-all ${
+                      selected ? 'border-brand-rose bg-brand-rose/5' : 'border-brand-black/5 hover:border-brand-black/15'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                      selected ? 'bg-brand-rose border-brand-rose' : 'border-brand-gray/30'
+                    }`}>
+                      {selected && <i className="fa-solid fa-check text-white text-[8px]"></i>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-brand-black uppercase tracking-widest truncate">{s.title || s.location || 'Untitled'}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-sm border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
+                        <span className="text-[9px] text-brand-gray">{s.date}</span>
+                        {s.strategy && <span className="text-[8px] text-brand-blue font-bold uppercase tracking-widest"><i className="fa-solid fa-bolt mr-0.5"></i>Strategy</span>}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Step 2 — Availability */}
+          <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
+              <span className="text-brand-rose mr-2">02</span> SET YOUR AVAILABILITY THIS WEEK
+            </h3>
+            <div className="space-y-2">
+              {WEEK_DAYS.map(day => {
+                const { enabled, times } = availability[day];
+                return (
+                  <div key={day} className={`rounded-sm border transition-all ${enabled ? 'border-brand-black/10 bg-brand-black/[0.015]' : 'border-brand-black/5'}`}>
+                    <div className="flex items-center gap-4 px-5 py-3">
+                      {/* Day toggle */}
+                      <button
+                        onClick={() => toggleDay(day)}
+                        className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                          enabled ? 'bg-brand-rose border-brand-rose' : 'border-brand-gray/30'
+                        }`}
+                      >
+                        {enabled && <i className="fa-solid fa-check text-white text-[8px]"></i>}
+                      </button>
+                      <span className={`text-[10px] font-bold uppercase tracking-[0.2em] w-24 flex-shrink-0 ${enabled ? 'text-brand-black' : 'text-brand-gray/40'}`}>
+                        {day}
+                      </span>
+                      {/* Time slots — only visible when day is enabled */}
+                      {enabled && (
+                        <div className="flex gap-2 flex-wrap">
+                          {TIME_SLOTS.map(slot => (
+                            <button
+                              key={slot}
+                              onClick={() => toggleTime(day, slot)}
+                              className={`text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm border transition-all ${
+                                times.has(slot)
+                                  ? 'bg-brand-black text-white border-brand-black'
+                                  : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'
+                              }`}
+                            >
+                              {slot === 'Morning' ? '🌅' : slot === 'Afternoon' ? '☀️' : '🌙'} {slot}
+                            </button>
+                          ))}
+                          {times.size === 0 && (
+                            <span className="text-[9px] text-brand-gray/40 italic self-center">Select time slots or leave blank for any time</span>
+                          )}
+                        </div>
+                      )}
+                      {!enabled && (
+                        <span className="text-[9px] text-brand-gray/25 italic">Not available</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Step 3 — Limitations */}
+          <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-4">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
+              <span className="text-brand-rose mr-2">03</span> ADDITIONAL CONSTRAINTS (OPTIONAL)
+            </h3>
+            <textarea
+              value={limitations}
+              onChange={e => setLimitations(e.target.value)}
+              placeholder="e.g. I have a job interview on Tuesday afternoon, golden hour only for outdoor shoots, avoid back-to-back editing days, equipment pickup on Thursday..."
+              className="w-full h-28 p-4 bg-brand-white border border-brand-black/5 rounded-sm focus:ring-1 focus:ring-brand-rose outline-none text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40 resize-none"
+            />
+          </section>
+
+          {/* Generate button */}
+          <div className="flex justify-end">
+            <button
+              disabled={!canGenerate || isGenerating}
+              onClick={handleGenerate}
+              className={`flex items-center gap-3 px-10 py-4 rounded-sm font-bold uppercase tracking-[0.2em] text-[10px] transition-all ${
+                !canGenerate || isGenerating
+                  ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed'
+                  : 'bg-brand-rose text-white hover:shadow-md active:scale-95 shadow-sm'
+              }`}
+            >
+              {isGenerating ? (
+                <><i className="fa-solid fa-circle-notch animate-spin"></i> BUILDING YOUR SCHEDULE...</>
+              ) : (
+                <><i className="fa-solid fa-calendar-check"></i> GENERATE WEEK SCHEDULE</>
+              )}
+            </button>
+          </div>
+
+          {/* Result */}
+          {(planResult || isGenerating) && (
+            <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden animate-in fade-in duration-500">
+              <div className="bg-brand-black px-8 py-5 flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-1">PHOTOVISE SCHEDULING AI</p>
+                  <p className="font-display text-xl text-white tracking-widest">YOUR WEEK SCHEDULE</p>
+                </div>
+                <i className="fa-solid fa-calendar-week text-brand-rose/40 text-xl"></i>
+              </div>
+              <div className="p-8">
+                {isGenerating && !planResult ? (
+                  <div className="py-12 text-center">
+                    <i className="fa-solid fa-circle-notch animate-spin text-brand-rose text-xl mb-3 block"></i>
+                    <p className="text-brand-gray/50 text-[10px] font-bold uppercase tracking-widest">Photovise is building your schedule...</p>
+                  </div>
+                ) : (
+                  <MarkdownBlock text={planResult} />
+                )}
+              </div>
+            </section>
+          )}
+        </>
+      )}
+    </div>
+  );
+
+  // ── Root render ──────────────────────────────────────────────────────────
+  return (
+    <div className="animate-in fade-in duration-700 space-y-8">
+      {/* View toggle */}
+      <div className="flex gap-1 bg-brand-black/5 p-1 rounded-sm w-fit">
+        <button
+          onClick={() => setView('calendar')}
+          className={`px-6 py-2 text-[9px] font-bold uppercase tracking-[0.2em] rounded-sm transition-all ${
+            view === 'calendar' ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'
+          }`}
+        >
+          <i className="fa-solid fa-calendar mr-2"></i>Calendar
+        </button>
+        <button
+          onClick={() => setView('planner')}
+          className={`px-6 py-2 text-[9px] font-bold uppercase tracking-[0.2em] rounded-sm transition-all ${
+            view === 'planner' ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'
+          }`}
+        >
+          <i className="fa-solid fa-calendar-week mr-2"></i>Week Planner
+        </button>
+      </div>
+
+      {view === 'calendar' ? renderCalendar() : renderPlanner()}
     </div>
   );
 };
