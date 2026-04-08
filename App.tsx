@@ -4,7 +4,7 @@ import CalendarView from './components/CalendarView';
 import SessionCard from './components/SessionCard';
 import SessionSelector from './components/SessionSelector';
 import LocationAutocomplete from './components/LocationAutocomplete';
-import { Session, SessionStatus, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, JournalEntry, JournalImage, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe } from './types';
+import { Session, SessionStatus, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, JournalEntry, JournalImage, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan } from './types';
 import { generateWeeklyPlan, generateAssignmentGuide, askProQuestion, fetchBulletinEvents } from './services/geminiService';
 import { createCalendarEventForSession } from './services/calendarService';
 import { GENRE_ICONS } from './constants';
@@ -772,6 +772,9 @@ const App: React.FC = () => {
   const [bulletinFetchedAt, setBulletinFetchedAt] = useState<number>(() =>
     loadFromStorage<number>('pingstudio_bulletin_fetched_at', 0)
   );
+  const [weekPlans, setWeekPlans] = useState<WeekPlan[]>(() =>
+    loadFromStorage<WeekPlan[]>('pingstudio_week_plans', [])
+  );
 
   const [plannerInput, setPlannerInput] = useState('');
   const [plannerOutput, setPlannerOutput] = useState('');
@@ -884,6 +887,7 @@ const App: React.FC = () => {
       if (data.bulletinItems)    setAiBulletinItems(data.bulletinItems);
       if (data.bulletinFetchedAt !== undefined) setBulletinFetchedAt(data.bulletinFetchedAt);
       if (data.feedback)         setFeedbackLog(data.feedback);
+      if (data.weekPlans)        setWeekPlans(data.weekPlans);
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -944,6 +948,13 @@ const App: React.FC = () => {
     localStorage.setItem('pingstudio_feedback', JSON.stringify(feedbackLog));
     saveUserData({ feedback: feedbackLog });
   }, [feedbackLog]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist week plans (localStorage + Firestore — keep last 20, trim text for size)
+  useEffect(() => {
+    localStorage.setItem('pingstudio_week_plans', JSON.stringify(weekPlans));
+    const trimmed = weekPlans.slice(-20).map(p => ({ ...p, result: p.result.slice(0, 3000) }));
+    saveUserData({ weekPlans: trimmed });
+  }, [weekPlans]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addSession = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -2741,6 +2752,9 @@ const App: React.FC = () => {
         <CalendarView
           sessions={sessions}
           journalEntries={journalEntries}
+          weekPlans={weekPlans}
+          onSaveWeekPlan={(plan) => setWeekPlans(prev => [plan, ...prev])}
+          onDeleteWeekPlan={(id) => setWeekPlans(prev => prev.filter(p => p.id !== id))}
           onGoToSession={(id) => {
             setActiveTab('dashboard');
             setHighlightedSessionId(id);

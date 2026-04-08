@@ -23,6 +23,15 @@ export type Genre =
 
 export type SessionStatus = 'shot' | 'culled' | 'edited' | 'backed up' | 'posted' | 'archived';
 
+export interface WeekPlan {
+  id: string;
+  weekOf: string;          // YYYY-MM-DD of Monday of the planned week
+  weekLabel: string;       // e.g. "Apr 7 – Apr 13, 2026"
+  sessionTitles: string[]; // for display in the pin card
+  result: string;          // generated plan text
+  createdAt: number;
+}
+
 export interface Session {
   id: string;
   date: string;

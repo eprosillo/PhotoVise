@@ -1,10 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { Session, SessionStatus, JournalEntry } from '../types';
+import { Session, SessionStatus, JournalEntry, WeekPlan } from '../types';
 import { generateWeeklyPlan } from '../services/geminiService';
 
 interface CalendarViewProps {
   sessions: Session[];
   journalEntries: JournalEntry[];
+  weekPlans: WeekPlan[];
+  onSaveWeekPlan: (plan: WeekPlan) => void;
+  onDeleteWeekPlan: (id: string) => void;
   onGoToSession: (sessionId: string) => void;
   onGoToJournal: () => void;
 }
@@ -34,9 +37,41 @@ const WEEK_DAYS  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Sat
 const TIME_SLOTS = ['Morning', 'Afternoon', 'Evening'] as const;
 type  TimeSlot   = typeof TIME_SLOTS[number];
 const MONTHS     = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const toYMD = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const shortDate = (d: Date) =>
+  `${SHORT_MONTHS[d.getMonth()]} ${d.getDate()}`;
+
+/** Returns the Monday of the week containing `date` */
+const getMondayOf = (date: Date): Date => {
+  const d = new Date(date);
+  const dow = d.getDay(); // 0=Sun
+  const diff = dow === 0 ? -6 : 1 - dow;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+/** Returns an array of 7 dates Mon–Sun for the week starting at monday */
+const weekDates = (monday: Date): Date[] =>
+  Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+
+const weekLabel = (monday: Date): string => {
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const sameYear  = monday.getFullYear() === sunday.getFullYear();
+  const sameMonth = monday.getMonth()    === sunday.getMonth();
+  if (sameMonth)  return `${SHORT_MONTHS[monday.getMonth()]} ${monday.getDate()} – ${sunday.getDate()}, ${sunday.getFullYear()}`;
+  if (sameYear)   return `${shortDate(monday)} – ${shortDate(sunday)}, ${sunday.getFullYear()}`;
+  return `${shortDate(monday)}, ${monday.getFullYear()} – ${shortDate(sunday)}, ${sunday.getFullYear()}`;
+};
 
 // ── Simple markdown renderer ──────────────────────────────────────────────────
 const MarkdownBlock: React.FC<{ text: string }> = ({ text }) => (
@@ -59,11 +94,6 @@ const MarkdownBlock: React.FC<{ text: string }> = ({ text }) => (
   </div>
 );
 
-// ── Day availability row ──────────────────────────────────────────────────────
-interface DayAvailability { enabled: boolean; times: Set<TimeSlot> }
-const defaultAvailability = (): Record<string, DayAvailability> =>
-  Object.fromEntries(WEEK_DAYS.map(d => [d, { enabled: false, times: new Set<TimeSlot>() }]));
-
 // ── Highlight matched text ────────────────────────────────────────────────────
 const Highlight: React.FC<{ text: string; query: string }> = ({ text, query }) => {
   if (!query.trim()) return <>{text}</>;
@@ -79,25 +109,43 @@ const Highlight: React.FC<{ text: string; query: string }> = ({ text, query }) =
   );
 };
 
+// ── Day availability ──────────────────────────────────────────────────────────
+interface DayAvailability { enabled: boolean; times: Set<TimeSlot> }
+const defaultAvailability = (): Record<string, DayAvailability> =>
+  Object.fromEntries(WEEK_DAYS.map(d => [d, { enabled: false, times: new Set<TimeSlot>() }]));
+
 // ── Main component ────────────────────────────────────────────────────────────
-const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, onGoToSession, onGoToJournal }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({
+  sessions, journalEntries, weekPlans, onSaveWeekPlan, onDeleteWeekPlan,
+  onGoToSession, onGoToJournal,
+}) => {
   const today = new Date();
   const [view, setView] = useState<'calendar' | 'planner' | 'search'>('calendar');
 
-  // ── Calendar state ──
+  // Calendar state
   const [current, setCurrent]           = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showJournal, setShowJournal]   = useState(true);
 
-  // ── Planner state ──
-  const [plannerSessions, setPlannerSessions] = useState<Set<string>>(new Set());
-  const [availability, setAvailability]       = useState<Record<string, DayAvailability>>(defaultAvailability);
-  const [limitations, setLimitations]         = useState('');
-  const [planResult, setPlanResult]           = useState('');
-  const [isGenerating, setIsGenerating]       = useState(false);
+  // Planner state
+  const [plannerSessions, setPlannerSessions]   = useState<Set<string>>(new Set());
+  const [availability, setAvailability]         = useState<Record<string, DayAvailability>>(defaultAvailability);
+  const [limitations, setLimitations]           = useState('');
+  const [planResult, setPlanResult]             = useState('');
+  const [isGenerating, setIsGenerating]         = useState(false);
+  const [pinnedThisResult, setPinnedThisResult] = useState(false);
+  // "Week of" — defaults to current week's Monday
+  const [weekMonday, setWeekMonday] = useState<Date>(() => getMondayOf(today));
 
-  // ── Search state ──
+  // Search state
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Derived week info
+  const currentWeekDates  = useMemo(() => weekDates(weekMonday), [weekMonday]);
+  const currentWeekLabel  = useMemo(() => weekLabel(weekMonday), [weekMonday]);
+
+  const prevWeek = () => setWeekMonday(prev => { const d = new Date(prev); d.setDate(d.getDate() - 7); return d; });
+  const nextWeek = () => setWeekMonday(prev => { const d = new Date(prev); d.setDate(d.getDate() + 7); return d; });
 
   // Calendar helpers
   const prevMonth = () => setCurrent(new Date(current.getFullYear(), current.getMonth() - 1, 1));
@@ -126,23 +174,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
 
   const sessionsByDate = useMemo(() => {
     const map: Record<string, Session[]> = {};
-    sessions.forEach(s => {
-      if (!s.date) return;
-      const key = s.date.slice(0, 10);
-      if (!map[key]) map[key] = [];
-      map[key].push(s);
-    });
+    sessions.forEach(s => { if (!s.date) return; const k = s.date.slice(0,10); (map[k] ??= []).push(s); });
     return map;
   }, [sessions]);
 
   const journalByDate = useMemo(() => {
     const map: Record<string, JournalEntry[]> = {};
-    journalEntries.forEach(e => {
-      if (!e.date) return;
-      const key = e.date.slice(0, 10);
-      if (!map[key]) map[key] = [];
-      map[key].push(e);
-    });
+    journalEntries.forEach(e => { if (!e.date) return; const k = e.date.slice(0,10); (map[k] ??= []).push(e); });
     return map;
   }, [journalEntries]);
 
@@ -151,22 +189,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
   const selectedJournal  = selectedDate ? (journalByDate[selectedDate] ?? []) : [];
   const activeSessions   = sessions.filter(s => s.status !== 'archived');
 
-  // ── Search results ────────────────────────────────────────────────────────
+  // Search
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return { sessions: [], journal: [] };
-    const matchedSessions = sessions.filter(s =>
-      [s.title, s.location, s.name, s.notes, s.strategy, s.dayPlan, ...(s.genre ?? [])]
-        .some(f => f?.toLowerCase().includes(q))
-    );
-    const matchedJournal = journalEntries.filter(e =>
-      [e.title, e.notes, ...(e.tags ?? [])]
-        .some(f => f?.toLowerCase().includes(q))
-    );
-    return { sessions: matchedSessions, journal: matchedJournal };
+    return {
+      sessions: sessions.filter(s =>
+        [s.title, s.location, s.name, s.notes, s.strategy, s.dayPlan, ...(s.genre ?? [])].some(f => f?.toLowerCase().includes(q))
+      ),
+      journal: journalEntries.filter(e =>
+        [e.title, e.notes, ...(e.tags ?? [])].some(f => f?.toLowerCase().includes(q))
+      ),
+    };
   }, [searchQuery, sessions, journalEntries]);
 
-  // ── Planner helpers ───────────────────────────────────────────────────────
+  // Planner helpers
   const togglePlannerSession = (id: string) =>
     setPlannerSessions(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
@@ -186,6 +223,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
     if (!canGenerate) return;
     setIsGenerating(true);
     setPlanResult('');
+    setPinnedThisResult(false);
+
     const selectedSessionData = sessions
       .filter(s => plannerSessions.has(s.id))
       .map(s => {
@@ -198,14 +237,36 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
         if (s.dayPlan)  lines.push(`  Day Plan: ${s.dayPlan.slice(0, 400)}...`);
         return lines.join('\n');
       }).join('\n\n');
+
+    // Build availability text using real dates
     const availableDaysText = WEEK_DAYS
-      .filter(d => availability[d].enabled)
-      .map(d => { const times = [...availability[d].times]; return times.length > 0 ? `${d}: ${times.join(', ')}` : `${d}: any time`; })
+      .map((day, i) => ({ day, date: currentWeekDates[i] }))
+      .filter(({ day }) => availability[day].enabled)
+      .map(({ day, date }) => {
+        const times = [...availability[day].times];
+        const dateStr = `${day} ${shortDate(date)}, ${date.getFullYear()}`;
+        return times.length > 0 ? `${dateStr}: ${times.join(', ')}` : `${dateStr}: any time`;
+      })
       .join('\n');
-    const prompt = `You are a professional photography scheduling assistant. Create a practical week-by-week shooting and workflow schedule for the photographer based on the sessions below.\n\nSESSIONS TO SCHEDULE:\n${selectedSessionData}\n\nPHOTOGRAPHER'S AVAILABLE DAYS & TIMES THIS WEEK:\n${availableDaysText}\n\nADDITIONAL CONSTRAINTS & NOTES:\n${limitations.trim() || 'None provided.'}\n\nTODAY'S DATE: ${toYMD(today)}\n\nINSTRUCTIONS:\n- Assign specific sessions or session tasks (scouting, shooting, culling, editing, backup) to specific available days and times.\n- Respect the session's existing strategy and day plan if provided — use them to inform what tasks are appropriate for each phase.\n- Keep shoots on days with enough time and energy (avoid cramming multiple full shoots on the same day unless explicitly allowed).\n- Include brief reasoning for each day's assignment (1 sentence).\n- End with a short checklist of what to prepare before the week starts.\n- Format clearly with each day as a heading.`;
+
+    const prompt = `You are a professional photography scheduling assistant. Create a practical shooting and workflow schedule for the photographer for the week of ${currentWeekLabel}.\n\nSESSIONS TO SCHEDULE:\n${selectedSessionData}\n\nPHOTOGRAPHER'S AVAILABLE DAYS & TIMES (use these exact dates):\n${availableDaysText}\n\nADDITIONAL CONSTRAINTS & NOTES:\n${limitations.trim() || 'None provided.'}\n\nTODAY'S DATE: ${toYMD(today)}\n\nINSTRUCTIONS:\n- Assign specific sessions or session tasks (scouting, shooting, culling, editing, backup) to the available dates listed above.\n- Use the exact dates (e.g. "Monday Apr 7") as headings for each day.\n- Respect the session's existing strategy and day plan — use them to inform which tasks fit each phase.\n- Keep shoots on days with enough time; avoid cramming multiple full shoots on the same day.\n- Include brief reasoning for each day's assignment (1 sentence).\n- End with a short prep checklist for before the week starts.\n- Format clearly with each day as a heading.`;
+
     const result = await generateWeeklyPlan(prompt);
     setPlanResult(result);
     setIsGenerating(false);
+  };
+
+  const handlePin = () => {
+    const plan: WeekPlan = {
+      id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
+      weekOf: toYMD(weekMonday),
+      weekLabel: currentWeekLabel,
+      sessionTitles: sessions.filter(s => plannerSessions.has(s.id)).map(s => s.title || s.location || 'Untitled'),
+      result: planResult,
+      createdAt: Date.now(),
+    };
+    onSaveWeekPlan(plan);
+    setPinnedThisResult(true);
   };
 
   // ── Calendar render ───────────────────────────────────────────────────────
@@ -217,13 +278,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
           <p className="text-brand-gray mt-2 text-sm font-medium">Sessions and journal entries mapped by date.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Journal toggle */}
-          <button
-            onClick={() => setShowJournal(p => !p)}
-            className={`flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest px-3 py-2 rounded-sm border transition-all ${
-              showJournal ? 'bg-brand-black text-white border-brand-black' : 'border-brand-black/10 text-brand-gray hover:border-brand-black/30'
-            }`}
-          >
+          <button onClick={() => setShowJournal(p => !p)}
+            className={`flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest px-3 py-2 rounded-sm border transition-all ${showJournal ? 'bg-brand-black text-white border-brand-black' : 'border-brand-black/10 text-brand-gray hover:border-brand-black/30'}`}>
             <i className="fa-solid fa-book-open text-[9px]"></i> Journal
           </button>
           <button onClick={goToday} className="text-[9px] font-bold uppercase tracking-widest px-4 py-2 border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">Today</button>
@@ -239,12 +295,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
         </div>
       </header>
 
-      {/* Grid */}
       <div className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden">
         <div className="grid grid-cols-7 border-b border-brand-black/5">
-          {GRID_DAYS.map(d => (
-            <div key={d} className="py-3 text-center text-[9px] font-bold uppercase tracking-[0.2em] text-brand-gray">{d}</div>
-          ))}
+          {GRID_DAYS.map(d => <div key={d} className="py-3 text-center text-[9px] font-bold uppercase tracking-[0.2em] text-brand-gray">{d}</div>)}
         </div>
         <div className="grid grid-cols-7">
           {cells.map(({ date, inMonth }) => {
@@ -252,41 +305,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
             const dayJournal  = showJournal ? (journalByDate[date] ?? []) : [];
             const isToday     = date === todayStr;
             const isSelected  = date === selectedDate;
-            const hasItems    = daySessions.length > 0 || dayJournal.length > 0;
             return (
-              <button
-                key={date}
-                onClick={() => setSelectedDate(date === selectedDate ? null : date)}
+              <button key={date} onClick={() => setSelectedDate(date === selectedDate ? null : date)}
                 className={`min-h-[80px] md:min-h-[100px] p-2 md:p-3 text-left border-b border-r border-brand-black/5 transition-all
                   ${isSelected ? 'bg-brand-rose/5 ring-1 ring-inset ring-brand-rose/30' : 'hover:bg-brand-black/[0.02]'}
                   ${!inMonth ? 'bg-brand-black/[0.015]' : ''}
-                `}
-              >
-                <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold mb-1
-                  ${isToday ? 'bg-brand-rose text-white' : inMonth ? 'text-brand-black' : 'text-brand-gray/30'}
                 `}>
+                <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold mb-1
+                  ${isToday ? 'bg-brand-rose text-white' : inMonth ? 'text-brand-black' : 'text-brand-gray/30'}`}>
                   {new Date(date + 'T12:00:00').getDate()}
                 </span>
-
-                {/* Desktop chips */}
                 <div className="space-y-1 hidden md:block">
                   {daySessions.slice(0, 2).map(s => (
                     <div key={s.id} className={`text-[8px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded-sm border truncate leading-tight ${STATUS_CHIP[s.status]}`}>
                       {s.title || s.location || 'Untitled'}
                     </div>
                   ))}
-                  {dayJournal.slice(0, showJournal ? 2 : 0).map(e => (
+                  {dayJournal.slice(0, 2).map(e => (
                     <div key={e.id} className="text-[8px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded-sm border truncate leading-tight bg-purple-50 text-purple-700 border-purple-200">
                       <i className="fa-solid fa-book-open mr-1 text-[7px]"></i>{e.title || 'Journal'}
                     </div>
                   ))}
                   {(daySessions.length + dayJournal.length) > 4 && (
-                    <div className="text-[8px] font-bold text-brand-gray/50 uppercase tracking-widest pl-1">+{(daySessions.length + dayJournal.length) - 4} more</div>
+                    <div className="text-[8px] font-bold text-brand-gray/50 pl-1">+{(daySessions.length + dayJournal.length) - 4} more</div>
                   )}
                 </div>
-
-                {/* Mobile dots */}
-                {hasItems && (
+                {(daySessions.length > 0 || dayJournal.length > 0) && (
                   <div className="flex gap-0.5 flex-wrap mt-1 md:hidden">
                     {daySessions.slice(0, 3).map(s => <span key={s.id} className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status]}`}></span>)}
                     {dayJournal.slice(0, 2).map(e => <span key={e.id} className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>)}
@@ -298,7 +342,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
         </div>
       </div>
 
-      {/* Legend */}
       <div className="flex flex-wrap gap-4 items-center">
         {(Object.keys(STATUS_DOT) as SessionStatus[]).filter(s => s !== 'archived').map(s => (
           <div key={s} className="flex items-center gap-2">
@@ -312,7 +355,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
         </div>
       </div>
 
-      {/* Day detail panel */}
       {selectedDate && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
           <div className="flex items-center justify-between">
@@ -323,13 +365,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
               <i className="fa-solid fa-xmark text-sm"></i>
             </button>
           </div>
-
           {selectedSessions.length === 0 && selectedJournal.length === 0 && (
             <div className="py-12 text-center border border-dashed border-brand-black/10 rounded-sm">
               <p className="text-brand-gray/40 text-[10px] font-bold uppercase tracking-widest">Nothing logged on this day</p>
             </div>
           )}
-
           {selectedSessions.length > 0 && (
             <div>
               <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-brand-black/30 mb-3">Sessions</p>
@@ -346,7 +386,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
                         {s.genre && s.genre.length > 0 && <span className="text-[8px] text-brand-gray uppercase tracking-widest font-bold">{s.genre.join(' · ')}</span>}
                       </div>
                       {s.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-2">{s.notes}</p>}
-                      <button onClick={() => onGoToSession(s.id)} className="w-full text-[9px] font-bold uppercase tracking-widest py-2.5 bg-brand-black/5 hover:bg-brand-rose hover:text-white text-brand-black rounded-sm transition-all active:scale-95">
+                      <button onClick={() => onGoToSession(s.id)} className="w-full text-[9px] font-bold uppercase tracking-widest py-2.5 bg-brand-black/5 hover:bg-brand-rose hover:text-white text-brand-black rounded-sm transition-all">
                         Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                       </button>
                     </div>
@@ -355,7 +395,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
               </div>
             </div>
           )}
-
           {selectedJournal.length > 0 && (
             <div>
               <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-brand-black/30 mb-3">Journal Entries</p>
@@ -373,13 +412,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
                           {e.tags.map(t => <span key={t} className="text-[8px] px-2 py-0.5 bg-purple-50 text-purple-600 border border-purple-100 rounded-sm font-bold uppercase tracking-widest">{t}</span>)}
                         </div>
                       )}
-                      {(e.resultRating || e.processRating) && (
-                        <div className="flex gap-3 text-[9px] text-brand-gray">
-                          {e.resultRating && <span>Result: {'★'.repeat(e.resultRating)}{'☆'.repeat(5 - e.resultRating)}</span>}
-                          {e.processRating && <span>Process: {'★'.repeat(e.processRating)}{'☆'.repeat(5 - e.processRating)}</span>}
-                        </div>
-                      )}
-                      <button onClick={onGoToJournal} className="w-full text-[9px] font-bold uppercase tracking-widest py-2.5 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 rounded-sm transition-all active:scale-95">
+                      <button onClick={onGoToJournal} className="w-full text-[9px] font-bold uppercase tracking-widest py-2.5 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 rounded-sm transition-all">
                         Open Journal <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                       </button>
                     </div>
@@ -400,26 +433,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
         <h2 className="text-4xl font-display text-brand-black tracking-wide">SEARCH</h2>
         <p className="text-brand-gray mt-2 text-sm font-medium">Find sessions and journal entries by keyword.</p>
       </header>
-
-      {/* Search input */}
       <div className="relative">
         <i className="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-brand-gray/40 text-sm"></i>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Search by title, location, genre, notes, tags, strategy..."
-          autoFocus
-          className="w-full pl-12 pr-5 py-4 bg-white border border-brand-black/10 rounded-sm focus:ring-2 focus:ring-brand-rose outline-none text-sm text-brand-black placeholder:text-brand-gray/40 shadow-sm"
-        />
+        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search by title, location, genre, notes, tags, strategy..." autoFocus
+          className="w-full pl-12 pr-5 py-4 bg-white border border-brand-black/10 rounded-sm focus:ring-2 focus:ring-brand-rose outline-none text-sm text-brand-black placeholder:text-brand-gray/40 shadow-sm" />
         {searchQuery && (
           <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-gray/40 hover:text-brand-rose transition-colors">
             <i className="fa-solid fa-xmark"></i>
           </button>
         )}
       </div>
-
-      {/* Results */}
       {!searchQuery.trim() ? (
         <div className="py-20 text-center border border-dashed border-brand-black/10 rounded-sm">
           <i className="fa-solid fa-magnifying-glass text-brand-gray/20 text-3xl mb-4 block"></i>
@@ -431,7 +455,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
         </div>
       ) : (
         <div className="space-y-10">
-          {/* Session results */}
           {searchResults.sessions.length > 0 && (
             <section>
               <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-black/30 mb-4 flex items-center gap-2">
@@ -443,9 +466,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
                   <div key={s.id} className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all">
                     <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
                       <div>
-                        <p className="font-display text-lg text-white leading-none tracking-widest">
-                          <Highlight text={(s.title || s.location || 'Untitled').toUpperCase()} query={searchQuery} />
-                        </p>
+                        <p className="font-display text-lg text-white leading-none tracking-widest"><Highlight text={(s.title || s.location || 'Untitled').toUpperCase()} query={searchQuery} /></p>
                         <p className="text-[9px] text-brand-gray mt-1 uppercase tracking-widest">{s.date}</p>
                       </div>
                       <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${STATUS_DOT[s.status]}`}></span>
@@ -456,7 +477,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
                         {s.genre?.map(g => <span key={g} className="text-[8px] text-brand-gray font-bold uppercase tracking-widest">{g}</span>)}
                       </div>
                       {s.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-2"><Highlight text={s.notes} query={searchQuery} /></p>}
-                      {s.location && s.title && <p className="text-[9px] text-brand-gray/60 uppercase tracking-widest"><Highlight text={s.location} query={searchQuery} /></p>}
                       <button onClick={() => onGoToSession(s.id)} className="w-full text-[9px] font-bold uppercase tracking-widest py-2 bg-brand-black/5 hover:bg-brand-rose hover:text-white text-brand-black rounded-sm transition-all mt-2">
                         Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                       </button>
@@ -466,8 +486,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
               </div>
             </section>
           )}
-
-          {/* Journal results */}
           {searchResults.journal.length > 0 && (
             <section>
               <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-black/30 mb-4 flex items-center gap-2">
@@ -479,9 +497,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
                   <div key={e.id} className="bg-white border border-purple-100 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all">
                     <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
                       <div>
-                        <p className="font-display text-lg text-white leading-none tracking-widest">
-                          <Highlight text={(e.title || 'Journal Entry').toUpperCase()} query={searchQuery} />
-                        </p>
+                        <p className="font-display text-lg text-white leading-none tracking-widest"><Highlight text={(e.title || 'Journal Entry').toUpperCase()} query={searchQuery} /></p>
                         <p className="text-[9px] text-brand-gray mt-1 uppercase tracking-widest">{e.date}</p>
                       </div>
                       <i className="fa-solid fa-book-open text-purple-400/60 ml-2"></i>
@@ -491,9 +507,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
                       {e.tags && e.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {e.tags.map(t => (
-                            <span key={t} className={`text-[8px] px-2 py-0.5 rounded-sm font-bold uppercase tracking-widest border ${t.toLowerCase().includes(searchQuery.toLowerCase()) ? 'bg-brand-rose/10 text-brand-rose border-brand-rose/20' : 'bg-purple-50 text-purple-600 border-purple-100'}`}>
-                              {t}
-                            </span>
+                            <span key={t} className={`text-[8px] px-2 py-0.5 rounded-sm font-bold uppercase tracking-widest border ${t.toLowerCase().includes(searchQuery.toLowerCase()) ? 'bg-brand-rose/10 text-brand-rose border-brand-rose/20' : 'bg-purple-50 text-purple-600 border-purple-100'}`}>{t}</span>
                           ))}
                         </div>
                       )}
@@ -526,6 +540,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
         </div>
       ) : (
         <>
+          {/* Step 1 — Sessions */}
           <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
               <span className="text-brand-rose mr-2">01</span> SELECT SESSIONS TO SCHEDULE
@@ -553,21 +568,66 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
             </div>
           </section>
 
+          {/* Step 2 — Week of */}
           <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
-              <span className="text-brand-rose mr-2">02</span> SET YOUR AVAILABILITY THIS WEEK
+              <span className="text-brand-rose mr-2">02</span> CHOOSE WEEK
+            </h3>
+            <div className="flex items-center gap-3 flex-wrap">
+              <button onClick={prevWeek} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">
+                <i className="fa-solid fa-chevron-left text-[10px]"></i>
+              </button>
+              <div className="flex items-center gap-3 bg-brand-black/[0.03] px-5 py-2.5 rounded-sm border border-brand-black/5">
+                <i className="fa-solid fa-calendar text-brand-rose text-[10px]"></i>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-brand-black">Week of {currentWeekLabel}</span>
+              </div>
+              <button onClick={nextWeek} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">
+                <i className="fa-solid fa-chevron-right text-[10px]"></i>
+              </button>
+              {/* Jump to date */}
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] text-brand-gray/50 uppercase tracking-widest font-bold">Jump to:</span>
+                <input
+                  type="date"
+                  onChange={e => { if (e.target.value) setWeekMonday(getMondayOf(new Date(e.target.value + 'T12:00:00'))); }}
+                  className="text-[10px] font-bold border border-brand-black/10 rounded-sm px-3 py-2 focus:ring-1 focus:ring-brand-rose outline-none bg-white"
+                />
+              </div>
+            </div>
+            {/* Mini week preview */}
+            <div className="grid grid-cols-7 gap-1">
+              {currentWeekDates.map((d, i) => (
+                <div key={i} className={`text-center p-2 rounded-sm border ${toYMD(d) === todayStr ? 'border-brand-rose bg-brand-rose/5' : 'border-brand-black/5 bg-brand-black/[0.01]'}`}>
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-brand-gray">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</p>
+                  <p className={`text-[11px] font-bold mt-0.5 ${toYMD(d) === todayStr ? 'text-brand-rose' : 'text-brand-black'}`}>{d.getDate()}</p>
+                  <p className="text-[7px] text-brand-gray/50 uppercase">{SHORT_MONTHS[d.getMonth()]}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Step 3 — Availability */}
+          <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
+              <span className="text-brand-rose mr-2">03</span> SET YOUR AVAILABILITY
             </h3>
             <div className="space-y-2">
-              {WEEK_DAYS.map(day => {
+              {WEEK_DAYS.map((day, i) => {
                 const { enabled, times } = availability[day];
+                const realDate = currentWeekDates[i];
                 return (
                   <div key={day} className={`rounded-sm border transition-all ${enabled ? 'border-brand-black/10 bg-brand-black/[0.015]' : 'border-brand-black/5'}`}>
-                    <div className="flex items-center gap-4 px-5 py-3">
+                    <div className="flex items-center gap-4 px-5 py-3 flex-wrap">
                       <button onClick={() => toggleDay(day)}
                         className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${enabled ? 'bg-brand-rose border-brand-rose' : 'border-brand-gray/30'}`}>
                         {enabled && <i className="fa-solid fa-check text-white text-[8px]"></i>}
                       </button>
-                      <span className={`text-[10px] font-bold uppercase tracking-[0.2em] w-24 flex-shrink-0 ${enabled ? 'text-brand-black' : 'text-brand-gray/40'}`}>{day}</span>
+                      <div className="flex items-baseline gap-2 w-44 flex-shrink-0">
+                        <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${enabled ? 'text-brand-black' : 'text-brand-gray/40'}`}>{day.slice(0,3)}</span>
+                        <span className={`text-[9px] ${toYMD(realDate) === todayStr ? 'text-brand-rose font-bold' : 'text-brand-gray/50'}`}>
+                          {shortDate(realDate)}{toYMD(realDate) === todayStr ? ' · Today' : ''}
+                        </span>
+                      </div>
                       {enabled ? (
                         <div className="flex gap-2 flex-wrap">
                           {TIME_SLOTS.map(slot => (
@@ -576,7 +636,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
                               {slot === 'Morning' ? '🌅' : slot === 'Afternoon' ? '☀️' : '🌙'} {slot}
                             </button>
                           ))}
-                          {times.size === 0 && <span className="text-[9px] text-brand-gray/40 italic self-center">Select time slots or leave blank for any time</span>}
+                          {times.size === 0 && <span className="text-[9px] text-brand-gray/40 italic self-center">Any time</span>}
                         </div>
                       ) : (
                         <span className="text-[9px] text-brand-gray/25 italic">Not available</span>
@@ -588,15 +648,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
             </div>
           </section>
 
+          {/* Step 4 — Limitations */}
           <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-4">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
-              <span className="text-brand-rose mr-2">03</span> ADDITIONAL CONSTRAINTS (OPTIONAL)
+              <span className="text-brand-rose mr-2">04</span> ADDITIONAL CONSTRAINTS (OPTIONAL)
             </h3>
             <textarea value={limitations} onChange={e => setLimitations(e.target.value)}
               placeholder="e.g. I have a job interview on Tuesday afternoon, golden hour only for outdoor shoots, avoid back-to-back editing days..."
               className="w-full h-28 p-4 bg-brand-white border border-brand-black/5 rounded-sm focus:ring-1 focus:ring-brand-rose outline-none text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40 resize-none" />
           </section>
 
+          {/* Generate button */}
           <div className="flex justify-end">
             <button disabled={!canGenerate || isGenerating} onClick={handleGenerate}
               className={`flex items-center gap-3 px-10 py-4 rounded-sm font-bold uppercase tracking-[0.2em] text-[10px] transition-all ${!canGenerate || isGenerating ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed' : 'bg-brand-rose text-white hover:shadow-md active:scale-95 shadow-sm'}`}>
@@ -604,12 +666,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
             </button>
           </div>
 
+          {/* Result */}
           {(planResult || isGenerating) && (
             <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden animate-in fade-in duration-500">
               <div className="bg-brand-black px-8 py-5 flex items-center justify-between">
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-1">PHOTOVISE SCHEDULING AI</p>
-                  <p className="font-display text-xl text-white tracking-widest">YOUR WEEK SCHEDULE</p>
+                  <p className="font-display text-xl text-white tracking-widest">WEEK OF {currentWeekLabel.toUpperCase()}</p>
                 </div>
                 <i className="fa-solid fa-calendar-week text-brand-rose/40 text-xl"></i>
               </div>
@@ -619,7 +682,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
                     <i className="fa-solid fa-circle-notch animate-spin text-brand-rose text-xl mb-3 block"></i>
                     <p className="text-brand-gray/50 text-[10px] font-bold uppercase tracking-widest">Building your schedule...</p>
                   </div>
-                ) : <MarkdownBlock text={planResult} />}
+                ) : (
+                  <>
+                    <MarkdownBlock text={planResult} />
+                    <div className="mt-8 pt-6 border-t border-brand-black/5 flex justify-end">
+                      <button onClick={handlePin} disabled={pinnedThisResult}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-sm text-[9px] font-bold uppercase tracking-widest transition-all ${pinnedThisResult ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 cursor-default' : 'bg-brand-black text-white hover:bg-zinc-700 active:scale-95 shadow-sm'}`}>
+                        <i className={`fa-solid ${pinnedThisResult ? 'fa-circle-check' : 'fa-thumbtack'}`}></i>
+                        {pinnedThisResult ? 'Pinned!' : 'Pin This Schedule'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Pinned plans */}
+          {weekPlans.length > 0 && (
+            <section className="pt-10 border-t border-brand-black/5 space-y-6">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 flex items-center gap-2">
+                <i className="fa-solid fa-thumbtack text-brand-rose"></i> PINNED SCHEDULES ({weekPlans.length})
+              </h3>
+              <div className="space-y-4">
+                {weekPlans.map(plan => (
+                  <PinnedPlanCard key={plan.id} plan={plan} onDelete={onDeleteWeekPlan} />
+                ))}
               </div>
             </section>
           )}
@@ -628,15 +716,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
     </div>
   );
 
-  // ── Root render ───────────────────────────────────────────────────────────
   return (
     <div className="animate-in fade-in duration-700 space-y-8">
-      {/* View toggle */}
       <div className="flex gap-1 bg-brand-black/5 p-1 rounded-sm w-fit">
         {([
-          { key: 'calendar', icon: 'fa-calendar',      label: 'Calendar'     },
-          { key: 'planner',  icon: 'fa-calendar-week', label: 'Week Planner' },
-          { key: 'search',   icon: 'fa-magnifying-glass', label: 'Search'    },
+          { key: 'calendar', icon: 'fa-calendar',         label: 'Calendar'     },
+          { key: 'planner',  icon: 'fa-calendar-week',    label: 'Week Planner' },
+          { key: 'search',   icon: 'fa-magnifying-glass', label: 'Search'       },
         ] as const).map(({ key, icon, label }) => (
           <button key={key} onClick={() => setView(key)}
             className={`px-6 py-2 text-[9px] font-bold uppercase tracking-[0.2em] rounded-sm transition-all ${view === key ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'}`}>
@@ -644,8 +730,40 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, o
           </button>
         ))}
       </div>
-
       {view === 'calendar' ? renderCalendar() : view === 'planner' ? renderPlanner() : renderSearch()}
+    </div>
+  );
+};
+
+// ── Pinned plan card (collapsible) ────────────────────────────────────────────
+const PinnedPlanCard: React.FC<{ plan: WeekPlan; onDelete: (id: string) => void }> = ({ plan, onDelete }) => {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-brand-black/[0.02] transition-all" onClick={() => setExpanded(p => !p)}>
+        <div className="flex items-center gap-4">
+          <i className="fa-solid fa-thumbtack text-brand-rose text-[10px]"></i>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-brand-black">Week of {plan.weekLabel}</p>
+            <p className="text-[9px] text-brand-gray/60 mt-0.5 uppercase tracking-widest">
+              {plan.sessionTitles.slice(0, 3).join(' · ')}{plan.sessionTitles.length > 3 ? ` +${plan.sessionTitles.length - 3} more` : ''}
+              {' · '}Saved {new Date(plan.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={e => { e.stopPropagation(); if (confirm('Delete this pinned schedule?')) onDelete(plan.id); }}
+            className="text-brand-gray/30 hover:text-brand-rose transition-colors p-1" title="Delete">
+            <i className="fa-solid fa-trash text-[10px]"></i>
+          </button>
+          <i className={`fa-solid fa-chevron-${expanded ? 'up' : 'down'} text-brand-gray/40 text-[10px]`}></i>
+        </div>
+      </div>
+      {expanded && (
+        <div className="px-6 pb-6 pt-2 border-t border-brand-black/5 animate-in fade-in duration-300">
+          <MarkdownBlock text={plan.result} />
+        </div>
+      )}
     </div>
   );
 };

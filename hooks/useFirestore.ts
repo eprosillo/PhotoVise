@@ -26,6 +26,7 @@ import {
   CfeBulletinItem,
   PhotographerProfile,
   FeedbackEntry,
+  WeekPlan,
 } from '../types';
 
 export interface FirestoreUserData {
@@ -37,6 +38,7 @@ export interface FirestoreUserData {
   bulletinItems?: CfeBulletinItem[];
   bulletinFetchedAt?: number;
   feedback?: FeedbackEntry[];
+  weekPlans?: WeekPlan[];
 }
 
 export function useFirestore(uid: string | null) {
