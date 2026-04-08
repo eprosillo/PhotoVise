@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Session, SessionStatus } from '../types';
+import { Session, SessionStatus, JournalEntry } from '../types';
 import { generateWeeklyPlan } from '../services/geminiService';
 
 interface CalendarViewProps {
   sessions: Session[];
+  journalEntries: JournalEntry[];
   onGoToSession: (sessionId: string) => void;
+  onGoToJournal: () => void;
 }
 
 // ── Shared constants ──────────────────────────────────────────────────────────
@@ -36,23 +38,20 @@ const MONTHS     = ['January','February','March','April','May','June','July','Au
 const toYMD = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-// ── Simple markdown → text renderer ──────────────────────────────────────────
+// ── Simple markdown renderer ──────────────────────────────────────────────────
 const MarkdownBlock: React.FC<{ text: string }> = ({ text }) => (
   <div className="space-y-1.5">
     {text.split('\n').map((line, i) => {
       if (!line.trim()) return <div key={i} className="h-2" />;
-      // Heading: ## or ###
       if (/^###\s/.test(line))
         return <p key={i} className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-gray mt-4 mb-1">{line.replace(/^###\s/, '')}</p>;
       if (/^##\s/.test(line))
         return <p key={i} className="text-[11px] font-bold uppercase tracking-[0.3em] text-brand-black mt-5 mb-1">{line.replace(/^##\s/, '')}</p>;
       if (/^#\s/.test(line))
         return <p key={i} className="text-sm font-bold uppercase tracking-[0.3em] text-brand-black mt-5 mb-2">{line.replace(/^#\s/, '')}</p>;
-      // Bold **text**
       const boldParsed = line.split(/\*\*([^*]+)\*\*/g).map((part, j) =>
         j % 2 === 1 ? <strong key={j} className="font-bold text-brand-black">{part}</strong> : part
       );
-      // Bullet
       if (/^[-•]\s/.test(line))
         return <p key={i} className="text-[11px] text-brand-gray leading-relaxed flex gap-2"><span className="text-brand-rose flex-shrink-0">—</span><span>{boldParsed}</span></p>;
       return <p key={i} className="text-[11px] text-brand-gray leading-relaxed">{boldParsed}</p>;
@@ -65,21 +64,40 @@ interface DayAvailability { enabled: boolean; times: Set<TimeSlot> }
 const defaultAvailability = (): Record<string, DayAvailability> =>
   Object.fromEntries(WEEK_DAYS.map(d => [d, { enabled: false, times: new Set<TimeSlot>() }]));
 
+// ── Highlight matched text ────────────────────────────────────────────────────
+const Highlight: React.FC<{ text: string; query: string }> = ({ text, query }) => {
+  if (!query.trim()) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.toLowerCase()
+          ? <mark key={i} className="bg-brand-rose/20 text-brand-rose rounded-sm px-0.5">{part}</mark>
+          : part
+      )}
+    </>
+  );
+};
+
 // ── Main component ────────────────────────────────────────────────────────────
-const CalendarView: React.FC<CalendarViewProps> = ({ sessions, onGoToSession }) => {
-  const today   = new Date();
-  const [view, setView]           = useState<'calendar' | 'planner'>('calendar');
+const CalendarView: React.FC<CalendarViewProps> = ({ sessions, journalEntries, onGoToSession, onGoToJournal }) => {
+  const today = new Date();
+  const [view, setView] = useState<'calendar' | 'planner' | 'search'>('calendar');
 
   // ── Calendar state ──
-  const [current, setCurrent]     = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [current, setCurrent]           = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [showJournal, setShowJournal]   = useState(true);
 
   // ── Planner state ──
-  const [plannerSessions, setPlannerSessions]   = useState<Set<string>>(new Set());
-  const [availability, setAvailability]         = useState<Record<string, DayAvailability>>(defaultAvailability);
-  const [limitations, setLimitations]           = useState('');
-  const [planResult, setPlanResult]             = useState('');
-  const [isGenerating, setIsGenerating]         = useState(false);
+  const [plannerSessions, setPlannerSessions] = useState<Set<string>>(new Set());
+  const [availability, setAvailability]       = useState<Record<string, DayAvailability>>(defaultAvailability);
+  const [limitations, setLimitations]         = useState('');
+  const [planResult, setPlanResult]           = useState('');
+  const [isGenerating, setIsGenerating]       = useState(false);
+
+  // ── Search state ──
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Calendar helpers
   const prevMonth = () => setCurrent(new Date(current.getFullYear(), current.getMonth() - 1, 1));
@@ -91,7 +109,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, onGoToSession }) 
 
   const cells = useMemo(() => {
     const year = current.getFullYear(), month = current.getMonth();
-    const firstDow = new Date(year, month, 1).getDay();
+    const firstDow    = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrev  = new Date(year, month, 0).getDate();
     const result: { date: string; inMonth: boolean }[] = [];
@@ -117,19 +135,43 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, onGoToSession }) 
     return map;
   }, [sessions]);
 
-  const todayStr = toYMD(today);
+  const journalByDate = useMemo(() => {
+    const map: Record<string, JournalEntry[]> = {};
+    journalEntries.forEach(e => {
+      if (!e.date) return;
+      const key = e.date.slice(0, 10);
+      if (!map[key]) map[key] = [];
+      map[key].push(e);
+    });
+    return map;
+  }, [journalEntries]);
+
+  const todayStr         = toYMD(today);
   const selectedSessions = selectedDate ? (sessionsByDate[selectedDate] ?? []) : [];
+  const selectedJournal  = selectedDate ? (journalByDate[selectedDate] ?? []) : [];
   const activeSessions   = sessions.filter(s => s.status !== 'archived');
 
-  // ── Planner helpers ──────────────────────────────────────────────────────
+  // ── Search results ────────────────────────────────────────────────────────
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return { sessions: [], journal: [] };
+    const matchedSessions = sessions.filter(s =>
+      [s.title, s.location, s.name, s.notes, s.strategy, s.dayPlan, ...(s.genre ?? [])]
+        .some(f => f?.toLowerCase().includes(q))
+    );
+    const matchedJournal = journalEntries.filter(e =>
+      [e.title, e.notes, ...(e.tags ?? [])]
+        .some(f => f?.toLowerCase().includes(q))
+    );
+    return { sessions: matchedSessions, journal: matchedJournal };
+  }, [searchQuery, sessions, journalEntries]);
+
+  // ── Planner helpers ───────────────────────────────────────────────────────
   const togglePlannerSession = (id: string) =>
     setPlannerSessions(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
   const toggleDay = (day: string) =>
-    setAvailability(prev => ({
-      ...prev,
-      [day]: { ...prev[day], enabled: !prev[day].enabled }
-    }));
+    setAvailability(prev => ({ ...prev, [day]: { ...prev[day], enabled: !prev[day].enabled } }));
 
   const toggleTime = (day: string, time: TimeSlot) =>
     setAvailability(prev => {
@@ -144,67 +186,46 @@ const CalendarView: React.FC<CalendarViewProps> = ({ sessions, onGoToSession }) 
     if (!canGenerate) return;
     setIsGenerating(true);
     setPlanResult('');
-
     const selectedSessionData = sessions
       .filter(s => plannerSessions.has(s.id))
       .map(s => {
         const lines = [
           `- Session: "${s.title || s.location || 'Untitled'}"`,
-          `  Date: ${s.date}`,
-          `  Location: ${s.location || 'N/A'}`,
-          `  Genre: ${s.genre?.join(', ') || 'N/A'}`,
-          `  Status: ${s.status}`,
+          `  Date: ${s.date}`, `  Location: ${s.location || 'N/A'}`,
+          `  Genre: ${s.genre?.join(', ') || 'N/A'}`, `  Status: ${s.status}`,
         ];
         if (s.strategy) lines.push(`  Strategy: ${s.strategy.slice(0, 400)}...`);
         if (s.dayPlan)  lines.push(`  Day Plan: ${s.dayPlan.slice(0, 400)}...`);
         return lines.join('\n');
-      })
-      .join('\n\n');
-
+      }).join('\n\n');
     const availableDaysText = WEEK_DAYS
       .filter(d => availability[d].enabled)
-      .map(d => {
-        const times = [...availability[d].times];
-        return times.length > 0 ? `${d}: ${times.join(', ')}` : `${d}: any time`;
-      })
+      .map(d => { const times = [...availability[d].times]; return times.length > 0 ? `${d}: ${times.join(', ')}` : `${d}: any time`; })
       .join('\n');
-
-    const prompt = `You are a professional photography scheduling assistant. Create a practical week-by-week shooting and workflow schedule for the photographer based on the sessions below.
-
-SESSIONS TO SCHEDULE:
-${selectedSessionData}
-
-PHOTOGRAPHER'S AVAILABLE DAYS & TIMES THIS WEEK:
-${availableDaysText}
-
-ADDITIONAL CONSTRAINTS & NOTES:
-${limitations.trim() || 'None provided.'}
-
-TODAY'S DATE: ${toYMD(today)}
-
-INSTRUCTIONS:
-- Assign specific sessions or session tasks (scouting, shooting, culling, editing, backup) to specific available days and times.
-- Respect the session's existing strategy and day plan if provided — use them to inform what tasks are appropriate for each phase.
-- Keep shoots on days with enough time and energy (avoid cramming multiple full shoots on the same day unless explicitly allowed).
-- Include brief reasoning for each day's assignment (1 sentence).
-- End with a short checklist of what to prepare before the week starts.
-- Format clearly with each day as a heading.`;
-
+    const prompt = `You are a professional photography scheduling assistant. Create a practical week-by-week shooting and workflow schedule for the photographer based on the sessions below.\n\nSESSIONS TO SCHEDULE:\n${selectedSessionData}\n\nPHOTOGRAPHER'S AVAILABLE DAYS & TIMES THIS WEEK:\n${availableDaysText}\n\nADDITIONAL CONSTRAINTS & NOTES:\n${limitations.trim() || 'None provided.'}\n\nTODAY'S DATE: ${toYMD(today)}\n\nINSTRUCTIONS:\n- Assign specific sessions or session tasks (scouting, shooting, culling, editing, backup) to specific available days and times.\n- Respect the session's existing strategy and day plan if provided — use them to inform what tasks are appropriate for each phase.\n- Keep shoots on days with enough time and energy (avoid cramming multiple full shoots on the same day unless explicitly allowed).\n- Include brief reasoning for each day's assignment (1 sentence).\n- End with a short checklist of what to prepare before the week starts.\n- Format clearly with each day as a heading.`;
     const result = await generateWeeklyPlan(prompt);
     setPlanResult(result);
     setIsGenerating(false);
   };
 
-  // ── Calendar render ──────────────────────────────────────────────────────
+  // ── Calendar render ───────────────────────────────────────────────────────
   const renderCalendar = () => (
     <div className="space-y-8">
-      {/* Month nav */}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <h2 className="text-4xl font-display text-brand-black tracking-wide">CALENDAR</h2>
-          <p className="text-brand-gray mt-2 text-sm font-medium">Sessions mapped by shoot date.</p>
+          <p className="text-brand-gray mt-2 text-sm font-medium">Sessions and journal entries mapped by date.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Journal toggle */}
+          <button
+            onClick={() => setShowJournal(p => !p)}
+            className={`flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest px-3 py-2 rounded-sm border transition-all ${
+              showJournal ? 'bg-brand-black text-white border-brand-black' : 'border-brand-black/10 text-brand-gray hover:border-brand-black/30'
+            }`}
+          >
+            <i className="fa-solid fa-book-open text-[9px]"></i> Journal
+          </button>
           <button onClick={goToday} className="text-[9px] font-bold uppercase tracking-widest px-4 py-2 border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">Today</button>
           <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">
             <i className="fa-solid fa-chevron-left text-[10px]"></i>
@@ -228,8 +249,10 @@ INSTRUCTIONS:
         <div className="grid grid-cols-7">
           {cells.map(({ date, inMonth }) => {
             const daySessions = sessionsByDate[date] ?? [];
-            const isToday    = date === todayStr;
-            const isSelected = date === selectedDate;
+            const dayJournal  = showJournal ? (journalByDate[date] ?? []) : [];
+            const isToday     = date === todayStr;
+            const isSelected  = date === selectedDate;
+            const hasItems    = daySessions.length > 0 || dayJournal.length > 0;
             return (
               <button
                 key={date}
@@ -244,18 +267,29 @@ INSTRUCTIONS:
                 `}>
                   {new Date(date + 'T12:00:00').getDate()}
                 </span>
+
+                {/* Desktop chips */}
                 <div className="space-y-1 hidden md:block">
-                  {daySessions.slice(0, 3).map(s => (
-                    <div key={s.id} className={`text-[8px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded-sm border truncate leading-tight ${STATUS_CHIP[s.status]} ${s.status === 'archived' ? 'opacity-50' : ''}`}>
+                  {daySessions.slice(0, 2).map(s => (
+                    <div key={s.id} className={`text-[8px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded-sm border truncate leading-tight ${STATUS_CHIP[s.status]}`}>
                       {s.title || s.location || 'Untitled'}
                     </div>
                   ))}
-                  {daySessions.length > 3 && <div className="text-[8px] font-bold text-brand-gray/50 uppercase tracking-widest pl-1">+{daySessions.length - 3} more</div>}
+                  {dayJournal.slice(0, showJournal ? 2 : 0).map(e => (
+                    <div key={e.id} className="text-[8px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded-sm border truncate leading-tight bg-purple-50 text-purple-700 border-purple-200">
+                      <i className="fa-solid fa-book-open mr-1 text-[7px]"></i>{e.title || 'Journal'}
+                    </div>
+                  ))}
+                  {(daySessions.length + dayJournal.length) > 4 && (
+                    <div className="text-[8px] font-bold text-brand-gray/50 uppercase tracking-widest pl-1">+{(daySessions.length + dayJournal.length) - 4} more</div>
+                  )}
                 </div>
-                {daySessions.length > 0 && (
+
+                {/* Mobile dots */}
+                {hasItems && (
                   <div className="flex gap-0.5 flex-wrap mt-1 md:hidden">
-                    {daySessions.slice(0, 4).map(s => <span key={s.id} className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status]}`}></span>)}
-                    {daySessions.length > 4 && <span className="text-[7px] text-brand-gray/40 font-bold">+{daySessions.length - 4}</span>}
+                    {daySessions.slice(0, 3).map(s => <span key={s.id} className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status]}`}></span>)}
+                    {dayJournal.slice(0, 2).map(e => <span key={e.id} className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>)}
                   </div>
                 )}
               </button>
@@ -265,19 +299,23 @@ INSTRUCTIONS:
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 items-center">
         {(Object.keys(STATUS_DOT) as SessionStatus[]).filter(s => s !== 'archived').map(s => (
           <div key={s} className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${STATUS_DOT[s]}`}></span>
             <span className="text-[9px] font-bold uppercase tracking-widest text-brand-gray">{s}</span>
           </div>
         ))}
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+          <span className="text-[9px] font-bold uppercase tracking-widest text-brand-gray">Journal</span>
+        </div>
       </div>
 
       {/* Day detail panel */}
       {selectedDate && (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="flex items-center justify-between mb-4">
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
+          <div className="flex items-center justify-between">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/40">
               {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
             </h3>
@@ -285,33 +323,69 @@ INSTRUCTIONS:
               <i className="fa-solid fa-xmark text-sm"></i>
             </button>
           </div>
-          {selectedSessions.length === 0 ? (
+
+          {selectedSessions.length === 0 && selectedJournal.length === 0 && (
             <div className="py-12 text-center border border-dashed border-brand-black/10 rounded-sm">
-              <p className="text-brand-gray/40 text-[10px] font-bold uppercase tracking-widest">No sessions on this day</p>
+              <p className="text-brand-gray/40 text-[10px] font-bold uppercase tracking-widest">Nothing logged on this day</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {selectedSessions.map(s => (
-                <div key={s.id} className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all">
-                  <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-display text-lg text-white leading-none tracking-widest">{(s.title || s.location || 'Untitled Session').toUpperCase()}</p>
-                      {s.title && s.location && <p className="text-[9px] text-brand-gray mt-1 uppercase tracking-widest">{s.location}</p>}
+          )}
+
+          {selectedSessions.length > 0 && (
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-brand-black/30 mb-3">Sessions</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {selectedSessions.map(s => (
+                  <div key={s.id} className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all">
+                    <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
+                      <p className="font-display text-lg text-white leading-none tracking-widest truncate">{(s.title || s.location || 'Untitled').toUpperCase()}</p>
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${STATUS_DOT[s.status]}`}></span>
                     </div>
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT[s.status]}`}></span>
-                  </div>
-                  <div className="px-5 py-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
-                      {s.genre && s.genre.length > 0 && <span className="text-[8px] text-brand-gray uppercase tracking-widest font-bold">{s.genre.join(' · ')}</span>}
+                    <div className="px-5 py-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
+                        {s.genre && s.genre.length > 0 && <span className="text-[8px] text-brand-gray uppercase tracking-widest font-bold">{s.genre.join(' · ')}</span>}
+                      </div>
+                      {s.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-2">{s.notes}</p>}
+                      <button onClick={() => onGoToSession(s.id)} className="w-full text-[9px] font-bold uppercase tracking-widest py-2.5 bg-brand-black/5 hover:bg-brand-rose hover:text-white text-brand-black rounded-sm transition-all active:scale-95">
+                        Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
+                      </button>
                     </div>
-                    {s.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-2">{s.notes}</p>}
-                    <button onClick={() => onGoToSession(s.id)} className="w-full text-[9px] font-bold uppercase tracking-widest py-2.5 bg-brand-black/5 hover:bg-brand-rose hover:text-white text-brand-black rounded-sm transition-all active:scale-95">
-                      Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
-                    </button>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedJournal.length > 0 && (
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-brand-black/30 mb-3">Journal Entries</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {selectedJournal.map(e => (
+                  <div key={e.id} className="bg-white border border-purple-100 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all">
+                    <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
+                      <p className="font-display text-lg text-white leading-none tracking-widest truncate">{(e.title || 'Journal Entry').toUpperCase()}</p>
+                      <i className="fa-solid fa-book-open text-purple-400/60 flex-shrink-0 ml-2"></i>
+                    </div>
+                    <div className="px-5 py-4 space-y-3">
+                      {e.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-3 italic">{e.notes}</p>}
+                      {e.tags && e.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {e.tags.map(t => <span key={t} className="text-[8px] px-2 py-0.5 bg-purple-50 text-purple-600 border border-purple-100 rounded-sm font-bold uppercase tracking-widest">{t}</span>)}
+                        </div>
+                      )}
+                      {(e.resultRating || e.processRating) && (
+                        <div className="flex gap-3 text-[9px] text-brand-gray">
+                          {e.resultRating && <span>Result: {'★'.repeat(e.resultRating)}{'☆'.repeat(5 - e.resultRating)}</span>}
+                          {e.processRating && <span>Process: {'★'.repeat(e.processRating)}{'☆'.repeat(5 - e.processRating)}</span>}
+                        </div>
+                      )}
+                      <button onClick={onGoToJournal} className="w-full text-[9px] font-bold uppercase tracking-widest py-2.5 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 rounded-sm transition-all active:scale-95">
+                        Open Journal <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -319,7 +393,125 @@ INSTRUCTIONS:
     </div>
   );
 
-  // ── Week Planner render ──────────────────────────────────────────────────
+  // ── Search render ─────────────────────────────────────────────────────────
+  const renderSearch = () => (
+    <div className="space-y-8">
+      <header>
+        <h2 className="text-4xl font-display text-brand-black tracking-wide">SEARCH</h2>
+        <p className="text-brand-gray mt-2 text-sm font-medium">Find sessions and journal entries by keyword.</p>
+      </header>
+
+      {/* Search input */}
+      <div className="relative">
+        <i className="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-brand-gray/40 text-sm"></i>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search by title, location, genre, notes, tags, strategy..."
+          autoFocus
+          className="w-full pl-12 pr-5 py-4 bg-white border border-brand-black/10 rounded-sm focus:ring-2 focus:ring-brand-rose outline-none text-sm text-brand-black placeholder:text-brand-gray/40 shadow-sm"
+        />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-gray/40 hover:text-brand-rose transition-colors">
+            <i className="fa-solid fa-xmark"></i>
+          </button>
+        )}
+      </div>
+
+      {/* Results */}
+      {!searchQuery.trim() ? (
+        <div className="py-20 text-center border border-dashed border-brand-black/10 rounded-sm">
+          <i className="fa-solid fa-magnifying-glass text-brand-gray/20 text-3xl mb-4 block"></i>
+          <p className="text-brand-gray/40 text-[10px] font-bold uppercase tracking-widest">Type to search your sessions and journal</p>
+        </div>
+      ) : searchResults.sessions.length === 0 && searchResults.journal.length === 0 ? (
+        <div className="py-20 text-center border border-dashed border-brand-black/10 rounded-sm">
+          <p className="text-brand-gray/40 text-[10px] font-bold uppercase tracking-widest">No results for "{searchQuery}"</p>
+        </div>
+      ) : (
+        <div className="space-y-10">
+          {/* Session results */}
+          {searchResults.sessions.length > 0 && (
+            <section>
+              <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-black/30 mb-4 flex items-center gap-2">
+                <i className="fa-solid fa-camera"></i> Sessions
+                <span className="bg-brand-rose/10 text-brand-rose px-2 py-0.5 rounded-sm">{searchResults.sessions.length}</span>
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {searchResults.sessions.map(s => (
+                  <div key={s.id} className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all">
+                    <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
+                      <div>
+                        <p className="font-display text-lg text-white leading-none tracking-widest">
+                          <Highlight text={(s.title || s.location || 'Untitled').toUpperCase()} query={searchQuery} />
+                        </p>
+                        <p className="text-[9px] text-brand-gray mt-1 uppercase tracking-widest">{s.date}</p>
+                      </div>
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${STATUS_DOT[s.status]}`}></span>
+                    </div>
+                    <div className="px-5 py-4 space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
+                        {s.genre?.map(g => <span key={g} className="text-[8px] text-brand-gray font-bold uppercase tracking-widest">{g}</span>)}
+                      </div>
+                      {s.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-2"><Highlight text={s.notes} query={searchQuery} /></p>}
+                      {s.location && s.title && <p className="text-[9px] text-brand-gray/60 uppercase tracking-widest"><Highlight text={s.location} query={searchQuery} /></p>}
+                      <button onClick={() => onGoToSession(s.id)} className="w-full text-[9px] font-bold uppercase tracking-widest py-2 bg-brand-black/5 hover:bg-brand-rose hover:text-white text-brand-black rounded-sm transition-all mt-2">
+                        Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Journal results */}
+          {searchResults.journal.length > 0 && (
+            <section>
+              <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-black/30 mb-4 flex items-center gap-2">
+                <i className="fa-solid fa-book-open"></i> Journal Entries
+                <span className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded-sm">{searchResults.journal.length}</span>
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {searchResults.journal.map(e => (
+                  <div key={e.id} className="bg-white border border-purple-100 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all">
+                    <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
+                      <div>
+                        <p className="font-display text-lg text-white leading-none tracking-widest">
+                          <Highlight text={(e.title || 'Journal Entry').toUpperCase()} query={searchQuery} />
+                        </p>
+                        <p className="text-[9px] text-brand-gray mt-1 uppercase tracking-widest">{e.date}</p>
+                      </div>
+                      <i className="fa-solid fa-book-open text-purple-400/60 ml-2"></i>
+                    </div>
+                    <div className="px-5 py-4 space-y-2">
+                      {e.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-3 italic"><Highlight text={e.notes} query={searchQuery} /></p>}
+                      {e.tags && e.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {e.tags.map(t => (
+                            <span key={t} className={`text-[8px] px-2 py-0.5 rounded-sm font-bold uppercase tracking-widest border ${t.toLowerCase().includes(searchQuery.toLowerCase()) ? 'bg-brand-rose/10 text-brand-rose border-brand-rose/20' : 'bg-purple-50 text-purple-600 border-purple-100'}`}>
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <button onClick={onGoToJournal} className="w-full text-[9px] font-bold uppercase tracking-widest py-2 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 rounded-sm transition-all mt-2">
+                        Open Journal <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  // ── Week Planner render ───────────────────────────────────────────────────
   const renderPlanner = () => (
     <div className="space-y-10">
       <header>
@@ -331,11 +523,9 @@ INSTRUCTIONS:
         <div className="py-24 text-center border border-dashed border-brand-black/10 rounded-sm">
           <i className="fa-solid fa-calendar-days text-brand-gray/20 text-3xl mb-4 block"></i>
           <p className="text-brand-gray/40 text-[10px] font-bold uppercase tracking-widest">No active sessions to schedule</p>
-          <p className="text-brand-gray/30 text-[10px] mt-2">Add sessions from the Production Logbook first.</p>
         </div>
       ) : (
         <>
-          {/* Step 1 — Select sessions */}
           <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
               <span className="text-brand-rose mr-2">01</span> SELECT SESSIONS TO SCHEDULE
@@ -344,16 +534,9 @@ INSTRUCTIONS:
               {activeSessions.map(s => {
                 const selected = plannerSessions.has(s.id);
                 return (
-                  <button
-                    key={s.id}
-                    onClick={() => togglePlannerSession(s.id)}
-                    className={`flex items-center gap-4 p-4 rounded-sm border text-left transition-all ${
-                      selected ? 'border-brand-rose bg-brand-rose/5' : 'border-brand-black/5 hover:border-brand-black/15'
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                      selected ? 'bg-brand-rose border-brand-rose' : 'border-brand-gray/30'
-                    }`}>
+                  <button key={s.id} onClick={() => togglePlannerSession(s.id)}
+                    className={`flex items-center gap-4 p-4 rounded-sm border text-left transition-all ${selected ? 'border-brand-rose bg-brand-rose/5' : 'border-brand-black/5 hover:border-brand-black/15'}`}>
+                    <div className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected ? 'bg-brand-rose border-brand-rose' : 'border-brand-gray/30'}`}>
                       {selected && <i className="fa-solid fa-check text-white text-[8px]"></i>}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -370,7 +553,6 @@ INSTRUCTIONS:
             </div>
           </section>
 
-          {/* Step 2 — Availability */}
           <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
               <span className="text-brand-rose mr-2">02</span> SET YOUR AVAILABILITY THIS WEEK
@@ -381,40 +563,22 @@ INSTRUCTIONS:
                 return (
                   <div key={day} className={`rounded-sm border transition-all ${enabled ? 'border-brand-black/10 bg-brand-black/[0.015]' : 'border-brand-black/5'}`}>
                     <div className="flex items-center gap-4 px-5 py-3">
-                      {/* Day toggle */}
-                      <button
-                        onClick={() => toggleDay(day)}
-                        className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                          enabled ? 'bg-brand-rose border-brand-rose' : 'border-brand-gray/30'
-                        }`}
-                      >
+                      <button onClick={() => toggleDay(day)}
+                        className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${enabled ? 'bg-brand-rose border-brand-rose' : 'border-brand-gray/30'}`}>
                         {enabled && <i className="fa-solid fa-check text-white text-[8px]"></i>}
                       </button>
-                      <span className={`text-[10px] font-bold uppercase tracking-[0.2em] w-24 flex-shrink-0 ${enabled ? 'text-brand-black' : 'text-brand-gray/40'}`}>
-                        {day}
-                      </span>
-                      {/* Time slots — only visible when day is enabled */}
-                      {enabled && (
+                      <span className={`text-[10px] font-bold uppercase tracking-[0.2em] w-24 flex-shrink-0 ${enabled ? 'text-brand-black' : 'text-brand-gray/40'}`}>{day}</span>
+                      {enabled ? (
                         <div className="flex gap-2 flex-wrap">
                           {TIME_SLOTS.map(slot => (
-                            <button
-                              key={slot}
-                              onClick={() => toggleTime(day, slot)}
-                              className={`text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm border transition-all ${
-                                times.has(slot)
-                                  ? 'bg-brand-black text-white border-brand-black'
-                                  : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'
-                              }`}
-                            >
+                            <button key={slot} onClick={() => toggleTime(day, slot)}
+                              className={`text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm border transition-all ${times.has(slot) ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}>
                               {slot === 'Morning' ? '🌅' : slot === 'Afternoon' ? '☀️' : '🌙'} {slot}
                             </button>
                           ))}
-                          {times.size === 0 && (
-                            <span className="text-[9px] text-brand-gray/40 italic self-center">Select time slots or leave blank for any time</span>
-                          )}
+                          {times.size === 0 && <span className="text-[9px] text-brand-gray/40 italic self-center">Select time slots or leave blank for any time</span>}
                         </div>
-                      )}
-                      {!enabled && (
+                      ) : (
                         <span className="text-[9px] text-brand-gray/25 italic">Not available</span>
                       )}
                     </div>
@@ -424,39 +588,22 @@ INSTRUCTIONS:
             </div>
           </section>
 
-          {/* Step 3 — Limitations */}
           <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-4">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
               <span className="text-brand-rose mr-2">03</span> ADDITIONAL CONSTRAINTS (OPTIONAL)
             </h3>
-            <textarea
-              value={limitations}
-              onChange={e => setLimitations(e.target.value)}
-              placeholder="e.g. I have a job interview on Tuesday afternoon, golden hour only for outdoor shoots, avoid back-to-back editing days, equipment pickup on Thursday..."
-              className="w-full h-28 p-4 bg-brand-white border border-brand-black/5 rounded-sm focus:ring-1 focus:ring-brand-rose outline-none text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40 resize-none"
-            />
+            <textarea value={limitations} onChange={e => setLimitations(e.target.value)}
+              placeholder="e.g. I have a job interview on Tuesday afternoon, golden hour only for outdoor shoots, avoid back-to-back editing days..."
+              className="w-full h-28 p-4 bg-brand-white border border-brand-black/5 rounded-sm focus:ring-1 focus:ring-brand-rose outline-none text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40 resize-none" />
           </section>
 
-          {/* Generate button */}
           <div className="flex justify-end">
-            <button
-              disabled={!canGenerate || isGenerating}
-              onClick={handleGenerate}
-              className={`flex items-center gap-3 px-10 py-4 rounded-sm font-bold uppercase tracking-[0.2em] text-[10px] transition-all ${
-                !canGenerate || isGenerating
-                  ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed'
-                  : 'bg-brand-rose text-white hover:shadow-md active:scale-95 shadow-sm'
-              }`}
-            >
-              {isGenerating ? (
-                <><i className="fa-solid fa-circle-notch animate-spin"></i> BUILDING YOUR SCHEDULE...</>
-              ) : (
-                <><i className="fa-solid fa-calendar-check"></i> GENERATE WEEK SCHEDULE</>
-              )}
+            <button disabled={!canGenerate || isGenerating} onClick={handleGenerate}
+              className={`flex items-center gap-3 px-10 py-4 rounded-sm font-bold uppercase tracking-[0.2em] text-[10px] transition-all ${!canGenerate || isGenerating ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed' : 'bg-brand-rose text-white hover:shadow-md active:scale-95 shadow-sm'}`}>
+              {isGenerating ? <><i className="fa-solid fa-circle-notch animate-spin"></i> BUILDING YOUR SCHEDULE...</> : <><i className="fa-solid fa-calendar-check"></i> GENERATE WEEK SCHEDULE</>}
             </button>
           </div>
 
-          {/* Result */}
           {(planResult || isGenerating) && (
             <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden animate-in fade-in duration-500">
               <div className="bg-brand-black px-8 py-5 flex items-center justify-between">
@@ -470,11 +617,9 @@ INSTRUCTIONS:
                 {isGenerating && !planResult ? (
                   <div className="py-12 text-center">
                     <i className="fa-solid fa-circle-notch animate-spin text-brand-rose text-xl mb-3 block"></i>
-                    <p className="text-brand-gray/50 text-[10px] font-bold uppercase tracking-widest">Photovise is building your schedule...</p>
+                    <p className="text-brand-gray/50 text-[10px] font-bold uppercase tracking-widest">Building your schedule...</p>
                   </div>
-                ) : (
-                  <MarkdownBlock text={planResult} />
-                )}
+                ) : <MarkdownBlock text={planResult} />}
               </div>
             </section>
           )}
@@ -483,30 +628,24 @@ INSTRUCTIONS:
     </div>
   );
 
-  // ── Root render ──────────────────────────────────────────────────────────
+  // ── Root render ───────────────────────────────────────────────────────────
   return (
     <div className="animate-in fade-in duration-700 space-y-8">
       {/* View toggle */}
       <div className="flex gap-1 bg-brand-black/5 p-1 rounded-sm w-fit">
-        <button
-          onClick={() => setView('calendar')}
-          className={`px-6 py-2 text-[9px] font-bold uppercase tracking-[0.2em] rounded-sm transition-all ${
-            view === 'calendar' ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'
-          }`}
-        >
-          <i className="fa-solid fa-calendar mr-2"></i>Calendar
-        </button>
-        <button
-          onClick={() => setView('planner')}
-          className={`px-6 py-2 text-[9px] font-bold uppercase tracking-[0.2em] rounded-sm transition-all ${
-            view === 'planner' ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'
-          }`}
-        >
-          <i className="fa-solid fa-calendar-week mr-2"></i>Week Planner
-        </button>
+        {([
+          { key: 'calendar', icon: 'fa-calendar',      label: 'Calendar'     },
+          { key: 'planner',  icon: 'fa-calendar-week', label: 'Week Planner' },
+          { key: 'search',   icon: 'fa-magnifying-glass', label: 'Search'    },
+        ] as const).map(({ key, icon, label }) => (
+          <button key={key} onClick={() => setView(key)}
+            className={`px-6 py-2 text-[9px] font-bold uppercase tracking-[0.2em] rounded-sm transition-all ${view === key ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'}`}>
+            <i className={`fa-solid ${icon} mr-2`}></i>{label}
+          </button>
+        ))}
       </div>
 
-      {view === 'calendar' ? renderCalendar() : renderPlanner()}
+      {view === 'calendar' ? renderCalendar() : view === 'planner' ? renderPlanner() : renderSearch()}
     </div>
   );
 };

@@ -2740,6 +2740,7 @@ const App: React.FC = () => {
       {activeTab === 'calendar' && (
         <CalendarView
           sessions={sessions}
+          journalEntries={journalEntries}
           onGoToSession={(id) => {
             setActiveTab('dashboard');
             setHighlightedSessionId(id);
@@ -2748,6 +2749,7 @@ const App: React.FC = () => {
             }, 150);
             setTimeout(() => setHighlightedSessionId(null), 2500);
           }}
+          onGoToJournal={() => setActiveTab('journal')}
         />
       )}
 
