@@ -624,6 +624,11 @@ const App: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<CfeType | 'All'>('All');
   const [highlightedSessionId, setHighlightedSessionId] = useState<string | null>(null);
 
+  // Dashboard session filters
+  const [dashboardGenreFilter, setDashboardGenreFilter] = useState<Genre | 'All'>('All');
+  const [dashboardStatusFilter, setDashboardStatusFilter] = useState<SessionStatus | 'All'>('All');
+  const [dashboardDateSort, setDashboardDateSort] = useState<'newest' | 'oldest'>('newest');
+
   // Persistence for sessions
   const [sessions, setSessions] = useState<Session[]>(() => {
     const saved = localStorage.getItem('pingstudio_sessions');
@@ -1566,26 +1571,117 @@ const App: React.FC = () => {
             </form>
           </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {sessions.filter(s => s.status !== 'archived').length === 0 ? (
-              <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-sm">
-                <p className="text-brand-gray text-[10px] font-bold uppercase tracking-widest">NO ACTIVE SESSIONS DETECTED</p>
-              </div>
-            ) : (
-              sessions.filter(s => s.status !== 'archived').map(session => (
-                <div key={session.id} id={`session-${session.id}`} className={`transition-all duration-700 ${highlightedSessionId === session.id ? 'ring-2 ring-brand-rose ring-offset-2 rounded-sm' : ''}`}>
-                  <SessionCard
-                    session={session}
-                    onUpdateStatus={updateStatus}
-                    onUpdate={updateSession}
-                    onDelete={deleteSession}
-                    hasJournal={journalEntries.some(e => e.sessionIds.includes(session.id))}
-                    onGoToJournal={() => setActiveTab('journal')}
-                  />
+          {/* ── Dashboard filters ── */}
+          {(() => {
+            const activeSessions = sessions.filter(s => s.status !== 'archived');
+            const presentGenres = Array.from(new Set(activeSessions.flatMap(s => s.genre ?? []))) as Genre[];
+            const filtered = activeSessions
+              .filter(s =>
+                (dashboardGenreFilter === 'All' || (s.genre ?? []).includes(dashboardGenreFilter)) &&
+                (dashboardStatusFilter === 'All' || s.status === dashboardStatusFilter)
+              )
+              .sort((a, b) => {
+                const da = a.date || '', db = b.date || '';
+                return dashboardDateSort === 'newest' ? db.localeCompare(da) : da.localeCompare(db);
+              });
+
+            const hasFilters = dashboardGenreFilter !== 'All' || dashboardStatusFilter !== 'All';
+
+            return (
+              <>
+                {activeSessions.length > 0 && (
+                  <div className="mb-8 space-y-4">
+                    <div className="flex flex-col md:flex-row md:items-center gap-4 flex-wrap">
+                      {/* Genre filter */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[8px] font-bold uppercase tracking-[0.25em] text-brand-gray/50 mb-2">Genre</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          <button
+                            onClick={() => setDashboardGenreFilter('All')}
+                            className={`text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm border transition-all ${dashboardGenreFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
+                          >All</button>
+                          {presentGenres.map(g => (
+                            <button key={g}
+                              onClick={() => setDashboardGenreFilter(g)}
+                              className={`text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm border transition-all ${dashboardGenreFilter === g ? 'bg-brand-rose text-white border-brand-rose' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-rose/30'}`}
+                            >{g}</button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Status filter */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[8px] font-bold uppercase tracking-[0.25em] text-brand-gray/50 mb-2">Progress</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(['All', 'shot', 'culled', 'edited', 'backed up', 'posted'] as const).map(s => (
+                            <button key={s}
+                              onClick={() => setDashboardStatusFilter(s)}
+                              className={`text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm border transition-all ${dashboardStatusFilter === s ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
+                            >{s === 'All' ? 'All' : s}</button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Date sort */}
+                      <div className="flex-shrink-0">
+                        <p className="text-[8px] font-bold uppercase tracking-[0.25em] text-brand-gray/50 mb-2">Date</p>
+                        <button
+                          onClick={() => setDashboardDateSort(p => p === 'newest' ? 'oldest' : 'newest')}
+                          className="flex items-center gap-2 text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm border border-brand-black/10 bg-white text-brand-gray hover:border-brand-black/30 transition-all"
+                        >
+                          <i className={`fa-solid fa-arrow-${dashboardDateSort === 'newest' ? 'down' : 'up'}-short-wide text-[9px]`}></i>
+                          {dashboardDateSort === 'newest' ? 'Newest first' : 'Oldest first'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Results summary + clear */}
+                    <div className="flex items-center justify-between">
+                      <p className="text-[9px] text-brand-gray/50 font-bold uppercase tracking-widest">
+                        {filtered.length} of {activeSessions.length} session{activeSessions.length !== 1 ? 's' : ''}
+                      </p>
+                      {hasFilters && (
+                        <button
+                          onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); }}
+                          className="text-[8px] font-bold uppercase tracking-widest text-brand-rose hover:underline"
+                        >
+                          <i className="fa-solid fa-xmark mr-1"></i>Clear filters
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {activeSessions.length === 0 ? (
+                    <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-sm">
+                      <p className="text-brand-gray text-[10px] font-bold uppercase tracking-widest">NO ACTIVE SESSIONS DETECTED</p>
+                    </div>
+                  ) : filtered.length === 0 ? (
+                    <div className="col-span-full py-16 text-center border border-dashed border-brand-gray/20 rounded-sm">
+                      <p className="text-brand-gray text-[10px] font-bold uppercase tracking-widest mb-2">No sessions match these filters</p>
+                      <button onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); }} className="text-[9px] text-brand-rose font-bold uppercase tracking-widest hover:underline">
+                        Clear filters
+                      </button>
+                    </div>
+                  ) : (
+                    filtered.map(session => (
+                      <div key={session.id} id={`session-${session.id}`} className={`transition-all duration-700 ${highlightedSessionId === session.id ? 'ring-2 ring-brand-rose ring-offset-2 rounded-sm' : ''}`}>
+                        <SessionCard
+                          session={session}
+                          onUpdateStatus={updateStatus}
+                          onUpdate={updateSession}
+                          onDelete={deleteSession}
+                          hasJournal={journalEntries.some(e => e.sessionIds.includes(session.id))}
+                          onGoToJournal={() => setActiveTab('journal')}
+                        />
+                      </div>
+                    ))
+                  )}
                 </div>
-              ))
-            )}
-          </div>
+              </>
+            );
+          })()}
         </div>
       )}
 
