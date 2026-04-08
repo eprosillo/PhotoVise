@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Layout from './components/Layout';
+import CalendarView from './components/CalendarView';
 import SessionCard from './components/SessionCard';
 import SessionSelector from './components/SessionSelector';
 import LocationAutocomplete from './components/LocationAutocomplete';
@@ -621,6 +622,7 @@ const App: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<BulletinStatus | 'All'>('All');
   const [priorityFilter, setPriorityFilter] = useState<BulletinPriority | 'All'>('All');
   const [typeFilter, setTypeFilter] = useState<CfeType | 'All'>('All');
+  const [highlightedSessionId, setHighlightedSessionId] = useState<string | null>(null);
 
   // Persistence for sessions
   const [sessions, setSessions] = useState<Session[]>(() => {
@@ -1560,15 +1562,16 @@ const App: React.FC = () => {
               </div>
             ) : (
               sessions.filter(s => s.status !== 'archived').map(session => (
-                <SessionCard
-                  key={session.id}
-                  session={session}
-                  onUpdateStatus={updateStatus}
-                  onUpdate={updateSession}
-                  onDelete={deleteSession}
-                  hasJournal={journalEntries.some(e => e.sessionIds.includes(session.id))}
-                  onGoToJournal={() => setActiveTab('journal')}
-                />
+                <div key={session.id} id={`session-${session.id}`} className={`transition-all duration-700 ${highlightedSessionId === session.id ? 'ring-2 ring-brand-rose ring-offset-2 rounded-sm' : ''}`}>
+                  <SessionCard
+                    session={session}
+                    onUpdateStatus={updateStatus}
+                    onUpdate={updateSession}
+                    onDelete={deleteSession}
+                    hasJournal={journalEntries.some(e => e.sessionIds.includes(session.id))}
+                    onGoToJournal={() => setActiveTab('journal')}
+                  />
+                </div>
               ))
             )}
           </div>
@@ -2732,6 +2735,20 @@ const App: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {activeTab === 'calendar' && (
+        <CalendarView
+          sessions={sessions}
+          onGoToSession={(id) => {
+            setActiveTab('dashboard');
+            setHighlightedSessionId(id);
+            setTimeout(() => {
+              document.getElementById(`session-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 150);
+            setTimeout(() => setHighlightedSessionId(null), 2500);
+          }}
+        />
       )}
 
       {activeTab === 'archive' && (
