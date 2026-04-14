@@ -143,7 +143,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
                     onClick={() => handleTabChange(item.id)}
                     className={`flex items-center gap-4 px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all text-left border-l-4 ${
                       activeTab === item.id || activeTab.startsWith(item.id + '-')
-                        ? 'bg-brand-black/5 text-brand-rose border-brand-rose'
+                        ? 'bg-brand-black/5 text-brand-blue border-brand-blue'
                         : 'text-brand-black border-transparent hover:bg-brand-black/5'
                     }`}
                   >
@@ -165,7 +165,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
               PHOTOVISE
             </h1>
           </button>
-          <p className="text-[9px] text-brand-gray mt-2 uppercase tracking-[0.3em] font-bold">Photography workflow assistant</p>
+          <p className="text-xs text-brand-gray/60 mt-2 tracking-wider font-medium">Photography workflow assistant</p>
         </div>
 
         <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar mt-4">
@@ -183,8 +183,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
                 onClick={() => handleTabChange(item.id)}
                 className={`flex items-center gap-4 px-10 py-5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all border-l-4 ${
                   activeTab === item.id || activeTab.startsWith(item.id + '-')
-                    ? 'bg-white/5 text-white border-brand-rose shadow-[inset_10px_0_15px_-10px_rgba(212,165,165,0.1)]'
-                    : 'text-brand-gray border-transparent hover:text-brand-rose hover:bg-white/5'
+                    ? 'bg-white/5 text-white border-brand-blue shadow-[inset_10px_0_15px_-10px_rgba(143,165,178,0.1)]'
+                    : 'text-brand-gray border-transparent hover:text-white/80 hover:bg-white/5'
                 } ${fieldClasses}`}
               >
                 <i className={`fa-solid ${item.icon} w-5 text-sm`}></i>
@@ -237,10 +237,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
 
                 {/* Name / email */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] font-bold text-white/70 uppercase tracking-[0.15em] truncate">
+                  <p className="text-xs font-medium text-white/70 truncate">
                     {user.displayName || user.email?.split('@')[0] || 'Signed in'}
                   </p>
-                  <p className="text-[8px] text-brand-gray/50 uppercase tracking-widest truncate">
+                  <p className="text-[9px] text-brand-gray/50 truncate">
                     {user.email || ''}
                   </p>
                 </div>
@@ -273,29 +273,29 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
             <button
               onClick={() => setActiveTab('assignment')}
               className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-sm transition-all ${
-                activeTab === 'assignment' ? 'bg-brand-rose text-white' : 'bg-white/5 text-white/60'
+                activeTab === 'assignment' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
               }`}
             >
               <i className="fa-solid fa-bolt text-xs"></i>
-              <span className="text-[8px] font-bold uppercase tracking-tighter">Assignment</span>
+              <span className="text-[9px] font-bold uppercase tracking-tight">Assignment</span>
             </button>
             <button
               onClick={() => setActiveTab('processing')}
               className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-sm transition-all ${
-                activeTab === 'processing' ? 'bg-brand-rose text-white' : 'bg-white/5 text-white/60'
+                activeTab === 'processing' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
               }`}
             >
               <i className="fa-solid fa-wand-sparkles text-xs"></i>
-              <span className="text-[8px] font-bold uppercase tracking-tighter">Guides</span>
+              <span className="text-[9px] font-bold uppercase tracking-tight">Guides</span>
             </button>
             <button
               onClick={() => setActiveTab('askpro')}
               className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-sm transition-all ${
-                activeTab === 'askpro' ? 'bg-brand-rose text-white' : 'bg-white/5 text-white/60'
+                activeTab === 'askpro' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
               }`}
             >
               <i className="fa-solid fa-comments text-xs"></i>
-              <span className="text-[8px] font-bold uppercase tracking-tighter">Ask Pro</span>
+              <span className="text-[9px] font-bold uppercase tracking-tight">Ask Pro</span>
             </button>
           </div>
         </div>

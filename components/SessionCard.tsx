@@ -71,35 +71,35 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
 
   if (editing) {
     return (
-      <div className="bg-white rounded-sm shadow-sm border border-brand-rose/30 overflow-hidden">
+      <div className="bg-white rounded-sm shadow-sm border border-brand-blue/30 overflow-hidden">
         <div className="p-8 space-y-3">
-          <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-4">EDITING SESSION</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-blue mb-4">EDITING SESSION</p>
           <input
             type="text"
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
             placeholder="SESSION TITLE (OPTIONAL)"
-            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none uppercase placeholder:text-brand-black/20"
+            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none uppercase placeholder:text-brand-black/20"
           />
           <div className="grid grid-cols-2 gap-3">
             <input
               type="date"
               value={editDate}
               onChange={e => setEditDate(e.target.value)}
-              className="border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none"
+              className="border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
             />
             <LocationAutocomplete
               name="editLocation"
               placeholder="LOCATION"
               initialValue={editLocation}
               onChange={setEditLocation}
-              className="border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none uppercase placeholder:text-brand-black/20"
+              className="border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none uppercase placeholder:text-brand-black/20"
             />
           </div>
           <select
             value={editGenre}
             onChange={e => setEditGenre(e.target.value as Genre)}
-            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none uppercase"
+            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none uppercase"
           >
             {GENRE_OPTIONS.map(g => (
               <option key={g} value={g}>{g}</option>
@@ -109,7 +109,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
             value={editNotes}
             onChange={e => setEditNotes(e.target.value)}
             placeholder="NOTES / CREATIVE BRIEF"
-            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none placeholder:text-brand-black/20 min-h-[70px]"
+            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20 min-h-[70px]"
           />
           {(session.strategy || session.dayPlan) && (
             <div className="pt-2 space-y-2">
@@ -150,13 +150,13 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
           <div className="flex gap-2 pt-2">
             <button
               onClick={handleSave}
-              className="flex-1 bg-brand-rose text-white text-[10px] font-bold uppercase tracking-[0.2em] py-2.5 rounded-sm hover:bg-[#c99595] transition-all"
+              className="flex-1 bg-brand-blue text-white text-xs font-bold uppercase tracking-[0.15em] py-3 rounded-sm hover:bg-[#7a93a0] transition-all"
             >
               SAVE
             </button>
             <button
               onClick={handleCancel}
-              className="flex-1 border border-brand-black/10 text-brand-gray text-[10px] font-bold uppercase tracking-[0.2em] py-2.5 rounded-sm hover:border-brand-black/20 transition-all"
+              className="flex-1 border border-brand-black/10 text-brand-gray text-xs font-bold uppercase tracking-[0.15em] py-3 rounded-sm hover:border-brand-black/20 transition-all"
             >
               CANCEL
             </button>
@@ -178,7 +178,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
               {hasJournal && (
                 <button
                   onClick={onGoToJournal}
-                  className="bg-brand-black text-white px-2 py-1 rounded-sm text-[8px] font-bold uppercase tracking-widest flex items-center gap-1 hover:bg-brand-rose transition-colors"
+                  className="bg-brand-black text-white px-2 py-1 rounded-sm text-[8px] font-bold uppercase tracking-widest flex items-center gap-1 hover:bg-brand-blue transition-colors"
                   title="Has journal entry"
                 >
                   <i className="fa-solid fa-book-open"></i> Journal
@@ -189,11 +189,11 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
               {session.title ? session.title.toUpperCase() : session.name.toUpperCase()}
             </h3>
             <div className="flex items-center gap-3 mt-3">
-              <p className="text-[11px] text-brand-gray font-bold uppercase tracking-widest flex items-center gap-2">
+              <p className="text-xs text-brand-gray font-medium flex items-center gap-2">
                 <i className="fa-solid fa-location-dot text-brand-blue"></i> {session.location}
               </p>
               <span className="text-brand-black/5">|</span>
-              <p className="text-[11px] text-brand-gray font-bold uppercase tracking-widest">{session.date}</p>
+              <p className="text-xs text-brand-gray font-medium">{session.date}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -223,7 +223,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
 
         <div className="flex flex-wrap gap-2 mb-6">
           {session.genre.map((g) => (
-            <div key={g} className="flex items-center gap-2 px-3 py-2 bg-brand-white border border-brand-black/5 rounded-sm text-[10px] font-bold uppercase tracking-widest text-brand-gray shadow-sm">
+            <div key={g} className="flex items-center gap-2 px-3 py-2 bg-brand-white border border-brand-black/5 rounded-sm text-xs font-bold uppercase tracking-wide text-brand-gray shadow-sm">
               <span className="text-brand-blue text-[11px]">{GENRE_ICONS[g]}</span>
               {g}
             </div>
@@ -232,8 +232,8 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
 
         {session.notes && (
           <div className="mb-8 p-4 bg-brand-white border-l-2 border-brand-rose rounded-r-sm">
-            <p className="text-[9px] font-bold text-brand-gray uppercase tracking-[0.2em] mb-2">NOTES / BRIEF</p>
-            <p className="text-[11px] text-brand-black leading-relaxed italic">{session.notes}</p>
+            <p className="text-xs font-bold text-brand-gray/60 uppercase tracking-widest mb-2">NOTES / BRIEF</p>
+            <p className="text-xs text-brand-black leading-relaxed italic">{session.notes}</p>
           </div>
         )}
 
@@ -289,9 +289,9 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
                 <button
                   key={s}
                   onClick={() => onUpdateStatus(session.id, s)}
-                  className={`text-[9px] font-bold uppercase tracking-widest px-3 py-2 rounded-sm transition-all border ${
+                  className={`text-xs font-bold uppercase tracking-wide px-3 py-2 rounded-sm transition-all border ${
                     session.status === s
-                      ? 'bg-brand-rose text-white border-brand-rose shadow-md'
+                      ? 'bg-brand-blue text-white border-brand-blue shadow-md'
                       : 'bg-white text-brand-gray border-brand-black/5 hover:border-brand-blue/30 hover:text-brand-blue'
                   }`}
                 >

@@ -308,7 +308,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             return (
               <button key={date} onClick={() => setSelectedDate(date === selectedDate ? null : date)}
                 className={`min-h-[80px] md:min-h-[100px] p-2 md:p-3 text-left border-b border-r border-brand-black/5 transition-all
-                  ${isSelected ? 'bg-brand-rose/5 ring-1 ring-inset ring-brand-rose/30' : 'hover:bg-brand-black/[0.02]'}
+                  ${isSelected ? 'bg-brand-blue/5 ring-1 ring-inset ring-brand-blue/30' : 'hover:bg-brand-black/[0.02]'}
                   ${!inMonth ? 'bg-brand-black/[0.015]' : ''}
                 `}>
                 <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold mb-1
@@ -386,7 +386,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         {s.genre && s.genre.length > 0 && <span className="text-[8px] text-brand-gray uppercase tracking-widest font-bold">{s.genre.join(' · ')}</span>}
                       </div>
                       {s.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-2">{s.notes}</p>}
-                      <button onClick={() => onGoToSession(s.id)} className="w-full text-[9px] font-bold uppercase tracking-widest py-2.5 bg-brand-black/5 hover:bg-brand-rose hover:text-white text-brand-black rounded-sm transition-all">
+                      <button onClick={() => onGoToSession(s.id)} className="w-full text-xs font-bold uppercase tracking-wide py-2.5 bg-brand-black/5 hover:bg-brand-blue hover:text-white text-brand-black rounded-sm transition-all">
                         Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                       </button>
                     </div>
@@ -412,7 +412,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           {e.tags.map(t => <span key={t} className="text-[8px] px-2 py-0.5 bg-purple-50 text-purple-600 border border-purple-100 rounded-sm font-bold uppercase tracking-widest">{t}</span>)}
                         </div>
                       )}
-                      <button onClick={onGoToJournal} className="w-full text-[9px] font-bold uppercase tracking-widest py-2.5 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 rounded-sm transition-all">
+                      <button onClick={onGoToJournal} className="w-full text-xs font-bold uppercase tracking-wide py-2.5 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 rounded-sm transition-all">
                         Open Journal <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                       </button>
                     </div>
@@ -437,7 +437,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         <i className="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-brand-gray/40 text-sm"></i>
         <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
           placeholder="Search by title, location, genre, notes, tags, strategy..." autoFocus
-          className="w-full pl-12 pr-5 py-4 bg-white border border-brand-black/10 rounded-sm focus:ring-2 focus:ring-brand-rose outline-none text-sm text-brand-black placeholder:text-brand-gray/40 shadow-sm" />
+          className="w-full pl-12 pr-5 py-4 bg-white border border-brand-black/10 rounded-sm focus:ring-2 focus:ring-brand-blue outline-none text-sm text-brand-black placeholder:text-brand-gray/40 shadow-sm" />
         {searchQuery && (
           <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-gray/40 hover:text-brand-rose transition-colors">
             <i className="fa-solid fa-xmark"></i>
@@ -447,11 +447,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       {!searchQuery.trim() ? (
         <div className="py-20 text-center border border-dashed border-brand-black/10 rounded-sm">
           <i className="fa-solid fa-magnifying-glass text-brand-gray/20 text-3xl mb-4 block"></i>
-          <p className="text-brand-gray/40 text-[10px] font-bold uppercase tracking-widest">Type to search your sessions and journal</p>
+          <p className="text-sm text-brand-gray/50 font-normal">Type to search your sessions and journal</p>
         </div>
       ) : searchResults.sessions.length === 0 && searchResults.journal.length === 0 ? (
         <div className="py-20 text-center border border-dashed border-brand-black/10 rounded-sm">
-          <p className="text-brand-gray/40 text-[10px] font-bold uppercase tracking-widest">No results for "{searchQuery}"</p>
+          <p className="text-sm text-brand-gray/50 font-normal">No results for "{searchQuery}"</p>
         </div>
       ) : (
         <div className="space-y-10">
@@ -459,7 +459,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             <section>
               <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-black/30 mb-4 flex items-center gap-2">
                 <i className="fa-solid fa-camera"></i> Sessions
-                <span className="bg-brand-rose/10 text-brand-rose px-2 py-0.5 rounded-sm">{searchResults.sessions.length}</span>
+                <span className="bg-brand-blue/10 text-brand-blue px-2 py-0.5 rounded-sm">{searchResults.sessions.length}</span>
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {searchResults.sessions.map(s => (
@@ -467,7 +467,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
                       <div>
                         <p className="font-display text-lg text-white leading-none tracking-widest"><Highlight text={(s.title || s.location || 'Untitled').toUpperCase()} query={searchQuery} /></p>
-                        <p className="text-[9px] text-brand-gray mt-1 uppercase tracking-widest">{s.date}</p>
+                        <p className="text-xs text-brand-gray/60 mt-1">{s.date}</p>
                       </div>
                       <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${STATUS_DOT[s.status]}`}></span>
                     </div>
@@ -477,7 +477,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         {s.genre?.map(g => <span key={g} className="text-[8px] text-brand-gray font-bold uppercase tracking-widest">{g}</span>)}
                       </div>
                       {s.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-2"><Highlight text={s.notes} query={searchQuery} /></p>}
-                      <button onClick={() => onGoToSession(s.id)} className="w-full text-[9px] font-bold uppercase tracking-widest py-2 bg-brand-black/5 hover:bg-brand-rose hover:text-white text-brand-black rounded-sm transition-all mt-2">
+                      <button onClick={() => onGoToSession(s.id)} className="w-full text-xs font-bold uppercase tracking-wide py-2.5 bg-brand-black/5 hover:bg-brand-blue hover:text-white text-brand-black rounded-sm transition-all mt-2">
                         Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                       </button>
                     </div>
@@ -498,7 +498,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
                       <div>
                         <p className="font-display text-lg text-white leading-none tracking-widest"><Highlight text={(e.title || 'Journal Entry').toUpperCase()} query={searchQuery} /></p>
-                        <p className="text-[9px] text-brand-gray mt-1 uppercase tracking-widest">{e.date}</p>
+                        <p className="text-xs text-brand-gray/60 mt-1">{e.date}</p>
                       </div>
                       <i className="fa-solid fa-book-open text-purple-400/60 ml-2"></i>
                     </div>
@@ -511,7 +511,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           ))}
                         </div>
                       )}
-                      <button onClick={onGoToJournal} className="w-full text-[9px] font-bold uppercase tracking-widest py-2 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 rounded-sm transition-all mt-2">
+                      <button onClick={onGoToJournal} className="w-full text-xs font-bold uppercase tracking-wide py-2.5 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 rounded-sm transition-all mt-2">
                         Open Journal <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                       </button>
                     </div>
@@ -536,13 +536,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       {activeSessions.length === 0 ? (
         <div className="py-24 text-center border border-dashed border-brand-black/10 rounded-sm">
           <i className="fa-solid fa-calendar-days text-brand-gray/20 text-3xl mb-4 block"></i>
-          <p className="text-brand-gray/40 text-[10px] font-bold uppercase tracking-widest">No active sessions to schedule</p>
+          <p className="text-sm text-brand-gray/50 font-normal">No active sessions to schedule</p>
         </div>
       ) : (
         <>
           {/* Step 1 — Sessions */}
           <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
+            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-brand-black/50 border-b border-brand-black/5 pb-4">
               <span className="text-brand-rose mr-2">01</span> SELECT SESSIONS TO SCHEDULE
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -550,15 +550,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 const selected = plannerSessions.has(s.id);
                 return (
                   <button key={s.id} onClick={() => togglePlannerSession(s.id)}
-                    className={`flex items-center gap-4 p-4 rounded-sm border text-left transition-all ${selected ? 'border-brand-rose bg-brand-rose/5' : 'border-brand-black/5 hover:border-brand-black/15'}`}>
-                    <div className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected ? 'bg-brand-rose border-brand-rose' : 'border-brand-gray/30'}`}>
+                    className={`flex items-center gap-4 p-4 rounded-sm border text-left transition-all ${selected ? 'border-brand-blue bg-brand-blue/5' : 'border-brand-black/5 hover:border-brand-black/15'}`}>
+                    <div className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected ? 'bg-brand-blue border-brand-blue' : 'border-brand-gray/30'}`}>
                       {selected && <i className="fa-solid fa-check text-white text-[8px]"></i>}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold text-brand-black uppercase tracking-widest truncate">{s.title || s.location || 'Untitled'}</p>
+                      <p className="text-xs font-semibold text-brand-black truncate">{s.title || s.location || 'Untitled'}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-sm border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
-                        <span className="text-[9px] text-brand-gray">{s.date}</span>
+                        <span className="text-xs text-brand-gray/60">{s.date}</span>
                         {s.strategy && <span className="text-[8px] text-brand-blue font-bold uppercase tracking-widest"><i className="fa-solid fa-bolt mr-0.5"></i>Strategy</span>}
                       </div>
                     </div>
@@ -570,7 +570,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
           {/* Step 2 — Week of */}
           <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
+            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-brand-black/50 border-b border-brand-black/5 pb-4">
               <span className="text-brand-rose mr-2">02</span> CHOOSE WEEK
             </h3>
             <div className="flex items-center gap-3 flex-wrap">
@@ -590,7 +590,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 <input
                   type="date"
                   onChange={e => { if (e.target.value) setWeekMonday(getMondayOf(new Date(e.target.value + 'T12:00:00'))); }}
-                  className="text-[10px] font-bold border border-brand-black/10 rounded-sm px-3 py-2 focus:ring-1 focus:ring-brand-rose outline-none bg-white"
+                  className="text-[10px] font-bold border border-brand-black/10 rounded-sm px-3 py-2 focus:ring-1 focus:ring-brand-blue outline-none bg-white"
                 />
               </div>
             </div>
@@ -600,7 +600,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 <div key={i} className={`text-center p-2 rounded-sm border ${toYMD(d) === todayStr ? 'border-brand-rose bg-brand-rose/5' : 'border-brand-black/5 bg-brand-black/[0.01]'}`}>
                   <p className="text-[8px] font-bold uppercase tracking-widest text-brand-gray">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</p>
                   <p className={`text-[11px] font-bold mt-0.5 ${toYMD(d) === todayStr ? 'text-brand-rose' : 'text-brand-black'}`}>{d.getDate()}</p>
-                  <p className="text-[7px] text-brand-gray/50 uppercase">{SHORT_MONTHS[d.getMonth()]}</p>
+                  <p className="text-[9px] text-brand-gray/50 uppercase">{SHORT_MONTHS[d.getMonth()]}</p>
                 </div>
               ))}
             </div>
@@ -608,7 +608,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
           {/* Step 3 — Availability */}
           <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
+            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-brand-black/50 border-b border-brand-black/5 pb-4">
               <span className="text-brand-rose mr-2">03</span> SET YOUR AVAILABILITY
             </h3>
             <div className="space-y-2">
@@ -619,7 +619,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <div key={day} className={`rounded-sm border transition-all ${enabled ? 'border-brand-black/10 bg-brand-black/[0.015]' : 'border-brand-black/5'}`}>
                     <div className="flex items-center gap-4 px-5 py-3 flex-wrap">
                       <button onClick={() => toggleDay(day)}
-                        className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${enabled ? 'bg-brand-rose border-brand-rose' : 'border-brand-gray/30'}`}>
+                        className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${enabled ? 'bg-brand-blue border-brand-blue' : 'border-brand-gray/30'}`}>
                         {enabled && <i className="fa-solid fa-check text-white text-[8px]"></i>}
                       </button>
                       <div className="flex items-baseline gap-2 w-44 flex-shrink-0">
@@ -650,18 +650,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
           {/* Step 4 — Limitations */}
           <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-4">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">
+            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-brand-black/50 border-b border-brand-black/5 pb-4">
               <span className="text-brand-rose mr-2">04</span> ADDITIONAL CONSTRAINTS (OPTIONAL)
             </h3>
             <textarea value={limitations} onChange={e => setLimitations(e.target.value)}
               placeholder="e.g. I have a job interview on Tuesday afternoon, golden hour only for outdoor shoots, avoid back-to-back editing days..."
-              className="w-full h-28 p-4 bg-brand-white border border-brand-black/5 rounded-sm focus:ring-1 focus:ring-brand-rose outline-none text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40 resize-none" />
+              className="w-full h-28 p-4 bg-brand-white border border-brand-black/5 rounded-sm focus:ring-1 focus:ring-brand-blue outline-none text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40 resize-none" />
           </section>
 
           {/* Generate button */}
           <div className="flex justify-end">
             <button disabled={!canGenerate || isGenerating} onClick={handleGenerate}
-              className={`flex items-center gap-3 px-10 py-4 rounded-sm font-bold uppercase tracking-[0.2em] text-[10px] transition-all ${!canGenerate || isGenerating ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed' : 'bg-brand-rose text-white hover:shadow-md active:scale-95 shadow-sm'}`}>
+              className={`flex items-center gap-3 px-10 py-4 rounded-sm font-bold uppercase tracking-[0.2em] text-[10px] transition-all ${!canGenerate || isGenerating ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed' : 'bg-brand-blue text-white hover:bg-[#7a93a0] hover:shadow-md active:scale-95 shadow-sm'}`}>
               {isGenerating ? <><i className="fa-solid fa-circle-notch animate-spin"></i> BUILDING YOUR SCHEDULE...</> : <><i className="fa-solid fa-calendar-check"></i> GENERATE WEEK SCHEDULE</>}
             </button>
           </div>
@@ -671,7 +671,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden animate-in fade-in duration-500">
               <div className="bg-brand-black px-8 py-5 flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-1">PHOTOVISE SCHEDULING AI</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-brand-rose mb-1">PHOTOVISE SCHEDULING AI</p>
                   <p className="font-display text-xl text-white tracking-widest">WEEK OF {currentWeekLabel.toUpperCase()}</p>
                 </div>
                 <i className="fa-solid fa-calendar-week text-brand-rose/40 text-xl"></i>
@@ -725,7 +725,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           { key: 'search',   icon: 'fa-magnifying-glass', label: 'Search'       },
         ] as const).map(({ key, icon, label }) => (
           <button key={key} onClick={() => setView(key)}
-            className={`px-6 py-2 text-[9px] font-bold uppercase tracking-[0.2em] rounded-sm transition-all ${view === key ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'}`}>
+            className={`px-6 py-2 text-xs font-bold uppercase tracking-[0.15em] rounded-sm transition-all ${view === key ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'}`}>
             <i className={`fa-solid ${icon} mr-2`}></i>{label}
           </button>
         ))}

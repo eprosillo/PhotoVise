@@ -177,7 +177,7 @@ function FeedbackFlag(props: {
       ) : (
         <div className="space-y-2 bg-brand-white p-3 border border-brand-black/5 rounded-sm animate-in fade-in slide-in-from-top-1 duration-200">
           <textarea
-            className="w-full resize-none rounded-sm border border-brand-black/10 bg-white p-2 text-[11px] outline-none focus:ring-1 focus:ring-brand-rose"
+            className="w-full resize-none rounded-sm border border-brand-black/10 bg-white p-2 text-[11px] outline-none focus:ring-1 focus:ring-brand-blue"
             rows={2}
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -266,7 +266,7 @@ const AskProPage: React.FC<{
               </label>
               <textarea
                 ref={askProInputRef}
-                className="w-full bg-white/5 border border-white/10 rounded-sm px-5 py-4 text-sm focus:ring-1 focus:ring-brand-rose outline-none transition-all placeholder:text-white/20 min-h-[200px] resize-none"
+                className="w-full bg-white/5 border border-white/10 rounded-sm px-5 py-4 text-sm focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[200px] resize-none"
                 value={props.askProInput}
                 onChange={(e) => props.setAskProInput(e.target.value)}
                 placeholder={askProPlaceholder}
@@ -280,7 +280,7 @@ const AskProPage: React.FC<{
                 className={`flex items-center justify-center gap-3 rounded-sm font-bold uppercase tracking-[0.2em] transition-all shadow-lg ${askButtonClass} ${
                   props.isGeneratingAskPro || !props.askProInput.trim()
                     ? 'bg-brand-gray/20 text-brand-gray cursor-not-allowed'
-                    : 'bg-brand-rose text-brand-white hover:bg-[#c99595] active:scale-95'
+                    : 'bg-brand-blue text-white hover:bg-[#7a93a0] active:scale-95'
                 }`}
               >
                 {props.isGeneratingAskPro ? (
@@ -1502,12 +1502,12 @@ const App: React.FC = () => {
                 <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-black">Field mode</label>
                 <button 
                   onClick={() => setIsFieldMode(!isFieldMode)}
-                  className={`w-10 h-5 rounded-full transition-all relative ${isFieldMode ? 'bg-brand-rose' : 'bg-brand-gray/30'}`}
+                  className={`w-10 h-5 rounded-full transition-all relative ${isFieldMode ? 'bg-brand-blue' : 'bg-brand-gray/30'}`}
                 >
                   <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${isFieldMode ? 'left-6' : 'left-1'}`}></div>
                 </button>
               </div>
-              <p className="text-[8px] font-bold text-brand-gray/60 uppercase tracking-tighter">Simplify layout for on-assignment use.</p>
+              <p className="text-[9px] text-brand-gray/50 font-normal">Simplify layout for on-assignment use.</p>
             </div>
           </header>
 
@@ -1532,25 +1532,25 @@ const App: React.FC = () => {
                 name="title"
                 type="text"
                 placeholder="SESSION TITLE (OPTIONAL)"
-                className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all placeholder:text-white/20 uppercase"
+                className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 uppercase"
               />
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                 <input 
                   name="date" 
                   type="date" 
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all"
+                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                 />
                 <LocationAutocomplete 
                   name="location" 
                   placeholder="LOCATION (E.G. AUSTIN)" 
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all placeholder:text-white/20 uppercase"
+                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 uppercase"
                 />
                 <select 
                   name="genre"
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all uppercase"
+                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all uppercase"
                 >
                   {genreOptions.map(g => (
                     <option key={g} value={g} className="text-brand-black">{g}</option>
@@ -1558,7 +1558,7 @@ const App: React.FC = () => {
                 </select>
                 <button 
                   type="submit"
-                  className="bg-brand-rose hover:bg-[#c99595] text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-sm py-3 transition-all active:scale-95 shadow-lg"
+                  className="bg-brand-blue hover:bg-[#7a93a0] text-white font-bold uppercase tracking-[0.2em] text-xs rounded-sm py-3 transition-all active:scale-95 shadow-lg"
                 >
                   INDEX SESSION
                 </button>
@@ -1566,7 +1566,7 @@ const App: React.FC = () => {
               <textarea 
                 name="notes"
                 placeholder="NOTES / CREATIVE BRIEF"
-                className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all placeholder:text-white/20 min-h-[80px]"
+                className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[80px]"
               />
             </form>
           </section>
@@ -1594,16 +1594,16 @@ const App: React.FC = () => {
                     <div className="flex flex-col md:flex-row md:items-center gap-4 flex-wrap">
                       {/* Genre filter */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[8px] font-bold uppercase tracking-[0.25em] text-brand-gray/50 mb-2">Genre</p>
+                        <p className="text-[10px] text-brand-gray/50 font-medium mb-2">Genre</p>
                         <div className="flex flex-wrap gap-1.5">
                           <button
                             onClick={() => setDashboardGenreFilter('All')}
-                            className={`text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm border transition-all ${dashboardGenreFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
+                            className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm border transition-all ${dashboardGenreFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
                           >All</button>
                           {presentGenres.map(g => (
                             <button key={g}
                               onClick={() => setDashboardGenreFilter(g)}
-                              className={`text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm border transition-all ${dashboardGenreFilter === g ? 'bg-brand-rose text-white border-brand-rose' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-rose/30'}`}
+                              className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm border transition-all ${dashboardGenreFilter === g ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-blue/30'}`}
                             >{g}</button>
                           ))}
                         </div>
@@ -1611,12 +1611,12 @@ const App: React.FC = () => {
 
                       {/* Status filter */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[8px] font-bold uppercase tracking-[0.25em] text-brand-gray/50 mb-2">Progress</p>
+                        <p className="text-[10px] text-brand-gray/50 font-medium mb-2">Progress</p>
                         <div className="flex flex-wrap gap-1.5">
                           {(['All', 'shot', 'culled', 'edited', 'backed up', 'posted'] as const).map(s => (
                             <button key={s}
                               onClick={() => setDashboardStatusFilter(s)}
-                              className={`text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm border transition-all ${dashboardStatusFilter === s ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
+                              className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm border transition-all ${dashboardStatusFilter === s ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
                             >{s === 'All' ? 'All' : s}</button>
                           ))}
                         </div>
@@ -1624,10 +1624,10 @@ const App: React.FC = () => {
 
                       {/* Date sort */}
                       <div className="flex-shrink-0">
-                        <p className="text-[8px] font-bold uppercase tracking-[0.25em] text-brand-gray/50 mb-2">Date</p>
+                        <p className="text-[10px] text-brand-gray/50 font-medium mb-2">Date</p>
                         <button
                           onClick={() => setDashboardDateSort(p => p === 'newest' ? 'oldest' : 'newest')}
-                          className="flex items-center gap-2 text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm border border-brand-black/10 bg-white text-brand-gray hover:border-brand-black/30 transition-all"
+                          className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm border border-brand-black/10 bg-white text-brand-gray hover:border-brand-black/30 transition-all"
                         >
                           <i className={`fa-solid fa-arrow-${dashboardDateSort === 'newest' ? 'down' : 'up'}-short-wide text-[9px]`}></i>
                           {dashboardDateSort === 'newest' ? 'Newest first' : 'Oldest first'}
@@ -1637,13 +1637,13 @@ const App: React.FC = () => {
 
                     {/* Results summary + clear */}
                     <div className="flex items-center justify-between">
-                      <p className="text-[9px] text-brand-gray/50 font-bold uppercase tracking-widest">
+                      <p className="text-xs text-brand-gray/40 font-normal">
                         {filtered.length} of {activeSessions.length} session{activeSessions.length !== 1 ? 's' : ''}
                       </p>
                       {hasFilters && (
                         <button
                           onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); }}
-                          className="text-[8px] font-bold uppercase tracking-widest text-brand-rose hover:underline"
+                          className="text-xs text-brand-gray/50 hover:text-brand-black hover:underline"
                         >
                           <i className="fa-solid fa-xmark mr-1"></i>Clear filters
                         </button>
@@ -1655,11 +1655,11 @@ const App: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {activeSessions.length === 0 ? (
                     <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-sm">
-                      <p className="text-brand-gray text-[10px] font-bold uppercase tracking-widest">NO ACTIVE SESSIONS DETECTED</p>
+                      <p className="text-sm font-medium text-brand-gray/50">No active sessions detected</p>
                     </div>
                   ) : filtered.length === 0 ? (
                     <div className="col-span-full py-16 text-center border border-dashed border-brand-gray/20 rounded-sm">
-                      <p className="text-brand-gray text-[10px] font-bold uppercase tracking-widest mb-2">No sessions match these filters</p>
+                      <p className="text-sm font-medium text-brand-gray/50 mb-2">No sessions match these filters</p>
                       <button onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); }} className="text-[9px] text-brand-rose font-bold uppercase tracking-widest hover:underline">
                         Clear filters
                       </button>
@@ -1710,13 +1710,13 @@ const App: React.FC = () => {
                   </div>
                 )}
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-brand-black">{user.displayName || 'Photographer'}</p>
+                  <p className="text-sm font-semibold text-brand-black">{user.displayName || 'Photographer'}</p>
                   <p className="text-[10px] text-brand-gray mt-0.5">{user.email}</p>
                 </div>
               </div>
               <button
                 onClick={signOut}
-                className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-brand-gray border border-brand-black/10 px-4 py-2 rounded-sm hover:bg-brand-rose hover:text-white hover:border-brand-rose transition-all"
+                className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-brand-gray border border-brand-black/10 px-4 py-2 rounded-sm hover:bg-brand-black/5 hover:text-brand-black transition-all"
               >
                 <i className="fa-solid fa-arrow-right-from-bracket text-[10px]"></i>
                 SIGN OUT
@@ -1727,7 +1727,7 @@ const App: React.FC = () => {
           <section className="bg-white rounded-sm border border-brand-black/5 p-10 shadow-sm">
             <div className="space-y-12">
               <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-6 border-b border-brand-black/5 pb-2">BASICS</h3>
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">BASICS</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
                     <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">NAME</label>
@@ -1735,7 +1735,7 @@ const App: React.FC = () => {
                       type="text"
                       value={draftProfile.name}
                       onChange={e => setDraftProfile(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all uppercase tracking-widest"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all uppercase tracking-widest"
                       placeholder="E.G. JANE DOE"
                     />
                   </div>
@@ -1745,7 +1745,7 @@ const App: React.FC = () => {
                       type="text"
                       value={draftProfile.yearsShooting}
                       onChange={e => setDraftProfile(prev => ({ ...prev, yearsShooting: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all uppercase tracking-widest"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all uppercase tracking-widest"
                       placeholder="E.G. 5 YEARS, OR SINCE 2018"
                     />
                   </div>
@@ -1763,7 +1763,7 @@ const App: React.FC = () => {
                           }))}
                           className={`text-[9px] font-bold px-4 py-2 rounded-sm border transition-all ${
                             draftProfile.primaryGenres.includes(g)
-                              ? 'bg-brand-rose text-white border-brand-rose'
+                              ? 'bg-brand-blue text-white border-brand-blue'
                               : 'bg-brand-white text-brand-gray border-brand-black/5'
                           }`}
                         >
@@ -1777,7 +1777,7 @@ const App: React.FC = () => {
                         value={draftProfile.otherGenreNote || ''}
                         onChange={e => setDraftProfile(prev => ({ ...prev, otherGenreNote: e.target.value }))}
                         placeholder="Specify your genre..."
-                        className="mt-3 w-full bg-brand-white border border-brand-rose/30 rounded-sm px-4 py-2.5 text-[10px] text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-rose outline-none"
+                        className="mt-3 w-full bg-brand-white border border-brand-rose/30 rounded-sm px-4 py-2.5 text-[10px] text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-blue outline-none"
                       />
                     )}
                   </div>
@@ -1785,7 +1785,7 @@ const App: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-6 border-b border-brand-black/5 pb-2">SOFTWARE & WORKFLOW</h3>
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">SOFTWARE & WORKFLOW</h3>
                 <div className="space-y-8">
                   <div>
                     <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">EDITING / RAW</label>
@@ -1833,7 +1833,7 @@ const App: React.FC = () => {
                           }))}
                           className={`text-[9px] font-bold px-4 py-2 rounded-sm border transition-all ${
                             draftProfile.tetheringApps.includes(app)
-                              ? 'bg-brand-rose text-white border-brand-rose'
+                              ? 'bg-brand-blue text-white border-brand-blue'
                               : 'bg-brand-white text-brand-gray border-brand-black/5'
                           }`}
                         >
@@ -1847,7 +1847,7 @@ const App: React.FC = () => {
                         value={draftProfile.otherTetheringAppNote || ''}
                         onChange={e => setDraftProfile(prev => ({ ...prev, otherTetheringAppNote: e.target.value }))}
                         placeholder="Specify your tethering app..."
-                        className="mt-3 w-full bg-brand-white border border-brand-rose/30 rounded-sm px-4 py-2.5 text-[10px] text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-rose outline-none"
+                        className="mt-3 w-full bg-brand-white border border-brand-rose/30 rounded-sm px-4 py-2.5 text-[10px] text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-blue outline-none"
                       />
                     )}
                   </div>
@@ -1855,14 +1855,14 @@ const App: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-6 border-b border-brand-black/5 pb-2">WORK & STYLE</h3>
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">WORK & STYLE</h3>
                 <div className="space-y-6">
                   <div>
                     <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">TYPICAL WORK / SCOPE</label>
                     <textarea 
                       value={draftProfile.typicalWork}
                       onChange={e => setDraftProfile(prev => ({ ...prev, typicalWork: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all min-h-[80px]"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
                       placeholder="E.G. EDITORIAL ASSIGNMENTS, STREET PHOTOGRAPHY SERIES"
                     />
                   </div>
@@ -1873,7 +1873,7 @@ const App: React.FC = () => {
                         type="text"
                         value={styleKeywordsDraft}
                         onChange={e => setStyleKeywordsDraft(e.target.value)}
-                        className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all"
+                        className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                         placeholder="cinematic, high contrast, natural light…"
                       />
                       <p className="text-[8px] text-brand-gray mt-2 tracking-tighter">Type style keywords separated by commas, e.g. cinematic, high contrast, natural light.</p>
@@ -1901,14 +1901,14 @@ const App: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-6 border-b border-brand-black/5 pb-2">STRENGTHS & STRUGGLES</h3>
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">STRENGTHS & STRUGGLES</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
                     <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">STRENGTHS</label>
                     <textarea 
                       value={draftProfile.strengths}
                       onChange={e => setDraftProfile(prev => ({ ...prev, strengths: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all min-h-[100px]"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[100px]"
                       placeholder="DESCRIBE WHAT YOU DO BEST..."
                     />
                   </div>
@@ -1917,7 +1917,7 @@ const App: React.FC = () => {
                     <textarea 
                       value={draftProfile.struggles}
                       onChange={e => setDraftProfile(prev => ({ ...prev, struggles: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all min-h-[100px]"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[100px]"
                       placeholder="WHERE DO YOU FEEL FRICTION OR STALL?"
                     />
                   </div>
@@ -1925,14 +1925,14 @@ const App: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-6 border-b border-brand-black/5 pb-2">CONSTRAINTS & REALITY</h3>
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">CONSTRAINTS & REALITY</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="md:col-span-1">
                     <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">PHYSICAL CONSTRAINTS</label>
                     <textarea 
                       value={draftProfile.physicalConstraints}
                       onChange={e => setDraftProfile(prev => ({ ...prev, physicalConstraints: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all min-h-[80px]"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
                       placeholder="E.G. HEIGHT, STAMINA, CROWD TOLERANCE"
                     />
                   </div>
@@ -1941,7 +1941,7 @@ const App: React.FC = () => {
                     <textarea 
                       value={draftProfile.accessReality}
                       onChange={e => setDraftProfile(prev => ({ ...prev, accessReality: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all min-h-[80px]"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
                       placeholder="E.G. PUBLIC STANDS, PRESS ACCESS, SIDELINES"
                     />
                   </div>
@@ -1950,7 +1950,7 @@ const App: React.FC = () => {
                     <textarea 
                       value={draftProfile.timeBudget}
                       onChange={e => setDraftProfile(prev => ({ ...prev, timeBudget: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all min-h-[80px]"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
                       placeholder="TYPICAL TIME AVAILABLE PER ASSIGNMENT"
                     />
                   </div>
@@ -1958,13 +1958,13 @@ const App: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-6 border-b border-brand-black/5 pb-2">GROWTH GOALS</h3>
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">GROWTH GOALS</h3>
                 <div>
                   <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">2-3 TARGET SKILLS OR PATTERNS</label>
                   <textarea 
                     value={draftProfile.growthGoals}
                     onChange={e => setDraftProfile(prev => ({ ...prev, growthGoals: e.target.value }))}
-                    className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-4 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all min-h-[100px]"
+                    className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-4 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[100px]"
                     placeholder="WHAT ARE YOU CURRENTLY TRYING TO MASTER?"
                   />
                 </div>
@@ -1975,7 +1975,7 @@ const App: React.FC = () => {
                 <button
                   onClick={handleResetProfile}
                   disabled={!isProfileDirty}
-                  className={`px-8 py-4 rounded-sm text-[10px] font-bold uppercase tracking-[0.2em] transition-all border ${
+                  className={`px-8 py-4 rounded-sm text-xs font-bold uppercase tracking-[0.2em] transition-all border ${
                     isProfileDirty 
                       ? 'bg-white text-brand-gray border-brand-black/10 hover:bg-brand-black/5' 
                       : 'bg-white text-brand-gray/30 border-brand-black/5 cursor-not-allowed'
@@ -1986,9 +1986,9 @@ const App: React.FC = () => {
                 <button
                   onClick={handleApplyProfile}
                   disabled={!isProfileDirty}
-                  className={`px-12 py-4 rounded-sm text-[10px] font-bold uppercase tracking-[0.2em] transition-all shadow-lg ${
-                    isProfileDirty 
-                      ? 'bg-brand-rose text-white hover:bg-[#c99595] active:scale-95' 
+                  className={`px-12 py-4 rounded-sm text-xs font-bold uppercase tracking-[0.2em] transition-all shadow-lg ${
+                    isProfileDirty
+                      ? 'bg-brand-blue text-white hover:bg-[#7a93a0] active:scale-95'
                       : 'bg-brand-gray/10 text-brand-gray/30 cursor-not-allowed shadow-none'
                   }`}
                 >
@@ -2017,7 +2017,7 @@ const App: React.FC = () => {
               />
 
               <textarea
-                className="w-full h-40 p-5 bg-brand-white border border-brand-black/5 rounded-sm focus:ring-1 focus:ring-brand-rose outline-none transition-all text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40"
+                className="w-full h-40 p-5 bg-brand-white border border-brand-black/5 rounded-sm focus:ring-1 focus:ring-brand-blue outline-none transition-all text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40"
                 placeholder="Outline your upcoming week, availability, and specific shoot goals..."
                 value={plannerInput}
                 onChange={(e) => setPlannerInput(e.target.value)}
@@ -2026,10 +2026,10 @@ const App: React.FC = () => {
                 <button
                   disabled={isGeneratingPlan || (!plannerInput.trim() && selectedPlannerSessionIds.length === 0)}
                   onClick={handleGeneratePlan}
-                  className={`flex items-center gap-3 px-10 py-4 rounded-sm font-bold uppercase tracking-[0.2em] text-[10px] transition-all ${
+                  className={`flex items-center gap-3 px-10 py-4 rounded-sm font-bold uppercase tracking-[0.2em] text-xs transition-all ${
                     isGeneratingPlan || (!plannerInput.trim() && selectedPlannerSessionIds.length === 0)
-                      ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed' 
-                      : 'bg-brand-rose text-white hover:shadow-md active:scale-95 shadow-sm'
+                      ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed'
+                      : 'bg-brand-blue text-white hover:bg-[#7a93a0] hover:shadow-md active:scale-95 shadow-sm'
                   }`}
                 >
                   {isGeneratingPlan ? (
@@ -2062,7 +2062,7 @@ const App: React.FC = () => {
                     <select
                       value={plannerAttachId}
                       onChange={e => { setPlannerAttachId(e.target.value); setPlannerAttached(false); }}
-                      className="bg-white/5 border border-white/10 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-sm outline-none focus:ring-1 focus:ring-brand-rose"
+                      className="bg-white/5 border border-white/10 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-sm outline-none focus:ring-1 focus:ring-brand-blue"
                     >
                       <option value="" className="text-brand-black">ATTACH TO SESSION...</option>
                       {sessions.filter(s => s.status !== 'archived').map(s => (
@@ -2122,12 +2122,12 @@ const App: React.FC = () => {
                         onClick={() => setIncludeAttachedStrategy(v => !v)}
                         className={`mt-3 flex items-center gap-3 w-full px-4 py-3 rounded-sm border transition-all ${
                           includeAttachedStrategy
-                            ? 'bg-brand-rose/10 border-brand-rose/40 text-brand-rose'
+                            ? 'bg-brand-blue/10 border-brand-blue/40 text-brand-blue'
                             : 'bg-white/5 border-white/10 text-white/40 hover:border-white/30 hover:text-white/60'
                         }`}
                       >
                         <div className={`w-4 h-4 rounded-sm border flex items-center justify-center flex-shrink-0 transition-all ${
-                          includeAttachedStrategy ? 'bg-brand-rose border-brand-rose' : 'border-white/20'
+                          includeAttachedStrategy ? 'bg-brand-blue border-brand-blue' : 'border-white/20'
                         }`}>
                           {includeAttachedStrategy && <i className="fa-solid fa-check text-[9px] text-white"></i>}
                         </div>
@@ -2148,9 +2148,9 @@ const App: React.FC = () => {
                           type="button"
                           onClick={() => setAssignmentTimeframe(tf)}
                           className={`text-[9px] font-bold uppercase tracking-widest px-4 py-2 rounded-sm border transition-all ${
-                            assignmentTimeframe === tf 
-                              ? 'bg-brand-rose text-white border-brand-rose shadow-md scale-105' 
-                              : 'bg-white/5 text-white/40 border-white/10 hover:border-brand-rose/50 hover:text-white'
+                            assignmentTimeframe === tf
+                              ? 'bg-brand-blue text-white border-brand-blue shadow-md scale-105'
+                              : 'bg-white/5 text-white/40 border-white/10 hover:border-brand-blue/50 hover:text-white'
                           }`}
                         >
                           {tf === '30min' ? '30 MIN' : 
@@ -2165,7 +2165,7 @@ const App: React.FC = () => {
                   <div className="flex flex-col">
                     <textarea
                       ref={assignmentInputRef}
-                      className="w-full h-32 p-5 bg-white/5 border border-white/10 rounded-sm focus:ring-1 focus:ring-brand-rose outline-none transition-all text-sm leading-relaxed text-zinc-100 placeholder:text-white/20"
+                      className="w-full h-32 p-5 bg-white/5 border border-white/10 rounded-sm focus:ring-1 focus:ring-brand-blue outline-none transition-all text-sm leading-relaxed text-zinc-100 placeholder:text-white/20"
                       placeholder={assignmentPlaceholder}
                       value={assignmentInput}
                       onChange={(e) => setAssignmentInput(e.target.value)}
@@ -2183,7 +2183,7 @@ const App: React.FC = () => {
                   <button
                     disabled={isGeneratingAssignment || (!assignmentInput.trim() && selectedAssignmentSessionIds.length === 0)}
                     onClick={handleGenerateAssignment}
-                    className={`bg-brand-rose hover:bg-[#c99595] text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-sm py-4 px-12 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg ${isGeneratingAssignment || (!assignmentInput.trim() && selectedAssignmentSessionIds.length === 0) ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    className={`bg-brand-blue hover:bg-[#7a93a0] text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-sm py-4 px-12 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg ${isGeneratingAssignment || (!assignmentInput.trim() && selectedAssignmentSessionIds.length === 0) ? 'opacity-40 cursor-not-allowed' : ''}`}
                   >
                     {isGeneratingAssignment ? (
                       <><i className="fa-solid fa-circle-notch animate-spin"></i> GENERATING STRATEGY</>
@@ -2364,7 +2364,7 @@ const App: React.FC = () => {
                   </div>
                   <button 
                     onClick={() => setActiveTab('profile')}
-                    className="mt-8 w-full py-3 bg-white/5 border border-white/10 rounded-sm text-[9px] font-bold uppercase tracking-widest hover:bg-brand-rose hover:border-brand-rose transition-all"
+                    className="mt-8 w-full py-3 bg-white/5 border border-white/10 rounded-sm text-[9px] font-bold uppercase tracking-widest hover:bg-brand-blue hover:border-brand-blue transition-all"
                   >
                     Edit Profile
                   </button>
@@ -2392,7 +2392,7 @@ const App: React.FC = () => {
                     type="date"
                     value={journalForm.date}
                     onChange={e => setJournalForm(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                     required
                   />
                 </div>
@@ -2403,7 +2403,7 @@ const App: React.FC = () => {
                     placeholder="E.G. MORNING FOG AT MOUNT RAINIER"
                     value={journalForm.title}
                     onChange={e => setJournalForm(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all placeholder:text-white/20 uppercase"
+                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 uppercase"
                     required
                   />
                 </div>
@@ -2429,7 +2429,7 @@ const App: React.FC = () => {
                   placeholder="WHAT WORKED? WHAT DIDN'T? WHAT DID YOU LEARN?"
                   value={journalForm.notes}
                   onChange={e => setJournalForm(prev => ({ ...prev, notes: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-4 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all placeholder:text-white/20 min-h-[120px] leading-relaxed"
+                  className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-4 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[120px] leading-relaxed"
                   required
                 />
               </div>
@@ -2442,7 +2442,7 @@ const App: React.FC = () => {
                     placeholder="E.G. LIGHTING WIN, GEAR ISSUE"
                     value={journalForm.tags}
                     onChange={e => setJournalForm(prev => ({ ...prev, tags: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all placeholder:text-white/20 uppercase"
+                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 uppercase"
                   />
                 </div>
                 <div>
@@ -2450,7 +2450,7 @@ const App: React.FC = () => {
                   <select 
                     value={journalForm.resultRating}
                     onChange={e => setJournalForm(prev => ({ ...prev, resultRating: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all uppercase"
+                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all uppercase"
                   >
                     {[1,2,3,4,5].map(v => <option key={v} value={v} className="text-brand-black">{v}</option>)}
                   </select>
@@ -2460,7 +2460,7 @@ const App: React.FC = () => {
                   <select 
                     value={journalForm.processRating}
                     onChange={e => setJournalForm(prev => ({ ...prev, processRating: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all uppercase"
+                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all uppercase"
                   >
                     {[1,2,3,4,5].map(v => <option key={v} value={v} className="text-brand-black">{v}</option>)}
                   </select>
@@ -2501,7 +2501,7 @@ const App: React.FC = () => {
               <div className="pt-4">
                 <button 
                   type="submit"
-                  className="w-full bg-brand-rose hover:bg-[#c99595] text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-sm py-5 transition-all active:scale-[0.99] shadow-lg flex items-center justify-center gap-3"
+                  className="w-full bg-brand-blue hover:bg-[#7a93a0] text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-sm py-5 transition-all active:scale-[0.99] shadow-lg flex items-center justify-center gap-3"
                 >
                   <i className="fa-solid fa-pen-nib"></i> COMMIT ENTRY TO LOGBOOK
                 </button>
@@ -2518,7 +2518,7 @@ const App: React.FC = () => {
                   placeholder="SEARCH BY TITLE OR TAGS..."
                   value={journalSearch}
                   onChange={(e) => setJournalSearch(e.target.value)}
-                  className="w-full bg-white border border-brand-black/5 rounded-sm px-12 py-4 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all placeholder:text-brand-gray/30 uppercase tracking-widest font-bold"
+                  className="w-full bg-white border border-brand-black/5 rounded-sm px-12 py-4 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-brand-gray/30 uppercase tracking-widest font-bold"
                 />
                 <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-brand-rose/40"></i>
                 {journalSearch && (
@@ -2634,7 +2634,7 @@ const App: React.FC = () => {
             <button
               onClick={refreshBulletinEvents}
               disabled={isFetchingBulletin}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-rose text-white text-[9px] font-bold uppercase tracking-widest rounded-sm disabled:opacity-50 hover:bg-brand-rose/80 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white text-[9px] font-bold uppercase tracking-widest rounded-sm disabled:opacity-50 hover:bg-[#7a93a0] transition-colors"
             >
               <i className={`fa-solid fa-rotate-right text-[10px] ${isFetchingBulletin ? 'animate-spin' : ''}`}></i>
               {isFetchingBulletin ? 'FETCHING...' : 'REFRESH EVENTS'}
@@ -2652,7 +2652,7 @@ const App: React.FC = () => {
                     <button
                       key={t}
                       onClick={() => setTypeFilter(t)}
-                      className={`text-[9px] font-bold px-3 py-1.5 rounded-sm border transition-all ${typeFilter === t ? 'bg-brand-rose text-white border-brand-rose' : 'bg-white text-brand-gray border-brand-black/5 hover:border-brand-rose/30'}`}
+                      className={`text-[9px] font-bold px-3 py-1.5 rounded-sm border transition-all ${typeFilter === t ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-brand-gray border-brand-black/5 hover:border-brand-blue/30'}`}
                     >{t === 'All' ? 'ALL TYPES' : t.toUpperCase()}</button>
                   ))}
                 </div>
@@ -2664,7 +2664,7 @@ const App: React.FC = () => {
                   <select
                     value={genreFilter}
                     onChange={(e) => setGenreFilter(e.target.value as Genre | 'All')}
-                    className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-brand-rose outline-none"
+                    className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-brand-blue outline-none"
                   >
                     <option value="All">All Genres</option>
                     {genreOptions.map((g: Genre) => <option key={g} value={g}>{g}</option>)}
@@ -2676,7 +2676,7 @@ const App: React.FC = () => {
                   <select
                     value={regionFilter}
                     onChange={(e) => setRegionFilter(e.target.value as BulletinRegion | 'All')}
-                    className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-brand-rose outline-none"
+                    className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-brand-blue outline-none"
                   >
                     <option value="All">All Regions</option>
                     {(['Global', 'US', 'Europe', 'Asia', 'Latin America', 'Africa', 'Other'] as const).map(r => <option key={r} value={r}>{r}</option>)}
@@ -2907,12 +2907,12 @@ const App: React.FC = () => {
                   name="gearName" 
                   placeholder="NAME (E.G. SONY A9 III)" 
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all placeholder:text-white/20 uppercase"
+                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 uppercase"
                 />
                 <select 
                   name="category"
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all uppercase"
+                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all uppercase"
                 >
                   <option value="Body" className="text-brand-black">Body</option>
                   <option value="Lens" className="text-brand-black">Lens</option>
@@ -2924,7 +2924,7 @@ const App: React.FC = () => {
                 <input 
                   name="tags" 
                   placeholder="TAGS (COMMA SEPARATED)" 
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all placeholder:text-white/20 uppercase"
+                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 uppercase"
                 />
                 <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-sm px-4 py-3">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">AVAILABLE</span>
@@ -2935,11 +2935,11 @@ const App: React.FC = () => {
                 <textarea 
                   name="details"
                   placeholder="EQUIPMENT DETAILS / SPECS (E.G. 24-70MM 2.8, STABILIZED)"
-                  className="flex-1 bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-rose outline-none transition-all placeholder:text-white/20 min-h-[60px]"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[60px]"
                 />
                 <button 
                   type="submit"
-                  className="bg-brand-rose hover:bg-[#c99595] text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-sm py-3 px-10 h-[60px] transition-all active:scale-95 shadow-lg"
+                  className="bg-brand-blue hover:bg-[#7a93a0] text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-sm py-3 px-10 h-[60px] transition-all active:scale-95 shadow-lg"
                 >
                   ADD TO LOCKER
                 </button>
