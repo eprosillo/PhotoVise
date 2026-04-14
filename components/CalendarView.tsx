@@ -725,7 +725,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           { key: 'search',   icon: 'fa-magnifying-glass', label: 'Search'       },
         ] as const).map(({ key, icon, label }) => (
           <button key={key} onClick={() => setView(key)}
-            className={`px-6 py-2 text-xs font-bold uppercase tracking-[0.15em] rounded-sm transition-all ${view === key ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'}`}>
+            className={`px-6 py-2 text-sm font-medium rounded-sm transition-all ${view === key ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'}`}>
             <i className={`fa-solid ${icon} mr-2`}></i>{label}
           </button>
         ))}
@@ -744,8 +744,8 @@ const PinnedPlanCard: React.FC<{ plan: WeekPlan; onDelete: (id: string) => void 
         <div className="flex items-center gap-4">
           <i className="fa-solid fa-thumbtack text-brand-rose text-[10px]"></i>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-brand-black">Week of {plan.weekLabel}</p>
-            <p className="text-[9px] text-brand-gray/60 mt-0.5 uppercase tracking-widest">
+            <p className="text-sm font-semibold text-brand-black">Week of {plan.weekLabel}</p>
+            <p className="text-xs text-brand-gray/60 mt-0.5">
               {plan.sessionTitles.slice(0, 3).join(' · ')}{plan.sessionTitles.length > 3 ? ` +${plan.sessionTitles.length - 3} more` : ''}
               {' · '}Saved {new Date(plan.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </p>

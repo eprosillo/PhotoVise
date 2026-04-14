@@ -141,10 +141,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
                   <button
                     key={item.id}
                     onClick={() => handleTabChange(item.id)}
-                    className={`flex items-center gap-4 px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all text-left border-l-4 ${
+                    className={`flex items-center gap-4 px-8 py-4 text-sm font-medium transition-all text-left border-l-4 ${
                       activeTab === item.id || activeTab.startsWith(item.id + '-')
                         ? 'bg-brand-black/5 text-brand-blue border-brand-blue'
-                        : 'text-brand-black border-transparent hover:bg-brand-black/5'
+                        : 'text-brand-black/70 border-transparent hover:bg-brand-black/5 hover:text-brand-black'
                     }`}
                   >
                     <i className={`fa-solid ${item.icon} w-5 text-sm`}></i>
@@ -181,10 +181,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
               <button
                 key={item.id}
                 onClick={() => handleTabChange(item.id)}
-                className={`flex items-center gap-4 px-10 py-5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all border-l-4 ${
+                className={`flex items-center gap-4 px-10 py-4 text-sm font-medium transition-all border-l-4 ${
                   activeTab === item.id || activeTab.startsWith(item.id + '-')
                     ? 'bg-white/5 text-white border-brand-blue shadow-[inset_10px_0_15px_-10px_rgba(143,165,178,0.1)]'
-                    : 'text-brand-gray border-transparent hover:text-white/80 hover:bg-white/5'
+                    : 'text-brand-gray/80 border-transparent hover:text-white/80 hover:bg-white/5'
                 } ${fieldClasses}`}
               >
                 <i className={`fa-solid ${item.icon} w-5 text-sm`}></i>
@@ -198,7 +198,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
         {!isFieldMode && (
           <div className="flex-shrink-0 p-10 space-y-4 border-t border-white/5">
             <div className="bg-white/5 p-5 rounded-sm border border-white/5">
-              <p className="text-[9px] font-bold text-brand-gray uppercase tracking-[0.3em] mb-4">SYSTEM STATUS</p>
+              <p className="text-[10px] font-medium text-brand-gray/60 uppercase tracking-widest mb-4">System status</p>
               <div className="space-y-3">
                 {workflowSummary ? (
                   <div className="text-[10px] font-bold text-white/40 leading-relaxed uppercase tracking-[0.2em]">

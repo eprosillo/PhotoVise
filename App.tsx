@@ -1499,7 +1499,7 @@ const App: React.FC = () => {
             {/* Field Mode Toggle - Dashboard Only */}
             <div className="flex flex-col items-end gap-1">
               <div className="flex items-center gap-3">
-                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-black">Field mode</label>
+                <label className="text-sm font-medium text-brand-black/70">Field mode</label>
                 <button 
                   onClick={() => setIsFieldMode(!isFieldMode)}
                   className={`w-10 h-5 rounded-full transition-all relative ${isFieldMode ? 'bg-brand-blue' : 'bg-brand-gray/30'}`}
@@ -1513,12 +1513,12 @@ const App: React.FC = () => {
 
           <section className="bg-brand-white border border-brand-black/5 rounded-sm p-8 mb-12 shadow-sm relative overflow-hidden group hover:border-brand-rose/20 transition-all duration-700">
              <div className="absolute top-0 left-0 w-1 h-full bg-brand-rose/20"></div>
-             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-6">DAILY INSPIRATION</p>
+             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand-rose/70 mb-5">Daily inspiration</p>
              <div className="max-w-2xl">
                <p className="text-xl md:text-2xl font-serif italic text-brand-black leading-snug mb-4">
                  "{dailyQuote.text}"
                </p>
-               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-brand-gray">
+               <p className="text-sm font-medium text-brand-gray/70">
                  — {dailyQuote.author}
                </p>
              </div>
@@ -1526,13 +1526,13 @@ const App: React.FC = () => {
           </section>
 
           <section className="bg-brand-black rounded-sm p-8 text-brand-white mb-12 shadow-xl border border-white/5">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-rose mb-6">LOG NEW SESSION</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-rose/80 mb-5">Log new session</h3>
             <form onSubmit={addSession} className="space-y-4">
               <input
                 name="title"
                 type="text"
                 placeholder="SESSION TITLE (OPTIONAL)"
-                className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 uppercase"
+                className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
               />
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                 <input 
@@ -1545,12 +1545,12 @@ const App: React.FC = () => {
                   name="location" 
                   placeholder="LOCATION (E.G. AUSTIN)" 
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 uppercase"
+                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
                 />
                 <select 
                   name="genre"
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all uppercase"
+                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                 >
                   {genreOptions.map(g => (
                     <option key={g} value={g} className="text-brand-black">{g}</option>
@@ -1598,12 +1598,12 @@ const App: React.FC = () => {
                         <div className="flex flex-wrap gap-1.5">
                           <button
                             onClick={() => setDashboardGenreFilter('All')}
-                            className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm border transition-all ${dashboardGenreFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
+                            className={`text-xs font-medium px-3 py-1.5 rounded-sm border transition-all ${dashboardGenreFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
                           >All</button>
                           {presentGenres.map(g => (
                             <button key={g}
                               onClick={() => setDashboardGenreFilter(g)}
-                              className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm border transition-all ${dashboardGenreFilter === g ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-blue/30'}`}
+                              className={`text-xs font-medium px-3 py-1.5 rounded-sm border transition-all ${dashboardGenreFilter === g ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-blue/30'}`}
                             >{g}</button>
                           ))}
                         </div>
@@ -1616,7 +1616,7 @@ const App: React.FC = () => {
                           {(['All', 'shot', 'culled', 'edited', 'backed up', 'posted'] as const).map(s => (
                             <button key={s}
                               onClick={() => setDashboardStatusFilter(s)}
-                              className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm border transition-all ${dashboardStatusFilter === s ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
+                              className={`text-xs font-medium px-3 py-1.5 rounded-sm border transition-all ${dashboardStatusFilter === s ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
                             >{s === 'All' ? 'All' : s}</button>
                           ))}
                         </div>
@@ -1627,7 +1627,7 @@ const App: React.FC = () => {
                         <p className="text-[10px] text-brand-gray/50 font-medium mb-2">Date</p>
                         <button
                           onClick={() => setDashboardDateSort(p => p === 'newest' ? 'oldest' : 'newest')}
-                          className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm border border-brand-black/10 bg-white text-brand-gray hover:border-brand-black/30 transition-all"
+                          className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-sm border border-brand-black/10 bg-white text-brand-gray hover:border-brand-black/30 transition-all"
                         >
                           <i className={`fa-solid fa-arrow-${dashboardDateSort === 'newest' ? 'down' : 'up'}-short-wide text-[9px]`}></i>
                           {dashboardDateSort === 'newest' ? 'Newest first' : 'Oldest first'}
@@ -1716,10 +1716,10 @@ const App: React.FC = () => {
               </div>
               <button
                 onClick={signOut}
-                className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-brand-gray border border-brand-black/10 px-4 py-2 rounded-sm hover:bg-brand-black/5 hover:text-brand-black transition-all"
+                className="flex items-center gap-2 text-xs font-medium text-brand-gray border border-brand-black/10 px-4 py-2 rounded-sm hover:bg-brand-black/5 hover:text-brand-black transition-all"
               >
-                <i className="fa-solid fa-arrow-right-from-bracket text-[10px]"></i>
-                SIGN OUT
+                <i className="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+                Sign out
               </button>
             </div>
           )}
@@ -1730,27 +1730,27 @@ const App: React.FC = () => {
                 <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">BASICS</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">NAME</label>
+                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Name</label>
                     <input 
                       type="text"
                       value={draftProfile.name}
                       onChange={e => setDraftProfile(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all uppercase tracking-widest"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                       placeholder="E.G. JANE DOE"
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">YEARS SHOOTING</label>
+                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Years shooting</label>
                     <input 
                       type="text"
                       value={draftProfile.yearsShooting}
                       onChange={e => setDraftProfile(prev => ({ ...prev, yearsShooting: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all uppercase tracking-widest"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                       placeholder="E.G. 5 YEARS, OR SINCE 2018"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">PRIMARY GENRES</label>
+                    <label className="text-xs font-medium text-brand-gray/70 block mb-3">Primary genres</label>
                     <div className="flex flex-wrap gap-2">
                       {genreOptions.map((g: Genre) => (
                         <button
@@ -1761,13 +1761,13 @@ const App: React.FC = () => {
                               ? prev.primaryGenres.filter(pg => pg !== g)
                               : [...prev.primaryGenres, g]
                           }))}
-                          className={`text-[9px] font-bold px-4 py-2 rounded-sm border transition-all ${
+                          className={`text-xs font-medium px-4 py-2 rounded-sm border transition-all ${
                             draftProfile.primaryGenres.includes(g)
                               ? 'bg-brand-blue text-white border-brand-blue'
                               : 'bg-brand-white text-brand-gray border-brand-black/5'
                           }`}
                         >
-                          {g.toUpperCase()}
+                          {g}
                         </button>
                       ))}
                     </div>
@@ -1788,7 +1788,7 @@ const App: React.FC = () => {
                 <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">SOFTWARE & WORKFLOW</h3>
                 <div className="space-y-8">
                   <div>
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">EDITING / RAW</label>
+                    <label className="text-xs font-medium text-brand-gray/70 block mb-3">Editing / RAW</label>
                     <div className="flex flex-wrap gap-2">
                       {editingAppsList.map(app => (
                         <button
@@ -1799,13 +1799,13 @@ const App: React.FC = () => {
                               ? prev.editingApps.filter(a => a !== app)
                               : [...prev.editingApps, app]
                           }))}
-                          className={`text-[9px] font-bold px-4 py-2 rounded-sm border transition-all ${
+                          className={`text-xs font-medium px-4 py-2 rounded-sm border transition-all ${
                             draftProfile.editingApps.includes(app)
                               ? 'bg-brand-blue text-white border-brand-blue'
                               : 'bg-brand-white text-brand-gray border-brand-black/5'
                           }`}
                         >
-                          {app.toUpperCase()}
+                          {app}
                         </button>
                       ))}
                     </div>
@@ -1820,7 +1820,7 @@ const App: React.FC = () => {
                     )}
                   </div>
                   <div>
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">TETHERING / CAPTURE</label>
+                    <label className="text-xs font-medium text-brand-gray/70 block mb-3">Tethering / capture</label>
                     <div className="flex flex-wrap gap-2">
                       {tetheringAppsList.map(app => (
                         <button
@@ -1831,13 +1831,13 @@ const App: React.FC = () => {
                               ? prev.tetheringApps.filter(a => a !== app)
                               : [...prev.tetheringApps, app]
                           }))}
-                          className={`text-[9px] font-bold px-4 py-2 rounded-sm border transition-all ${
+                          className={`text-xs font-medium px-4 py-2 rounded-sm border transition-all ${
                             draftProfile.tetheringApps.includes(app)
                               ? 'bg-brand-blue text-white border-brand-blue'
                               : 'bg-brand-white text-brand-gray border-brand-black/5'
                           }`}
                         >
-                          {app.toUpperCase()}
+                          {app}
                         </button>
                       ))}
                     </div>
@@ -1858,7 +1858,7 @@ const App: React.FC = () => {
                 <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">WORK & STYLE</h3>
                 <div className="space-y-6">
                   <div>
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">TYPICAL WORK / SCOPE</label>
+                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Typical work / scope</label>
                     <textarea 
                       value={draftProfile.typicalWork}
                       onChange={e => setDraftProfile(prev => ({ ...prev, typicalWork: e.target.value }))}
@@ -1868,7 +1868,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
-                      <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">STYLE KEYWORDS</label>
+                      <label className="text-xs font-medium text-brand-gray/70 block mb-2">Style keywords</label>
                       <input 
                         type="text"
                         value={styleKeywordsDraft}
@@ -1879,16 +1879,16 @@ const App: React.FC = () => {
                       <p className="text-[8px] text-brand-gray mt-2 tracking-tighter">Type style keywords separated by commas, e.g. cinematic, high contrast, natural light.</p>
                     </div>
                     <div>
-                      <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">RISK PROFILE</label>
+                      <label className="text-xs font-medium text-brand-gray/70 block mb-2">Risk profile</label>
                       <div className="flex gap-2">
                         {(['cautious', 'balanced', 'experimental'] as PhotographerProfile['riskProfile'][]).map((r) => (
                           <button
                             key={r}
                             onClick={() => setDraftProfile(prev => ({ ...prev, riskProfile: r }))}
-                            className={`flex-1 text-[9px] font-bold py-3 rounded-sm border transition-all uppercase tracking-widest ${
+                            className={`flex-1 text-xs font-medium py-3 rounded-sm border transition-all ${
                               draftProfile.riskProfile === r
                                 ? 'bg-brand-black text-white border-brand-black'
-                                : 'bg-brand-white text-brand-gray border-brand-black/5'
+                                : 'bg-brand-white text-brand-gray border-brand-black/5 hover:border-brand-black/20'
                             }`}
                           >
                             {r}
@@ -1904,7 +1904,7 @@ const App: React.FC = () => {
                 <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">STRENGTHS & STRUGGLES</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">STRENGTHS</label>
+                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Strengths</label>
                     <textarea 
                       value={draftProfile.strengths}
                       onChange={e => setDraftProfile(prev => ({ ...prev, strengths: e.target.value }))}
@@ -1913,7 +1913,7 @@ const App: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">STRUGGLES / CHALLENGES</label>
+                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Struggles / challenges</label>
                     <textarea 
                       value={draftProfile.struggles}
                       onChange={e => setDraftProfile(prev => ({ ...prev, struggles: e.target.value }))}
@@ -1928,7 +1928,7 @@ const App: React.FC = () => {
                 <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">CONSTRAINTS & REALITY</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="md:col-span-1">
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">PHYSICAL CONSTRAINTS</label>
+                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Physical constraints</label>
                     <textarea 
                       value={draftProfile.physicalConstraints}
                       onChange={e => setDraftProfile(prev => ({ ...prev, physicalConstraints: e.target.value }))}
@@ -1937,7 +1937,7 @@ const App: React.FC = () => {
                     />
                   </div>
                   <div className="md:col-span-1">
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">ACCESS REALITY</label>
+                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Access reality</label>
                     <textarea 
                       value={draftProfile.accessReality}
                       onChange={e => setDraftProfile(prev => ({ ...prev, accessReality: e.target.value }))}
@@ -1946,7 +1946,7 @@ const App: React.FC = () => {
                     />
                   </div>
                   <div className="md:col-span-1">
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">TIME BUDGET</label>
+                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Time budget</label>
                     <textarea 
                       value={draftProfile.timeBudget}
                       onChange={e => setDraftProfile(prev => ({ ...prev, timeBudget: e.target.value }))}
@@ -1960,7 +1960,7 @@ const App: React.FC = () => {
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">GROWTH GOALS</h3>
                 <div>
-                  <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-2">2-3 TARGET SKILLS OR PATTERNS</label>
+                  <label className="text-xs font-medium text-brand-gray/70 block mb-2">Growth goals</label>
                   <textarea 
                     value={draftProfile.growthGoals}
                     onChange={e => setDraftProfile(prev => ({ ...prev, growthGoals: e.target.value }))}
@@ -2403,7 +2403,7 @@ const App: React.FC = () => {
                     placeholder="E.G. MORNING FOG AT MOUNT RAINIER"
                     value={journalForm.title}
                     onChange={e => setJournalForm(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 uppercase"
+                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
                     required
                   />
                 </div>
@@ -2442,7 +2442,7 @@ const App: React.FC = () => {
                     placeholder="E.G. LIGHTING WIN, GEAR ISSUE"
                     value={journalForm.tags}
                     onChange={e => setJournalForm(prev => ({ ...prev, tags: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 uppercase"
+                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
                   />
                 </div>
                 <div>
@@ -2450,7 +2450,7 @@ const App: React.FC = () => {
                   <select 
                     value={journalForm.resultRating}
                     onChange={e => setJournalForm(prev => ({ ...prev, resultRating: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all uppercase"
+                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                   >
                     {[1,2,3,4,5].map(v => <option key={v} value={v} className="text-brand-black">{v}</option>)}
                   </select>
@@ -2460,7 +2460,7 @@ const App: React.FC = () => {
                   <select 
                     value={journalForm.processRating}
                     onChange={e => setJournalForm(prev => ({ ...prev, processRating: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all uppercase"
+                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                   >
                     {[1,2,3,4,5].map(v => <option key={v} value={v} className="text-brand-black">{v}</option>)}
                   </select>
@@ -2518,7 +2518,7 @@ const App: React.FC = () => {
                   placeholder="SEARCH BY TITLE OR TAGS..."
                   value={journalSearch}
                   onChange={(e) => setJournalSearch(e.target.value)}
-                  className="w-full bg-white border border-brand-black/5 rounded-sm px-12 py-4 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-brand-gray/30 uppercase tracking-widest font-bold"
+                  className="w-full bg-white border border-brand-black/5 rounded-sm px-12 py-4 text-sm focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-brand-gray/30"
                 />
                 <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-brand-rose/40"></i>
                 {journalSearch && (
@@ -2646,7 +2646,7 @@ const App: React.FC = () => {
             <div className="space-y-6">
               {/* Opportunity Type */}
               <div>
-                <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">Opportunity Type</label>
+                <label className="text-xs font-medium text-brand-gray/70 block mb-3">Opportunity Type</label>
                 <div className="flex flex-wrap gap-2">
                   {(['All', 'Competition', 'Grant', 'Fellowship', 'Residency', 'Open Call', 'Call for Entry', 'Portfolio Review', 'Festival', 'Event'] as const).map((t) => (
                     <button
@@ -2660,7 +2660,7 @@ const App: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Genre */}
                 <div>
-                  <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">Genre Focus</label>
+                  <label className="text-xs font-medium text-brand-gray/70 block mb-3">Genre Focus</label>
                   <select
                     value={genreFilter}
                     onChange={(e) => setGenreFilter(e.target.value as Genre | 'All')}
@@ -2672,7 +2672,7 @@ const App: React.FC = () => {
                 </div>
                 {/* Region */}
                 <div>
-                  <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">Region</label>
+                  <label className="text-xs font-medium text-brand-gray/70 block mb-3">Region</label>
                   <select
                     value={regionFilter}
                     onChange={(e) => setRegionFilter(e.target.value as BulletinRegion | 'All')}
@@ -2684,7 +2684,7 @@ const App: React.FC = () => {
                 </div>
                 {/* Priority */}
                 <div>
-                  <label className="text-[9px] font-bold uppercase tracking-widest text-brand-gray block mb-3">Priority Level</label>
+                  <label className="text-xs font-medium text-brand-gray/70 block mb-3">Priority Level</label>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setPriorityFilter('All')}
@@ -2907,12 +2907,12 @@ const App: React.FC = () => {
                   name="gearName" 
                   placeholder="NAME (E.G. SONY A9 III)" 
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 uppercase"
+                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
                 />
                 <select 
                   name="category"
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all uppercase"
+                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                 >
                   <option value="Body" className="text-brand-black">Body</option>
                   <option value="Lens" className="text-brand-black">Lens</option>
@@ -2924,7 +2924,7 @@ const App: React.FC = () => {
                 <input 
                   name="tags" 
                   placeholder="TAGS (COMMA SEPARATED)" 
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 uppercase"
+                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
                 />
                 <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-sm px-4 py-3">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">AVAILABLE</span>

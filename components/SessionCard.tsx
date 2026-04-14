@@ -73,13 +73,13 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
     return (
       <div className="bg-white rounded-sm shadow-sm border border-brand-blue/30 overflow-hidden">
         <div className="p-8 space-y-3">
-          <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-blue mb-4">EDITING SESSION</p>
+          <p className="text-xs font-semibold text-brand-blue/70 mb-4">Edit session</p>
           <input
             type="text"
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
             placeholder="SESSION TITLE (OPTIONAL)"
-            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none uppercase placeholder:text-brand-black/20"
+            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20"
           />
           <div className="grid grid-cols-2 gap-3">
             <input
@@ -93,13 +93,13 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
               placeholder="LOCATION"
               initialValue={editLocation}
               onChange={setEditLocation}
-              className="border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none uppercase placeholder:text-brand-black/20"
+              className="border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20"
             />
           </div>
           <select
             value={editGenre}
             onChange={e => setEditGenre(e.target.value as Genre)}
-            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none uppercase"
+            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
           >
             {GENRE_OPTIONS.map(g => (
               <option key={g} value={g}>{g}</option>
@@ -113,12 +113,12 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
           />
           {(session.strategy || session.dayPlan) && (
             <div className="pt-2 space-y-2">
-              <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-brand-black/30">ATTACHED DOCUMENTS</p>
+              <p className="text-[10px] font-medium text-brand-black/30">Attached documents</p>
               {session.strategy && (
                 <div className="flex items-center justify-between px-3 py-2 bg-brand-blue/5 border border-brand-blue/20 rounded-sm">
                   <div className="flex items-center gap-2">
                     <i className="fa-solid fa-file-contract text-brand-blue text-[9px]"></i>
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-brand-blue">Assignment Strategy</span>
+                    <span className="text-xs font-medium text-brand-blue">Assignment Strategy</span>
                   </div>
                   <button
                     onClick={() => onUpdate(session.id, { strategy: undefined })}
@@ -133,7 +133,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
                 <div className="flex items-center justify-between px-3 py-2 bg-brand-rose/5 border border-brand-rose/20 rounded-sm">
                   <div className="flex items-center gap-2">
                     <i className="fa-solid fa-stopwatch text-brand-rose text-[9px]"></i>
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-brand-rose">Assignment Day Plan</span>
+                    <span className="text-xs font-medium text-brand-rose">Assignment Day Plan</span>
                   </div>
                   <button
                     onClick={() => onUpdate(session.id, { dayPlan: undefined })}
@@ -172,13 +172,13 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
         <div className="flex justify-between items-start mb-6">
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <span className={`text-[9px] font-bold uppercase tracking-[0.2em] px-2.5 py-1 rounded-sm ${getStatusColor(session.status)}`}>
+              <span className={`text-xs font-medium uppercase tracking-wide px-2.5 py-1 rounded-sm ${getStatusColor(session.status)}`}>
                 {session.status}
               </span>
               {hasJournal && (
                 <button
                   onClick={onGoToJournal}
-                  className="bg-brand-black text-white px-2 py-1 rounded-sm text-[8px] font-bold uppercase tracking-widest flex items-center gap-1 hover:bg-brand-blue transition-colors"
+                  className="bg-brand-black text-white px-2.5 py-1 rounded-sm text-xs font-medium flex items-center gap-1.5 hover:bg-brand-blue transition-colors"
                   title="Has journal entry"
                 >
                   <i className="fa-solid fa-book-open"></i> Journal
@@ -245,14 +245,14 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
             >
               <div className="flex items-center gap-2">
                 <i className="fa-solid fa-file-contract text-brand-blue text-[10px]"></i>
-                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-blue">ASSIGNMENT STRATEGY</span>
+                <span className="text-xs font-semibold text-brand-blue">Assignment Strategy</span>
               </div>
               <i className={`fa-solid fa-chevron-${strategyExpanded ? 'up' : 'down'} text-brand-blue/50 text-[9px]`}></i>
             </button>
             {strategyExpanded && (
               <div className="p-4 bg-white border-t border-brand-blue/10 max-h-72 overflow-y-auto custom-scrollbar">
                 {session.strategy.split('\n').map((line, i) => (
-                  <p key={i} className="text-[11px] text-brand-black leading-relaxed mb-2 last:mb-0 whitespace-pre-wrap">{line}</p>
+                  <p key={i} className="text-sm text-brand-black/80 leading-relaxed mb-2 last:mb-0 whitespace-pre-wrap">{line}</p>
                 ))}
               </div>
             )}
@@ -267,14 +267,14 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
             >
               <div className="flex items-center gap-2">
                 <i className="fa-solid fa-stopwatch text-brand-rose text-[10px]"></i>
-                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-rose">ASSIGNMENT DAY PLAN</span>
+                <span className="text-xs font-semibold text-brand-rose">Assignment Day Plan</span>
               </div>
               <i className={`fa-solid fa-chevron-${dayPlanExpanded ? 'up' : 'down'} text-brand-rose/50 text-[9px]`}></i>
             </button>
             {dayPlanExpanded && (
               <div className="p-4 bg-white border-t border-brand-rose/10 max-h-72 overflow-y-auto custom-scrollbar">
                 {session.dayPlan.split('\n').map((line, i) => (
-                  <p key={i} className="text-[11px] text-brand-black leading-relaxed mb-2 last:mb-0 whitespace-pre-wrap">{line}</p>
+                  <p key={i} className="text-sm text-brand-black/80 leading-relaxed mb-2 last:mb-0 whitespace-pre-wrap">{line}</p>
                 ))}
               </div>
             )}
@@ -283,7 +283,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
 
         {!isArchived && (
           <div className="space-y-4 pt-6 border-t border-brand-black/5">
-            <p className="text-[9px] font-bold text-brand-black/30 uppercase tracking-[0.3em]">PROGRESS TRACKER</p>
+            <p className="text-xs font-medium text-brand-black/40">Progress</p>
             <div className="flex flex-wrap gap-1.5">
               {statuses.map((s) => (
                 <button
