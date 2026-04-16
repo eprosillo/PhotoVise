@@ -20,6 +20,15 @@ interface SessionCardProps {
   onGoToJournal?: () => void;
 }
 
+const STATUS_STAGE_LABELS: Record<SessionStatus, string> = {
+  'shot': 'Culling',
+  'culled': 'Editing',
+  'edited': 'Backing Up',
+  'backed up': 'Posting',
+  'posted': 'Complete',
+  'archived': 'Archived',
+};
+
 const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUpdate, onDelete, hasJournal, onGoToJournal }) => {
   const statuses: SessionStatus[] = ['shot', 'culled', 'edited', 'backed up', 'posted'];
 
@@ -173,7 +182,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <span className={`text-xs font-medium px-2.5 py-1 rounded ${getStatusColor(session.status)}`}>
-                {session.status}
+                {STATUS_STAGE_LABELS[session.status]}
               </span>
               {hasJournal && (
                 <button
@@ -295,7 +304,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
                       : 'bg-white text-brand-gray border-brand-black/5 hover:border-brand-blue/30 hover:text-brand-blue'
                   }`}
                 >
-                  {s}
+                  {STATUS_STAGE_LABELS[s]}
                 </button>
               ))}
             </div>

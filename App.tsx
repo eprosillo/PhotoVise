@@ -1617,7 +1617,7 @@ const App: React.FC = () => {
                             <button key={s}
                               onClick={() => setDashboardStatusFilter(s)}
                               className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${dashboardStatusFilter === s ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
-                            >{s === 'All' ? 'All' : s}</button>
+                            >{s === 'All' ? 'All' : { shot: 'Culling', culled: 'Editing', edited: 'Backing Up', 'backed up': 'Posting', posted: 'Complete' }[s]}</button>
                           ))}
                         </div>
                       </div>
