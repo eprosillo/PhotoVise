@@ -169,15 +169,15 @@ function FeedbackFlag(props: {
       {!isOpen ? (
         <button
           type="button"
-          className="text-[11px] text-brand-gray font-bold uppercase tracking-widest underline underline-offset-4 decoration-brand-rose/30 hover:text-brand-rose transition-colors"
+          className="text-xs text-brand-gray font-medium underline underline-offset-4 decoration-brand-rose/30 hover:text-brand-rose transition-colors"
           onClick={() => setIsOpen(true)}
         >
           This missed the mark
         </button>
       ) : (
-        <div className="space-y-2 bg-brand-white p-3 border border-brand-black/5 rounded-sm animate-in fade-in slide-in-from-top-1 duration-200">
+        <div className="space-y-2 bg-brand-white p-3 border border-brand-black/5 rounded-lg animate-in fade-in slide-in-from-top-1 duration-200">
           <textarea
-            className="w-full resize-none rounded-sm border border-brand-black/10 bg-white p-2 text-[11px] outline-none focus:ring-1 focus:ring-brand-blue"
+            className="w-full resize-none rounded-md border border-brand-black/10 bg-white p-2 text-xs outline-none focus:ring-1 focus:ring-brand-blue"
             rows={2}
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -186,7 +186,7 @@ function FeedbackFlag(props: {
           <div className="flex gap-4">
             <button
               type="button"
-              className="text-[10px] font-bold uppercase tracking-widest text-brand-gray"
+              className="text-xs font-medium text-brand-gray hover:text-brand-black transition-colors"
               onClick={() => {
                 setIsOpen(false);
                 setNote('');
@@ -196,7 +196,7 @@ function FeedbackFlag(props: {
             </button>
             <button
               type="button"
-              className="text-[10px] font-bold uppercase tracking-widest text-brand-rose"
+              className="text-xs font-medium text-brand-rose hover:text-brand-black transition-colors"
               onClick={handleSend}
             >
               Submit
@@ -236,7 +236,7 @@ const AskProPage: React.FC<{
     ? 'flex flex-col gap-4'
     : 'grid grid-cols-1 lg:grid-cols-2 gap-10';
 
-  const askButtonClass = props.isFieldMode ? 'w-full py-4 text-[12px]' : 'px-10 py-4 text-[10px]';
+  const askButtonClass = props.isFieldMode ? 'w-full py-4 text-sm' : 'px-10 py-4 text-sm';
 
   const maxChars = 800;
   const isLong = props.askProAnswer.length > maxChars;
@@ -258,15 +258,15 @@ const AskProPage: React.FC<{
       </header>
 
       <div className={containerClass}>
-        <div className="bg-brand-black rounded-sm p-8 text-brand-white shadow-xl border border-white/5">
+        <div className="bg-brand-black rounded-lg p-8 text-brand-white shadow-xl border border-white/5">
           <div className="space-y-6">
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-rose block mb-3">
+              <label className="text-xs font-medium text-brand-rose/80 block mb-3">
                 Your question
               </label>
               <textarea
                 ref={askProInputRef}
-                className="w-full bg-white/5 border border-white/10 rounded-sm px-5 py-4 text-sm focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[200px] resize-none"
+                className="w-full bg-white/5 border border-white/10 rounded-md px-5 py-4 text-sm focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[200px] resize-none"
                 value={props.askProInput}
                 onChange={(e) => props.setAskProInput(e.target.value)}
                 placeholder={askProPlaceholder}
@@ -277,7 +277,7 @@ const AskProPage: React.FC<{
               <button
                 onClick={props.onAskProSubmit}
                 disabled={props.isGeneratingAskPro || !props.askProInput.trim()}
-                className={`flex items-center justify-center gap-3 rounded-sm font-bold uppercase tracking-[0.2em] transition-all shadow-lg ${askButtonClass} ${
+                className={`flex items-center justify-center gap-3 rounded-md text-sm font-semibold transition-all shadow-lg ${askButtonClass} ${
                   props.isGeneratingAskPro || !props.askProInput.trim()
                     ? 'bg-brand-gray/20 text-brand-gray cursor-not-allowed'
                     : 'bg-brand-blue text-white hover:bg-[#7a93a0] active:scale-95'
@@ -293,9 +293,9 @@ const AskProPage: React.FC<{
           </div>
         </div>
 
-        <div className="bg-white rounded-sm border border-brand-black/5 shadow-sm overflow-hidden flex flex-col h-full">
+        <div className="bg-white rounded-lg border border-brand-black/5 shadow-sm overflow-hidden flex flex-col h-full">
           <div className="bg-brand-black/5 px-8 py-5 border-b border-brand-black/5 flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/40">The Pro's Response</span>
+            <span className="text-xs font-medium text-brand-black/40">The Pro's Response</span>
             <i className="fa-solid fa-pen-nib text-brand-rose/40"></i>
           </div>
           <div className="p-10 flex-1 overflow-y-auto custom-scrollbar min-h-[300px]">
@@ -307,7 +307,7 @@ const AskProPage: React.FC<{
                 {props.isFieldMode && isLong && (
                   <button
                     type="button"
-                    className="text-[11px] font-bold text-brand-rose uppercase tracking-widest underline underline-offset-4"
+                    className="text-xs font-medium text-brand-rose underline underline-offset-4"
                     onClick={() => setShowFullAskProAnswer(v => !v)}
                   >
                     {showFullAskProAnswer ? 'Show less' : 'Show full answer'}
@@ -318,7 +318,7 @@ const AskProPage: React.FC<{
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center opacity-30 space-y-4 py-20">
                 <i className="fa-solid fa-comment-dots text-4xl"></i>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em]">Your answer from the pro will appear here.</p>
+                <p className="text-sm text-brand-gray/50">Your answer from the pro will appear here.</p>
               </div>
             )}
           </div>
@@ -350,18 +350,18 @@ const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus 
   };
 
   return (
-    <div className={`bg-white rounded-sm border border-brand-black/5 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all duration-500 ${isArchived ? 'opacity-80 grayscale-[0.4]' : ''}`}>
+    <div className={`bg-white rounded-lg border border-brand-black/5 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all duration-500 ${isArchived ? 'opacity-80 grayscale-[0.4]' : ''}`}>
       <div className="bg-brand-black p-6 text-brand-white flex items-center justify-between">
         <div>
           <div className="flex gap-2 items-center mb-2">
-            <span className="text-[8px] font-bold uppercase tracking-[0.2em] bg-white/10 px-2 py-0.5 rounded-sm text-brand-rose">
+            <span className="text-xs font-medium bg-white/10 px-2 py-0.5 rounded text-brand-rose">
               {item.type}
             </span>
-            <span className={`text-[8px] font-bold uppercase tracking-widest ${priorityConfig[item.priority].color}`}>
+            <span className={`text-xs font-medium ${priorityConfig[item.priority].color}`}>
               <i className="fa-solid fa-bolt mr-1"></i> {item.priority}
             </span>
           </div>
-          <h3 className="font-display text-2xl leading-none tracking-widest">{item.name.toUpperCase()}</h3>
+          <h3 className="text-xl font-bold leading-snug">{item.name}</h3>
         </div>
         <i className="fa-solid fa-newspaper text-brand-rose/40 text-xl"></i>
       </div>
@@ -369,33 +369,33 @@ const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus 
       <div className="p-8 flex-1 flex flex-col">
         <div className="flex justify-between items-start mb-4">
           {item.organizer && (
-            <p className="text-[10px] font-bold text-brand-gray uppercase tracking-[0.2em]">
-              ORGANIZER: <span className="text-brand-black">{item.organizer}</span>
+            <p className="text-xs text-brand-gray">
+              Organizer: <span className="text-brand-black font-medium">{item.organizer}</span>
             </p>
           )}
-          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-sm tracking-widest ${statusConfig[item.status].color}`}>
+          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${statusConfig[item.status].color}`}>
             {statusConfig[item.status].label}
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="bg-brand-white p-3 rounded-sm border border-brand-black/5">
-            <p className="text-[8px] text-brand-gray uppercase font-bold tracking-tighter mb-1">Deadline</p>
-            <p className={`text-[11px] font-bold ${item.deadline === 'Rolling' ? 'text-brand-blue' : 'text-brand-rose'}`}>
+          <div className="bg-brand-white p-3 rounded-md border border-brand-black/5">
+            <p className="text-xs text-brand-gray/70 mb-1">Deadline</p>
+            <p className={`text-sm font-semibold ${item.deadline === 'Rolling' ? 'text-brand-blue' : 'text-brand-rose'}`}>
               {item.deadline || 'TBA'}
             </p>
           </div>
-          <div className="bg-brand-white p-3 rounded-sm border border-brand-black/5">
-            <p className="text-[8px] text-brand-gray uppercase font-bold tracking-tighter mb-1">Region / Location</p>
-            <p className="text-[10px] text-brand-black font-bold uppercase truncate">
+          <div className="bg-brand-white p-3 rounded-md border border-brand-black/5">
+            <p className="text-xs text-brand-gray/70 mb-1">Region / location</p>
+            <p className="text-sm font-semibold text-brand-black truncate">
               {item.region} {item.location && `• ${item.location}`}
             </p>
           </div>
         </div>
 
-        <div className="bg-brand-white p-3 rounded-sm border border-brand-black/5 mb-6">
-          <p className="text-[8px] text-brand-gray uppercase font-bold tracking-tighter mb-1">Entry Fee</p>
-          <p className="text-[11px] text-brand-black font-bold uppercase truncate">
+        <div className="bg-brand-white p-3 rounded-md border border-brand-black/5 mb-6">
+          <p className="text-xs text-brand-gray/70 mb-1">Entry fee</p>
+          <p className="text-sm font-semibold text-brand-black">
             {item.fee || 'Free'}
           </p>
         </div>
@@ -403,7 +403,7 @@ const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus 
         {item.genres && (
           <div className="flex flex-wrap gap-1.5 mb-6">
             {item.genres.map(g => (
-              <span key={g} className="text-[9px] px-2 py-1 bg-brand-blue/5 text-brand-blue font-bold uppercase tracking-widest rounded-sm border border-brand-blue/10">
+              <span key={g} className="text-xs px-2 py-1 bg-brand-blue/5 text-brand-blue font-medium rounded-md border border-brand-blue/10">
                 {g}
               </span>
             ))}
@@ -411,7 +411,7 @@ const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus 
         )}
 
         {item.blurb && (
-          <p className="text-[11px] text-brand-gray leading-relaxed mb-8 flex-1 italic">
+          <p className="text-sm text-brand-gray leading-relaxed mb-8 flex-1 italic">
             {item.blurb}
           </p>
         )}
@@ -422,14 +422,14 @@ const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus 
               href={item.url} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex-1 bg-brand-black text-white hover:bg-zinc-700 font-bold uppercase tracking-[0.2em] text-[10px] rounded-sm py-4 text-center transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
+              className="flex-1 bg-brand-black text-white hover:bg-zinc-700 text-sm font-semibold rounded-md py-4 text-center transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
             >
-              VIEW DETAILS <i className="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+              View details <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
             </a>
             {!isArchived ? (
               <button 
                 onClick={() => updateBulletinStatus(item.id, 'archived')}
-                className="px-5 bg-brand-white border border-brand-black/5 hover:bg-brand-rose/5 text-brand-gray hover:text-brand-rose transition-all rounded-sm"
+                className="px-5 bg-brand-white border border-brand-black/5 hover:bg-brand-rose/5 text-brand-gray hover:text-brand-rose transition-all rounded-md"
                 title="Archive"
               >
                 <i className="fa-solid fa-box-archive"></i>
@@ -437,7 +437,7 @@ const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus 
             ) : (
               <button 
                 onClick={() => updateBulletinStatus(item.id, 'unmarked')}
-                className="px-5 bg-brand-white border border-brand-black/5 hover:bg-brand-blue/5 text-brand-gray hover:text-brand-blue transition-all rounded-sm"
+                className="px-5 bg-brand-white border border-brand-black/5 hover:bg-brand-blue/5 text-brand-gray hover:text-brand-blue transition-all rounded-md"
                 title="Restore"
               >
                 <i className="fa-solid fa-box-open"></i>
@@ -449,7 +449,7 @@ const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus 
             <div className="flex gap-2">
               <button
                 onClick={() => updateBulletinStatus(item.id, 'considering')}
-                className={`flex-1 text-[9px] font-bold uppercase tracking-widest py-2 rounded-sm border transition-all ${
+                className={`flex-1 text-xs font-medium py-2 rounded-md border transition-all ${
                   item.status === 'considering'
                     ? 'bg-amber-100 text-amber-700 border-amber-200'
                     : 'bg-white text-brand-gray border-brand-black/5 hover:border-amber-200'
@@ -459,7 +459,7 @@ const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus 
               </button>
               <button
                 onClick={() => updateBulletinStatus(item.id, 'applied')}
-                className={`flex-1 text-[9px] font-bold uppercase tracking-widest py-2 rounded-sm border transition-all ${
+                className={`flex-1 text-xs font-medium py-2 rounded-md border transition-all ${
                   item.status === 'applied'
                     ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                     : 'bg-white text-brand-gray border-brand-black/5 hover:border-emerald-200'
@@ -484,7 +484,7 @@ function SystemStatusApps({ profile }: { profile: PhotographerProfile }) {
 
   if (!allApps.length) {
     return (
-      <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+      <span className="text-xs text-white/40">
         No apps selected yet
       </span>
     );
@@ -500,7 +500,7 @@ function SystemStatusApps({ profile }: { profile: PhotographerProfile }) {
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-2">
       {unique.map((app) => (
-        <span key={app} className="inline-flex items-center gap-1.5 text-[10px] font-bold text-white/50 uppercase tracking-widest">
+        <span key={app} className="inline-flex items-center gap-1.5 text-xs text-white/50">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" aria-hidden="true" />
           <span>{app}</span>
         </span>
@@ -1367,20 +1367,20 @@ const App: React.FC = () => {
   }, [journalEntries, journalSearch]);
 
   const GearSummary = () => (
-    <div className="bg-brand-white border border-brand-black/5 rounded-sm p-5 shadow-sm">
-      <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-black/50 mb-3 flex items-center gap-2">
-        <i className="fa-solid fa-toolbox text-brand-rose"></i> Gear in Locker
+    <div className="bg-brand-white border border-brand-black/5 rounded-lg p-5 shadow-sm">
+      <h4 className="text-xs font-medium text-brand-black/50 mb-3 flex items-center gap-2">
+        <i className="fa-solid fa-toolbox text-brand-rose"></i> Gear in locker
       </h4>
       <div className="max-h-32 overflow-y-auto no-scrollbar space-y-2">
         {gear.length === 0 ? (
-          <p className="text-[10px] text-brand-gray/50 italic">No gear registered.</p>
+          <p className="text-xs text-brand-gray/50 italic">No gear registered.</p>
         ) : (
           gear.map(item => (
-            <div key={item.id} className="flex justify-between items-center text-[10px] py-1 border-b border-brand-black/5 last:border-0">
-              <span className={`font-bold uppercase tracking-wider ${item.available ? 'text-brand-black' : 'text-brand-gray/40 line-through'}`}>
+            <div key={item.id} className="flex justify-between items-center py-1 border-b border-brand-black/5 last:border-0">
+              <span className={`text-xs font-medium ${item.available ? 'text-brand-black' : 'text-brand-gray/40 line-through'}`}>
                 {item.name}
               </span>
-              <span className="text-[8px] px-1.5 py-0.5 bg-brand-black/5 rounded-sm text-brand-gray font-bold uppercase">{item.category}</span>
+              <span className="text-xs px-1.5 py-0.5 bg-brand-black/5 rounded text-brand-gray font-medium">{item.category}</span>
             </div>
           ))
         )}
@@ -1395,20 +1395,20 @@ const App: React.FC = () => {
       .slice(0, 3);
 
     return (
-      <div className="bg-brand-white border border-brand-black/5 rounded-sm p-5 shadow-sm">
-        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-black/50 mb-3 flex items-center gap-2">
-          <i className="fa-solid fa-trophy text-brand-rose"></i> Bulletin Highlights
+      <div className="bg-brand-white border border-brand-black/5 rounded-lg p-5 shadow-sm">
+        <h4 className="text-xs font-medium text-brand-black/50 mb-3 flex items-center gap-2">
+          <i className="fa-solid fa-trophy text-brand-rose"></i> Bulletin highlights
         </h4>
         <div className="space-y-3">
           {upcoming.length === 0 ? (
-            <p className="text-[10px] text-brand-gray/50 italic">No upcoming deadlines.</p>
+            <p className="text-xs text-brand-gray/50 italic">No upcoming deadlines.</p>
           ) : (
             upcoming.map(item => (
               <div key={item.id} className="border-b border-brand-black/5 last:border-0 pb-2 last:pb-0">
-                <p className="text-[10px] font-bold text-brand-black truncate uppercase tracking-wider">{item.name}</p>
+                <p className="text-xs font-semibold text-brand-black truncate">{item.name}</p>
                 <div className="flex justify-between items-center mt-1">
-                  <span className="text-[8px] text-brand-rose font-bold uppercase tracking-widest">{item.deadline}</span>
-                  <span className="text-[8px] text-brand-gray uppercase font-bold tracking-tighter">{item.type}</span>
+                  <span className="text-xs text-brand-rose font-medium">{item.deadline}</span>
+                  <span className="text-xs text-brand-gray">{item.type}</span>
                 </div>
               </div>
             ))
@@ -1507,13 +1507,13 @@ const App: React.FC = () => {
                   <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${isFieldMode ? 'left-6' : 'left-1'}`}></div>
                 </button>
               </div>
-              <p className="text-[9px] text-brand-gray/50 font-normal">Simplify layout for on-assignment use.</p>
+              <p className="text-xs text-brand-gray/50 font-normal">Simplify layout for on-assignment use.</p>
             </div>
           </header>
 
-          <section className="bg-brand-white border border-brand-black/5 rounded-sm p-8 mb-12 shadow-sm relative overflow-hidden group hover:border-brand-rose/20 transition-all duration-700">
+          <section className="bg-brand-white border border-brand-black/5 rounded-lg p-8 mb-12 shadow-sm relative overflow-hidden group hover:border-brand-rose/20 transition-all duration-700">
              <div className="absolute top-0 left-0 w-1 h-full bg-brand-rose/20"></div>
-             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand-rose/70 mb-5">Daily inspiration</p>
+             <p className="text-xs font-semibold text-brand-rose/70 mb-5">Daily inspiration</p>
              <div className="max-w-2xl">
                <p className="text-xl md:text-2xl font-serif italic text-brand-black leading-snug mb-4">
                  "{dailyQuote.text}"
@@ -1525,48 +1525,48 @@ const App: React.FC = () => {
              <i className="fa-solid fa-quote-right absolute bottom-6 right-8 text-4xl text-brand-black/5"></i>
           </section>
 
-          <section className="bg-brand-black rounded-sm p-8 text-brand-white mb-12 shadow-xl border border-white/5">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-rose/80 mb-5">Log new session</h3>
+          <section className="bg-brand-black rounded-lg p-8 text-brand-white mb-12 shadow-xl border border-white/5">
+            <h3 className="text-xs font-semibold text-brand-rose/80 mb-5">Log new session</h3>
             <form onSubmit={addSession} className="space-y-4">
               <input
                 name="title"
                 type="text"
-                placeholder="SESSION TITLE (OPTIONAL)"
-                className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
+                placeholder="Session title (optional)"
+                className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
               />
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-                <input 
-                  name="date" 
-                  type="date" 
+                <input
+                  name="date"
+                  type="date"
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                 />
-                <LocationAutocomplete 
-                  name="location" 
-                  placeholder="LOCATION (E.G. AUSTIN)" 
+                <LocationAutocomplete
+                  name="location"
+                  placeholder="Location (e.g. Austin)"
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
+                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
                 />
-                <select 
+                <select
                   name="genre"
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                 >
                   {genreOptions.map(g => (
                     <option key={g} value={g} className="text-brand-black">{g}</option>
                   ))}
                 </select>
-                <button 
+                <button
                   type="submit"
-                  className="bg-brand-blue hover:bg-[#7a93a0] text-white font-bold uppercase tracking-[0.2em] text-xs rounded-sm py-3 transition-all active:scale-95 shadow-lg"
+                  className="bg-brand-blue hover:bg-[#7a93a0] text-white text-sm font-semibold rounded-md py-3 transition-all active:scale-95 shadow-lg"
                 >
-                  INDEX SESSION
+                  Index session
                 </button>
               </div>
-              <textarea 
+              <textarea
                 name="notes"
-                placeholder="NOTES / CREATIVE BRIEF"
-                className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[80px]"
+                placeholder="Notes / creative brief"
+                className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[80px]"
               />
             </form>
           </section>
@@ -1594,16 +1594,16 @@ const App: React.FC = () => {
                     <div className="flex flex-col md:flex-row md:items-center gap-4 flex-wrap">
                       {/* Genre filter */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] text-brand-gray/50 font-medium mb-2">Genre</p>
+                        <p className="text-xs text-brand-gray/50 font-medium mb-2">Genre</p>
                         <div className="flex flex-wrap gap-1.5">
                           <button
                             onClick={() => setDashboardGenreFilter('All')}
-                            className={`text-xs font-medium px-3 py-1.5 rounded-sm border transition-all ${dashboardGenreFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
+                            className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${dashboardGenreFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
                           >All</button>
                           {presentGenres.map(g => (
                             <button key={g}
                               onClick={() => setDashboardGenreFilter(g)}
-                              className={`text-xs font-medium px-3 py-1.5 rounded-sm border transition-all ${dashboardGenreFilter === g ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-blue/30'}`}
+                              className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${dashboardGenreFilter === g ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-blue/30'}`}
                             >{g}</button>
                           ))}
                         </div>
@@ -1611,12 +1611,12 @@ const App: React.FC = () => {
 
                       {/* Status filter */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] text-brand-gray/50 font-medium mb-2">Progress</p>
+                        <p className="text-xs text-brand-gray/50 font-medium mb-2">Progress</p>
                         <div className="flex flex-wrap gap-1.5">
                           {(['All', 'shot', 'culled', 'edited', 'backed up', 'posted'] as const).map(s => (
                             <button key={s}
                               onClick={() => setDashboardStatusFilter(s)}
-                              className={`text-xs font-medium px-3 py-1.5 rounded-sm border transition-all ${dashboardStatusFilter === s ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
+                              className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${dashboardStatusFilter === s ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
                             >{s === 'All' ? 'All' : s}</button>
                           ))}
                         </div>
@@ -1624,10 +1624,10 @@ const App: React.FC = () => {
 
                       {/* Date sort */}
                       <div className="flex-shrink-0">
-                        <p className="text-[10px] text-brand-gray/50 font-medium mb-2">Date</p>
+                        <p className="text-xs text-brand-gray/50 font-medium mb-2">Date</p>
                         <button
                           onClick={() => setDashboardDateSort(p => p === 'newest' ? 'oldest' : 'newest')}
-                          className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-sm border border-brand-black/10 bg-white text-brand-gray hover:border-brand-black/30 transition-all"
+                          className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-md border border-brand-black/10 bg-white text-brand-gray hover:border-brand-black/30 transition-all"
                         >
                           <i className={`fa-solid fa-arrow-${dashboardDateSort === 'newest' ? 'down' : 'up'}-short-wide text-[9px]`}></i>
                           {dashboardDateSort === 'newest' ? 'Newest first' : 'Oldest first'}
@@ -1654,19 +1654,19 @@ const App: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {activeSessions.length === 0 ? (
-                    <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-sm">
+                    <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-lg">
                       <p className="text-sm font-medium text-brand-gray/50">No active sessions detected</p>
                     </div>
                   ) : filtered.length === 0 ? (
-                    <div className="col-span-full py-16 text-center border border-dashed border-brand-gray/20 rounded-sm">
+                    <div className="col-span-full py-16 text-center border border-dashed border-brand-gray/20 rounded-lg">
                       <p className="text-sm font-medium text-brand-gray/50 mb-2">No sessions match these filters</p>
-                      <button onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); }} className="text-[9px] text-brand-rose font-bold uppercase tracking-widest hover:underline">
+                      <button onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); }} className="text-xs text-brand-rose font-medium hover:underline">
                         Clear filters
                       </button>
                     </div>
                   ) : (
                     filtered.map(session => (
-                      <div key={session.id} id={`session-${session.id}`} className={`transition-all duration-700 ${highlightedSessionId === session.id ? 'ring-2 ring-brand-rose ring-offset-2 rounded-sm' : ''}`}>
+                      <div key={session.id} id={`session-${session.id}`} className={`transition-all duration-700 ${highlightedSessionId === session.id ? 'ring-2 ring-brand-rose ring-offset-2 rounded-lg' : ''}`}>
                         <SessionCard
                           session={session}
                           onUpdateStatus={updateStatus}
@@ -1693,14 +1693,14 @@ const App: React.FC = () => {
               <p className="text-brand-gray mt-2 text-sm font-medium">Define your shooting style, constraints, and growth goals.</p>
             </div>
             {profileSuccessMsg && (
-              <div className="bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-sm shadow-lg animate-in slide-in-from-right fade-in duration-500">
-                <i className="fa-solid fa-check mr-2"></i> Profile Applied Successfully
+              <div className="bg-emerald-500 text-white text-xs font-medium px-4 py-2 rounded-md shadow-lg animate-in slide-in-from-right fade-in duration-500">
+                <i className="fa-solid fa-check mr-2"></i> Profile applied
               </div>
             )}
           </header>
 
           {user && (
-            <div className="mb-8 flex items-center justify-between bg-white border border-brand-black/5 rounded-sm px-6 py-4 shadow-sm">
+            <div className="mb-8 flex items-center justify-between bg-white border border-brand-black/5 rounded-lg px-6 py-4 shadow-sm">
               <div className="flex items-center gap-4">
                 {user.photoURL ? (
                   <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover border border-brand-black/10" />
@@ -1711,12 +1711,12 @@ const App: React.FC = () => {
                 )}
                 <div>
                   <p className="text-sm font-semibold text-brand-black">{user.displayName || 'Photographer'}</p>
-                  <p className="text-[10px] text-brand-gray mt-0.5">{user.email}</p>
+                  <p className="text-xs text-brand-gray mt-0.5">{user.email}</p>
                 </div>
               </div>
               <button
                 onClick={signOut}
-                className="flex items-center gap-2 text-xs font-medium text-brand-gray border border-brand-black/10 px-4 py-2 rounded-sm hover:bg-brand-black/5 hover:text-brand-black transition-all"
+                className="flex items-center gap-2 text-xs font-medium text-brand-gray border border-brand-black/10 px-4 py-2 rounded-md hover:bg-brand-black/5 hover:text-brand-black transition-all"
               >
                 <i className="fa-solid fa-arrow-right-from-bracket text-xs"></i>
                 Sign out
@@ -1724,10 +1724,10 @@ const App: React.FC = () => {
             </div>
           )}
 
-          <section className="bg-white rounded-sm border border-brand-black/5 p-10 shadow-sm">
+          <section className="bg-white rounded-lg border border-brand-black/5 p-10 shadow-sm">
             <div className="space-y-12">
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">BASICS</h3>
+                <h3 className="text-xs font-semibold text-brand-rose mb-5 border-b border-brand-black/5 pb-2">Basics</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
                     <label className="text-xs font-medium text-brand-gray/70 block mb-2">Name</label>
@@ -1735,8 +1735,8 @@ const App: React.FC = () => {
                       type="text"
                       value={draftProfile.name}
                       onChange={e => setDraftProfile(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                      placeholder="E.G. JANE DOE"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                      placeholder="e.g. Jane Doe"
                     />
                   </div>
                   <div>
@@ -1745,8 +1745,8 @@ const App: React.FC = () => {
                       type="text"
                       value={draftProfile.yearsShooting}
                       onChange={e => setDraftProfile(prev => ({ ...prev, yearsShooting: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                      placeholder="E.G. 5 YEARS, OR SINCE 2018"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                      placeholder="e.g. 5 years, or since 2018"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -1761,7 +1761,7 @@ const App: React.FC = () => {
                               ? prev.primaryGenres.filter(pg => pg !== g)
                               : [...prev.primaryGenres, g]
                           }))}
-                          className={`text-xs font-medium px-4 py-2 rounded-sm border transition-all ${
+                          className={`text-xs font-medium px-4 py-2 rounded-md border transition-all ${
                             draftProfile.primaryGenres.includes(g)
                               ? 'bg-brand-blue text-white border-brand-blue'
                               : 'bg-brand-white text-brand-gray border-brand-black/5'
@@ -1777,7 +1777,7 @@ const App: React.FC = () => {
                         value={draftProfile.otherGenreNote || ''}
                         onChange={e => setDraftProfile(prev => ({ ...prev, otherGenreNote: e.target.value }))}
                         placeholder="Specify your genre..."
-                        className="mt-3 w-full bg-brand-white border border-brand-rose/30 rounded-sm px-4 py-2.5 text-[10px] text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-blue outline-none"
+                        className="mt-3 w-full bg-brand-white border border-brand-rose/30 rounded-md px-4 py-2.5 text-xs text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-blue outline-none"
                       />
                     )}
                   </div>
@@ -1785,7 +1785,7 @@ const App: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">SOFTWARE & WORKFLOW</h3>
+                <h3 className="text-xs font-semibold text-brand-rose mb-5 border-b border-brand-black/5 pb-2">Software & workflow</h3>
                 <div className="space-y-8">
                   <div>
                     <label className="text-xs font-medium text-brand-gray/70 block mb-3">Editing / RAW</label>
@@ -1799,7 +1799,7 @@ const App: React.FC = () => {
                               ? prev.editingApps.filter(a => a !== app)
                               : [...prev.editingApps, app]
                           }))}
-                          className={`text-xs font-medium px-4 py-2 rounded-sm border transition-all ${
+                          className={`text-xs font-medium px-4 py-2 rounded-md border transition-all ${
                             draftProfile.editingApps.includes(app)
                               ? 'bg-brand-blue text-white border-brand-blue'
                               : 'bg-brand-white text-brand-gray border-brand-black/5'
@@ -1815,7 +1815,7 @@ const App: React.FC = () => {
                         value={draftProfile.otherEditingAppNote || ''}
                         onChange={e => setDraftProfile(prev => ({ ...prev, otherEditingAppNote: e.target.value }))}
                         placeholder="Specify your editing app..."
-                        className="mt-3 w-full bg-brand-white border border-brand-blue/30 rounded-sm px-4 py-2.5 text-[10px] text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-blue outline-none"
+                        className="mt-3 w-full bg-brand-white border border-brand-blue/30 rounded-md px-4 py-2.5 text-xs text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-blue outline-none"
                       />
                     )}
                   </div>
@@ -1831,7 +1831,7 @@ const App: React.FC = () => {
                               ? prev.tetheringApps.filter(a => a !== app)
                               : [...prev.tetheringApps, app]
                           }))}
-                          className={`text-xs font-medium px-4 py-2 rounded-sm border transition-all ${
+                          className={`text-xs font-medium px-4 py-2 rounded-md border transition-all ${
                             draftProfile.tetheringApps.includes(app)
                               ? 'bg-brand-blue text-white border-brand-blue'
                               : 'bg-brand-white text-brand-gray border-brand-black/5'
@@ -1847,7 +1847,7 @@ const App: React.FC = () => {
                         value={draftProfile.otherTetheringAppNote || ''}
                         onChange={e => setDraftProfile(prev => ({ ...prev, otherTetheringAppNote: e.target.value }))}
                         placeholder="Specify your tethering app..."
-                        className="mt-3 w-full bg-brand-white border border-brand-rose/30 rounded-sm px-4 py-2.5 text-[10px] text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-blue outline-none"
+                        className="mt-3 w-full bg-brand-white border border-brand-rose/30 rounded-md px-4 py-2.5 text-xs text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-blue outline-none"
                       />
                     )}
                   </div>
@@ -1855,15 +1855,15 @@ const App: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">WORK & STYLE</h3>
+                <h3 className="text-xs font-semibold text-brand-rose mb-5 border-b border-brand-black/5 pb-2">Work & style</h3>
                 <div className="space-y-6">
                   <div>
                     <label className="text-xs font-medium text-brand-gray/70 block mb-2">Typical work / scope</label>
                     <textarea 
                       value={draftProfile.typicalWork}
                       onChange={e => setDraftProfile(prev => ({ ...prev, typicalWork: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
-                      placeholder="E.G. EDITORIAL ASSIGNMENTS, STREET PHOTOGRAPHY SERIES"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
+                      placeholder="e.g. editorial assignments, street photography series"
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1873,10 +1873,10 @@ const App: React.FC = () => {
                         type="text"
                         value={styleKeywordsDraft}
                         onChange={e => setStyleKeywordsDraft(e.target.value)}
-                        className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                        className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                         placeholder="cinematic, high contrast, natural light…"
                       />
-                      <p className="text-[8px] text-brand-gray mt-2 tracking-tighter">Type style keywords separated by commas, e.g. cinematic, high contrast, natural light.</p>
+                      <p className="text-xs text-brand-gray mt-2">Type style keywords separated by commas, e.g. cinematic, high contrast, natural light.</p>
                     </div>
                     <div>
                       <label className="text-xs font-medium text-brand-gray/70 block mb-2">Risk profile</label>
@@ -1885,7 +1885,7 @@ const App: React.FC = () => {
                           <button
                             key={r}
                             onClick={() => setDraftProfile(prev => ({ ...prev, riskProfile: r }))}
-                            className={`flex-1 text-xs font-medium py-3 rounded-sm border transition-all ${
+                            className={`flex-1 text-xs font-medium py-3 rounded-md border transition-all ${
                               draftProfile.riskProfile === r
                                 ? 'bg-brand-black text-white border-brand-black'
                                 : 'bg-brand-white text-brand-gray border-brand-black/5 hover:border-brand-black/20'
@@ -1901,15 +1901,15 @@ const App: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">STRENGTHS & STRUGGLES</h3>
+                <h3 className="text-xs font-semibold text-brand-rose mb-5 border-b border-brand-black/5 pb-2">Strengths & struggles</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
                     <label className="text-xs font-medium text-brand-gray/70 block mb-2">Strengths</label>
                     <textarea 
                       value={draftProfile.strengths}
                       onChange={e => setDraftProfile(prev => ({ ...prev, strengths: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[100px]"
-                      placeholder="DESCRIBE WHAT YOU DO BEST..."
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[100px]"
+                      placeholder="Describe what you do best..."
                     />
                   </div>
                   <div>
@@ -1917,23 +1917,23 @@ const App: React.FC = () => {
                     <textarea 
                       value={draftProfile.struggles}
                       onChange={e => setDraftProfile(prev => ({ ...prev, struggles: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[100px]"
-                      placeholder="WHERE DO YOU FEEL FRICTION OR STALL?"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[100px]"
+                      placeholder="Where do you feel friction or stall?"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">CONSTRAINTS & REALITY</h3>
+                <h3 className="text-xs font-semibold text-brand-rose mb-5 border-b border-brand-black/5 pb-2">Constraints & reality</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="md:col-span-1">
                     <label className="text-xs font-medium text-brand-gray/70 block mb-2">Physical constraints</label>
                     <textarea 
                       value={draftProfile.physicalConstraints}
                       onChange={e => setDraftProfile(prev => ({ ...prev, physicalConstraints: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
-                      placeholder="E.G. HEIGHT, STAMINA, CROWD TOLERANCE"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
+                      placeholder="e.g. height, stamina, crowd tolerance"
                     />
                   </div>
                   <div className="md:col-span-1">
@@ -1941,8 +1941,8 @@ const App: React.FC = () => {
                     <textarea 
                       value={draftProfile.accessReality}
                       onChange={e => setDraftProfile(prev => ({ ...prev, accessReality: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
-                      placeholder="E.G. PUBLIC STANDS, PRESS ACCESS, SIDELINES"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
+                      placeholder="e.g. public stands, press access, sidelines"
                     />
                   </div>
                   <div className="md:col-span-1">
@@ -1950,22 +1950,22 @@ const App: React.FC = () => {
                     <textarea 
                       value={draftProfile.timeBudget}
                       onChange={e => setDraftProfile(prev => ({ ...prev, timeBudget: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
-                      placeholder="TYPICAL TIME AVAILABLE PER ASSIGNMENT"
+                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
+                      placeholder="Typical time available per assignment"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-brand-rose mb-5 border-b border-brand-black/5 pb-2">GROWTH GOALS</h3>
+                <h3 className="text-xs font-semibold text-brand-rose mb-5 border-b border-brand-black/5 pb-2">Growth goals</h3>
                 <div>
                   <label className="text-xs font-medium text-brand-gray/70 block mb-2">Growth goals</label>
                   <textarea 
                     value={draftProfile.growthGoals}
                     onChange={e => setDraftProfile(prev => ({ ...prev, growthGoals: e.target.value }))}
-                    className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-4 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[100px]"
-                    placeholder="WHAT ARE YOU CURRENTLY TRYING TO MASTER?"
+                    className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-4 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[100px]"
+                    placeholder="What are you currently trying to master?"
                   />
                 </div>
               </div>
@@ -1975,18 +1975,18 @@ const App: React.FC = () => {
                 <button
                   onClick={handleResetProfile}
                   disabled={!isProfileDirty}
-                  className={`px-8 py-4 rounded-sm text-xs font-bold uppercase tracking-[0.2em] transition-all border ${
-                    isProfileDirty 
-                      ? 'bg-white text-brand-gray border-brand-black/10 hover:bg-brand-black/5' 
+                  className={`px-8 py-4 rounded-md text-sm font-medium transition-all border ${
+                    isProfileDirty
+                      ? 'bg-white text-brand-gray border-brand-black/10 hover:bg-brand-black/5'
                       : 'bg-white text-brand-gray/30 border-brand-black/5 cursor-not-allowed'
                   }`}
                 >
-                  Discard Edits
+                  Discard edits
                 </button>
                 <button
                   onClick={handleApplyProfile}
                   disabled={!isProfileDirty}
-                  className={`px-12 py-4 rounded-sm text-xs font-bold uppercase tracking-[0.2em] transition-all shadow-lg ${
+                  className={`px-12 py-4 rounded-md text-sm font-semibold transition-all shadow-lg ${
                     isProfileDirty
                       ? 'bg-brand-blue text-white hover:bg-[#7a93a0] active:scale-95'
                       : 'bg-brand-gray/10 text-brand-gray/30 cursor-not-allowed shadow-none'
@@ -2008,16 +2008,16 @@ const App: React.FC = () => {
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-10">
-            <div className="lg:col-span-3 bg-white rounded-sm border border-brand-black/5 p-8 shadow-sm">
-              <SessionSelector 
-                sessions={sessions.filter(s => s.status !== 'archived')} 
-                selectedIds={selectedPlannerSessionIds} 
+            <div className="lg:col-span-3 bg-white rounded-lg border border-brand-black/5 p-8 shadow-sm">
+              <SessionSelector
+                sessions={sessions.filter(s => s.status !== 'archived')}
+                selectedIds={selectedPlannerSessionIds}
                 onToggle={toggleSessionInPlanner}
-                label="ATTACH SESSIONS TO PLANNING CONTEXT"
+                label="Attach sessions to planning context"
               />
 
               <textarea
-                className="w-full h-40 p-5 bg-brand-white border border-brand-black/5 rounded-sm focus:ring-1 focus:ring-brand-blue outline-none transition-all text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40"
+                className="w-full h-40 p-5 bg-brand-white border border-brand-black/5 rounded-md focus:ring-1 focus:ring-brand-blue outline-none transition-all text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40"
                 placeholder="Outline your upcoming week, availability, and specific shoot goals..."
                 value={plannerInput}
                 onChange={(e) => setPlannerInput(e.target.value)}
@@ -2026,16 +2026,16 @@ const App: React.FC = () => {
                 <button
                   disabled={isGeneratingPlan || (!plannerInput.trim() && selectedPlannerSessionIds.length === 0)}
                   onClick={handleGeneratePlan}
-                  className={`flex items-center gap-3 px-10 py-4 rounded-sm font-bold uppercase tracking-[0.2em] text-xs transition-all ${
+                  className={`flex items-center gap-3 px-10 py-4 rounded-md text-sm font-semibold transition-all ${
                     isGeneratingPlan || (!plannerInput.trim() && selectedPlannerSessionIds.length === 0)
                       ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed'
                       : 'bg-brand-blue text-white hover:bg-[#7a93a0] hover:shadow-md active:scale-95 shadow-sm'
                   }`}
                 >
                   {isGeneratingPlan ? (
-                    <><i className="fa-solid fa-circle-notch animate-spin"></i> PROCESSING</>
+                    <><i className="fa-solid fa-circle-notch animate-spin"></i> Processing</>
                   ) : (
-                    <><i className="fa-solid fa-wand-magic-sparkles"></i> COMPILE STRATEGY</>
+                    <><i className="fa-solid fa-wand-magic-sparkles"></i> Compile strategy</>
                   )}
                 </button>
               </div>
@@ -2048,35 +2048,35 @@ const App: React.FC = () => {
           </div>
 
           {plannerOutput && (
-            <div className="bg-brand-black rounded-sm shadow-2xl overflow-hidden border border-white/10">
+            <div className="bg-brand-black rounded-lg shadow-2xl overflow-hidden border border-white/10">
               <div className="px-8 py-5 border-b border-white/10 flex items-center justify-between flex-wrap gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-rose">DOCUMENT: ASSIGNMENT STRATEGY</span>
+                <span className="text-xs font-semibold text-brand-rose">Assignment strategy</span>
                 <div className="flex items-center gap-3 flex-wrap">
                   <button
                     onClick={() => handleCopy(plannerOutput, setPlannerCopied)}
-                    className="text-[9px] font-bold uppercase tracking-widest text-brand-blue hover:text-white transition-colors border border-brand-blue/30 px-3 py-1 rounded-sm bg-brand-blue/5"
+                    className="text-xs font-medium text-brand-blue hover:text-white transition-colors border border-brand-blue/30 px-3 py-1 rounded-md bg-brand-blue/5"
                   >
-                    {plannerCopied ? 'COPIED' : 'COPY TEXT'}
+                    {plannerCopied ? 'Copied' : 'Copy text'}
                   </button>
                   <div className="flex items-center gap-2">
                     <select
                       value={plannerAttachId}
                       onChange={e => { setPlannerAttachId(e.target.value); setPlannerAttached(false); }}
-                      className="bg-white/5 border border-white/10 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-sm outline-none focus:ring-1 focus:ring-brand-blue"
+                      className="bg-white/5 border border-white/10 text-white text-xs font-medium px-3 py-1 rounded-md outline-none focus:ring-1 focus:ring-brand-blue"
                     >
-                      <option value="" className="text-brand-black">ATTACH TO SESSION...</option>
+                      <option value="" className="text-brand-black">Attach to session...</option>
                       {sessions.filter(s => s.status !== 'archived').map(s => (
                         <option key={s.id} value={s.id} className="text-brand-black">
-                          {s.title ? s.title.toUpperCase() : `${s.location} — ${s.date}`}
+                          {s.title || `${s.location} — ${s.date}`}
                         </option>
                       ))}
                     </select>
                     {plannerAttachId && (
                       <button
                         onClick={() => attachStrategyToSession(plannerAttachId, plannerOutput, 'strategy', () => setPlannerAttached(true))}
-                        className="text-[9px] font-bold uppercase tracking-widest text-brand-rose hover:text-white transition-colors border border-brand-rose/40 px-3 py-1 rounded-sm bg-brand-rose/5"
+                        className="text-xs font-medium text-brand-rose hover:text-white transition-colors border border-brand-rose/40 px-3 py-1 rounded-md bg-brand-rose/5"
                       >
-                        {plannerAttached ? '✓ ATTACHED' : 'ATTACH'}
+                        {plannerAttached ? '✓ Attached' : 'Attach'}
                       </button>
                     )}
                   </div>
@@ -2105,34 +2105,34 @@ const App: React.FC = () => {
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-10">
-            <div className="lg:col-span-3 bg-brand-black rounded-sm p-10 text-white shadow-2xl relative overflow-hidden border border-white/5">
+            <div className="lg:col-span-3 bg-brand-black rounded-lg p-10 text-white shadow-2xl relative overflow-hidden border border-white/5">
               <div className="relative z-10">
-                {!isFieldMode && <h3 className="text-2xl font-display mb-6 tracking-widest text-brand-rose">ASSIGNMENT BRIEF</h3>}
+                {!isFieldMode && <h3 className="text-xl font-bold mb-6 text-brand-rose">Assignment brief</h3>}
                 <div className="flex flex-col gap-6">
-                  <div className="bg-white/5 p-6 rounded-sm border border-white/10 mb-2">
+                  <div className="bg-white/5 p-6 rounded-lg border border-white/10 mb-2">
                     <SessionSelector
                       sessions={sessions.filter(s => s.status !== 'archived')}
                       selectedIds={selectedAssignmentSessionIds}
                       onToggle={toggleSessionInAssignment}
-                      label="ATTACH RELEVANT ASSIGNMENT SESSIONS"
+                      label="Attach relevant assignment sessions"
                     />
                     {sessions.some(s => selectedAssignmentSessionIds.includes(s.id) && s.strategy) && (
                       <button
                         type="button"
                         onClick={() => setIncludeAttachedStrategy(v => !v)}
-                        className={`mt-3 flex items-center gap-3 w-full px-4 py-3 rounded-sm border transition-all ${
+                        className={`mt-3 flex items-center gap-3 w-full px-4 py-3 rounded-md border transition-all ${
                           includeAttachedStrategy
                             ? 'bg-brand-blue/10 border-brand-blue/40 text-brand-blue'
                             : 'bg-white/5 border-white/10 text-white/40 hover:border-white/30 hover:text-white/60'
                         }`}
                       >
-                        <div className={`w-4 h-4 rounded-sm border flex items-center justify-center flex-shrink-0 transition-all ${
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
                           includeAttachedStrategy ? 'bg-brand-blue border-brand-blue' : 'border-white/20'
                         }`}>
                           {includeAttachedStrategy && <i className="fa-solid fa-check text-[9px] text-white"></i>}
                         </div>
-                        <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
-                          INCLUDE ATTACHED STRATEGY AS FOUNDATION
+                        <span className="text-xs font-medium text-white/80">
+                          Include attached strategy as foundation
                         </span>
                         <i className="fa-solid fa-file-contract ml-auto text-[10px] opacity-50"></i>
                       </button>
@@ -2140,23 +2140,23 @@ const App: React.FC = () => {
                   </div>
 
                   <div className="flex flex-col gap-3 mb-2">
-                    <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/50">ASSIGNMENT TIMEFRAME</label>
+                    <label className="text-xs font-medium text-white/50">Timeframe</label>
                     <div className="flex flex-wrap gap-2">
                       {(['30min', '1hr', '2hr', '4hr', 'fullday'] as AssignmentTimeframe[]).map((tf) => (
                         <button
                           key={tf}
                           type="button"
                           onClick={() => setAssignmentTimeframe(tf)}
-                          className={`text-[9px] font-bold uppercase tracking-widest px-4 py-2 rounded-sm border transition-all ${
+                          className={`text-xs font-medium px-4 py-2 rounded-md border transition-all ${
                             assignmentTimeframe === tf
                               ? 'bg-brand-blue text-white border-brand-blue shadow-md scale-105'
                               : 'bg-white/5 text-white/40 border-white/10 hover:border-brand-blue/50 hover:text-white'
                           }`}
                         >
-                          {tf === '30min' ? '30 MIN' : 
-                           tf === '1hr' ? '1 HOUR' : 
-                           tf === '2hr' ? '2 HOURS' : 
-                           tf === '4hr' ? '4 HOURS' : 'FULL DAY'}
+                          {tf === '30min' ? '30 min' :
+                           tf === '1hr' ? '1 hour' :
+                           tf === '2hr' ? '2 hours' :
+                           tf === '4hr' ? '4 hours' : 'Full day'}
                         </button>
                       ))}
                     </div>
@@ -2165,7 +2165,7 @@ const App: React.FC = () => {
                   <div className="flex flex-col">
                     <textarea
                       ref={assignmentInputRef}
-                      className="w-full h-32 p-5 bg-white/5 border border-white/10 rounded-sm focus:ring-1 focus:ring-brand-blue outline-none transition-all text-sm leading-relaxed text-zinc-100 placeholder:text-white/20"
+                      className="w-full h-32 p-5 bg-white/5 border border-white/10 rounded-md focus:ring-1 focus:ring-brand-blue outline-none transition-all text-sm leading-relaxed text-zinc-100 placeholder:text-white/20"
                       placeholder={assignmentPlaceholder}
                       value={assignmentInput}
                       onChange={(e) => setAssignmentInput(e.target.value)}
@@ -2173,7 +2173,7 @@ const App: React.FC = () => {
                     {isFieldMode && lastAssignmentInput && (
                       <button
                         type="button"
-                        className="mt-2 self-start text-[10px] font-bold uppercase tracking-widest text-brand-rose/60 hover:text-brand-rose underline underline-offset-4 decoration-brand-rose/20"
+                        className="mt-2 self-start text-xs font-medium text-brand-rose/60 hover:text-brand-rose underline underline-offset-4 decoration-brand-rose/20"
                         onClick={() => setAssignmentInput(lastAssignmentInput)}
                       >
                         Use last assignment brief
@@ -2183,12 +2183,12 @@ const App: React.FC = () => {
                   <button
                     disabled={isGeneratingAssignment || (!assignmentInput.trim() && selectedAssignmentSessionIds.length === 0)}
                     onClick={handleGenerateAssignment}
-                    className={`bg-brand-blue hover:bg-[#7a93a0] text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-sm py-4 px-12 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg ${isGeneratingAssignment || (!assignmentInput.trim() && selectedAssignmentSessionIds.length === 0) ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    className={`bg-brand-blue hover:bg-[#7a93a0] text-white text-sm font-semibold rounded-md py-4 px-12 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg ${isGeneratingAssignment || (!assignmentInput.trim() && selectedAssignmentSessionIds.length === 0) ? 'opacity-40 cursor-not-allowed' : ''}`}
                   >
                     {isGeneratingAssignment ? (
-                      <><i className="fa-solid fa-circle-notch animate-spin"></i> GENERATING STRATEGY</>
+                      <><i className="fa-solid fa-circle-notch animate-spin"></i> Generating strategy</>
                     ) : (
-                      <><i className="fa-solid fa-bolt"></i> START ASSIGNMENT PLAN</>
+                      <><i className="fa-solid fa-bolt"></i> Start assignment plan</>
                     )}
                   </button>
                 </div>
@@ -2199,15 +2199,15 @@ const App: React.FC = () => {
             {!isFieldMode && (
               <div className="lg:col-span-1 space-y-4">
                 <GearSummary />
-                <div className="bg-white border border-brand-black/5 rounded-sm p-5 shadow-sm space-y-3">
-                  <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-black/50 flex items-center gap-2">
-                    <i className="fa-solid fa-wand-sparkles text-brand-rose"></i> EXPERT GUIDANCE
+                <div className="bg-white border border-brand-black/5 rounded-lg p-5 shadow-sm space-y-3">
+                  <h4 className="text-xs font-medium text-brand-black/50 flex items-center gap-2">
+                    <i className="fa-solid fa-wand-sparkles text-brand-rose"></i> Expert guidance
                   </h4>
-                  <button 
+                  <button
                     onClick={() => setActiveTab('processing')}
-                    className="w-full text-left px-3 py-3 bg-brand-rose/5 border border-brand-rose/10 rounded-sm text-[10px] font-bold uppercase tracking-widest text-brand-rose hover:bg-brand-rose hover:text-white transition-all flex items-center justify-between group"
+                    className="w-full text-left px-3 py-3 bg-brand-rose/5 border border-brand-rose/10 rounded-md text-xs font-medium text-brand-rose hover:bg-brand-rose hover:text-white transition-all flex items-center justify-between group"
                   >
-                    <span>Open Processing Guides</span>
+                    <span>Open processing guides</span>
                     <i className="fa-solid fa-chevron-right text-[8px] group-hover:translate-x-1 transition-transform"></i>
                   </button>
                 </div>
@@ -2217,35 +2217,35 @@ const App: React.FC = () => {
           </div>
 
           {assignmentOutput && (
-            <div className="bg-brand-black rounded-sm shadow-2xl overflow-hidden border border-white/10">
+            <div className="bg-brand-black rounded-lg shadow-2xl overflow-hidden border border-white/10">
               <div className="px-8 py-5 border-b border-white/10 flex items-center justify-between flex-wrap gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-blue">DOCUMENT: ACCELERATED DELIVERY PLAN</span>
+                <span className="text-xs font-semibold text-brand-blue">Accelerated delivery plan</span>
                 <div className="flex items-center gap-3 flex-wrap">
                   <button
                     onClick={() => handleCopy(assignmentOutput, setAssignmentCopied)}
-                    className="text-[9px] font-bold uppercase tracking-widest text-brand-rose hover:text-white transition-colors border border-brand-rose/30 px-3 py-1 rounded-sm bg-brand-rose/5"
+                    className="text-xs font-medium text-brand-rose hover:text-white transition-colors border border-brand-rose/30 px-3 py-1 rounded-md bg-brand-rose/5"
                   >
-                    {assignmentCopied ? 'COPIED' : 'COPY TEXT'}
+                    {assignmentCopied ? 'Copied' : 'Copy text'}
                   </button>
                   <div className="flex items-center gap-2">
                     <select
                       value={assignmentAttachId}
                       onChange={e => { setAssignmentAttachId(e.target.value); setAssignmentAttached(false); }}
-                      className="bg-white/5 border border-white/10 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-sm outline-none focus:ring-1 focus:ring-brand-blue"
+                      className="bg-white/5 border border-white/10 text-white text-xs font-medium px-3 py-1 rounded-md outline-none focus:ring-1 focus:ring-brand-blue"
                     >
-                      <option value="" className="text-brand-black">ATTACH TO SESSION...</option>
+                      <option value="" className="text-brand-black">Attach to session...</option>
                       {sessions.filter(s => s.status !== 'archived').map(s => (
                         <option key={s.id} value={s.id} className="text-brand-black">
-                          {s.title ? s.title.toUpperCase() : `${s.location} — ${s.date}`}
+                          {s.title || `${s.location} — ${s.date}`}
                         </option>
                       ))}
                     </select>
                     {assignmentAttachId && (
                       <button
                         onClick={() => attachStrategyToSession(assignmentAttachId, assignmentOutput, 'dayPlan', () => setAssignmentAttached(true))}
-                        className="text-[9px] font-bold uppercase tracking-widest text-brand-blue hover:text-white transition-colors border border-brand-blue/40 px-3 py-1 rounded-sm bg-brand-blue/5"
+                        className="text-xs font-medium text-brand-blue hover:text-white transition-colors border border-brand-blue/40 px-3 py-1 rounded-md bg-brand-blue/5"
                       >
-                        {assignmentAttached ? '✓ ATTACHED' : 'ATTACH'}
+                        {assignmentAttached ? '✓ Attached' : 'Attach'}
                       </button>
                     )}
                   </div>
@@ -2260,7 +2260,7 @@ const App: React.FC = () => {
                   {isFieldMode && isLongOutput && (
                     <button
                       type="button"
-                      className="mt-6 block text-[11px] font-bold text-brand-rose uppercase tracking-widest underline underline-offset-4 decoration-brand-rose/20"
+                      className="mt-6 block text-xs font-medium text-brand-rose underline underline-offset-4 decoration-brand-rose/20"
                       onClick={() => setShowFullAssignmentOutput(v => !v)}
                     >
                       {showFullAssignmentOutput ? 'Show less' : 'Show full plan'}
@@ -2312,13 +2312,13 @@ const App: React.FC = () => {
                 }).map((box) => {
                   const visibleBullets = isFieldMode ? box.bullets.slice(0, 3) : box.bullets;
                   return (
-                    <div key={box.genre} className="bg-white rounded-sm border border-brand-black/5 rounded-sm p-8 shadow-sm">
-                      <h4 className="text-xs font-semibold tracking-wide uppercase text-brand-gray mb-1 flex items-center gap-2">
+                    <div key={box.genre} className="bg-white rounded-lg border border-brand-black/5 p-8 shadow-sm">
+                      <h4 className="text-xs font-semibold text-brand-gray mb-1 flex items-center gap-2">
                         <i className="fa-solid fa-wand-sparkles text-brand-rose"></i> {box.title}
                       </h4>
                       {!isFieldMode && (
-                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-6">
-                          Processing - Culling - Shooting
+                        <p className="text-xs font-semibold text-brand-rose mb-6">
+                          Processing · Culling · Shooting
                         </p>
                       )}
                       <ul className="space-y-4">
@@ -2342,31 +2342,31 @@ const App: React.FC = () => {
             </div>
             {!isFieldMode && (
               <div className="space-y-6">
-                <div className="bg-brand-black rounded-sm p-6 text-white shadow-xl">
-                  <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-rose mb-4 border-b border-white/10 pb-2">ACTIVE CONTEXT</h4>
+                <div className="bg-brand-black rounded-lg p-6 text-white shadow-xl">
+                  <h4 className="text-xs font-medium text-brand-rose/80 mb-4 border-b border-white/10 pb-2">Active context</h4>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-[8px] font-bold uppercase tracking-widest text-white/40 mb-1">Active Genre(s)</p>
+                      <p className="text-xs text-white/40 mb-1">Active genre(s)</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {getActiveGenres(profile, derivedAssignmentGenre).map(g => (
-                          <span key={g} className="text-[9px] px-2 py-0.5 bg-white/10 rounded-sm font-bold uppercase tracking-tighter">{g}</span>
+                          <span key={g} className="text-xs px-2 py-0.5 bg-white/10 rounded font-medium">{g}</span>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <p className="text-[8px] font-bold uppercase tracking-widest text-white/40 mb-1">Software Stack</p>
+                      <p className="text-xs text-white/40 mb-1">Software stack</p>
                       <SystemStatusApps profile={profile} />
                     </div>
                     <div>
-                      <p className="text-[8px] font-bold uppercase tracking-widest text-white/40 mb-1">Delivery Timeframe</p>
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-brand-rose">{assignmentTimeframe}</p>
+                      <p className="text-xs text-white/40 mb-1">Delivery timeframe</p>
+                      <p className="text-sm font-semibold text-brand-rose">{assignmentTimeframe}</p>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setActiveTab('profile')}
-                    className="mt-8 w-full py-3 bg-white/5 border border-white/10 rounded-sm text-[9px] font-bold uppercase tracking-widest hover:bg-brand-blue hover:border-brand-blue transition-all"
+                    className="mt-8 w-full py-3 bg-white/5 border border-white/10 rounded-md text-xs font-medium hover:bg-brand-blue hover:border-brand-blue transition-all"
                   >
-                    Edit Profile
+                    Edit profile
                   </button>
                 </div>
               </div>
@@ -2382,41 +2382,41 @@ const App: React.FC = () => {
             <p className="text-brand-gray mt-2 text-sm font-medium">Reflective entries linked to assignments and sessions.</p>
           </header>
 
-          <section className="bg-brand-black rounded-sm p-8 text-brand-white mb-12 shadow-xl border border-white/5">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-rose mb-6">NEW JOURNAL ENTRY</h3>
+          <section className="bg-brand-black rounded-lg p-8 text-brand-white mb-12 shadow-xl border border-white/5">
+            <h3 className="text-xs font-semibold text-brand-rose mb-6">New journal entry</h3>
             <form onSubmit={handleCreateJournalEntry} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="text-[9px] font-bold uppercase tracking-widest text-white/50 block mb-2">DATE</label>
-                  <input 
+                  <label className="text-xs font-medium text-white/50 block mb-2">Date</label>
+                  <input
                     type="date"
                     value={journalForm.date}
                     onChange={e => setJournalForm(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-bold uppercase tracking-widest text-white/50 block mb-2">ENTRY TITLE</label>
-                  <input 
+                  <label className="text-xs font-medium text-white/50 block mb-2">Entry title</label>
+                  <input
                     type="text"
-                    placeholder="E.G. MORNING FOG AT MOUNT RAINIER"
+                    placeholder="e.g. Morning fog at Mount Rainier"
                     value={journalForm.title}
                     onChange={e => setJournalForm(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
+                    className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <SessionSelector 
+                <SessionSelector
                   sessions={sessions.filter(s => s.status !== 'archived')}
                   selectedIds={journalForm.sessionIds}
                   onToggle={id => setJournalForm(prev => ({
-                    ...prev, 
-                    sessionIds: prev.sessionIds.includes(id) 
-                      ? prev.sessionIds.filter(sid => sid !== id) 
+                    ...prev,
+                    sessionIds: prev.sessionIds.includes(id)
+                      ? prev.sessionIds.filter(sid => sid !== id)
                       : [...prev.sessionIds, id]
                   }))}
                   label="LINK TO SESSIONS"
@@ -2424,43 +2424,43 @@ const App: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[9px] font-bold uppercase tracking-widest text-white/50 block mb-2">REFLECTION / NOTES</label>
-                <textarea 
-                  placeholder="WHAT WORKED? WHAT DIDN'T? WHAT DID YOU LEARN?"
+                <label className="text-xs font-medium text-white/50 block mb-2">Reflection / notes</label>
+                <textarea
+                  placeholder="What worked? What didn't? What did you learn?"
                   value={journalForm.notes}
                   onChange={e => setJournalForm(prev => ({ ...prev, notes: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-4 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[120px] leading-relaxed"
+                  className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-4 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[120px] leading-relaxed"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="text-[9px] font-bold uppercase tracking-widest text-white/50 block mb-2">TAGS (COMMA SEPARATED)</label>
-                  <input 
+                  <label className="text-xs font-medium text-white/50 block mb-2">Tags (comma separated)</label>
+                  <input
                     type="text"
-                    placeholder="E.G. LIGHTING WIN, GEAR ISSUE"
+                    placeholder="e.g. lighting win, gear issue"
                     value={journalForm.tags}
                     onChange={e => setJournalForm(prev => ({ ...prev, tags: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
+                    className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-bold uppercase tracking-widest text-white/50 block mb-2">RESULT QUALITY (1-5)</label>
-                  <select 
+                  <label className="text-xs font-medium text-white/50 block mb-2">Result quality (1–5)</label>
+                  <select
                     value={journalForm.resultRating}
                     onChange={e => setJournalForm(prev => ({ ...prev, resultRating: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                   >
                     {[1,2,3,4,5].map(v => <option key={v} value={v} className="text-brand-black">{v}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[9px] font-bold uppercase tracking-widest text-white/50 block mb-2">PROCESS FLOW (1-5)</label>
-                  <select 
+                  <label className="text-xs font-medium text-white/50 block mb-2">Process flow (1–5)</label>
+                  <select
                     value={journalForm.processRating}
                     onChange={e => setJournalForm(prev => ({ ...prev, processRating: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                   >
                     {[1,2,3,4,5].map(v => <option key={v} value={v} className="text-brand-black">{v}</option>)}
                   </select>
@@ -2468,11 +2468,11 @@ const App: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[9px] font-bold uppercase tracking-widest text-white/50 block mb-2">ATTACH IMAGES / CAMERA</label>
+                <label className="text-xs font-medium text-white/50 block mb-2">Attach images</label>
                 <div className="flex flex-wrap gap-4 items-center">
-                   <label className="cursor-pointer bg-white/5 border border-white/10 rounded-sm px-8 py-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3">
+                   <label className="cursor-pointer bg-white/5 border border-white/10 rounded-md px-8 py-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3">
                       <i className="fa-solid fa-camera-retro text-2xl text-brand-rose"></i>
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-white/40">SELECT FILES OR CAMERA</span>
+                      <span className="text-xs font-medium text-white/40">Select files</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -2483,7 +2483,7 @@ const App: React.FC = () => {
                    </label>
                    <div className="flex flex-wrap gap-3">
                      {journalForm.images.map(img => (
-                       <div key={img.id} className="relative w-20 h-20 border border-white/10 rounded-sm overflow-hidden group">
+                       <div key={img.id} className="relative w-20 h-20 border border-white/10 rounded-md overflow-hidden group">
                          <img src={img.dataUrl} className="w-full h-full object-cover" alt="preview" />
                          <button 
                             type="button"
@@ -2501,24 +2501,24 @@ const App: React.FC = () => {
               <div className="pt-4">
                 <button 
                   type="submit"
-                  className="w-full bg-brand-blue hover:bg-[#7a93a0] text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-sm py-5 transition-all active:scale-[0.99] shadow-lg flex items-center justify-center gap-3"
+                  className="w-full bg-brand-blue hover:bg-[#7a93a0] text-white text-sm font-semibold rounded-md py-5 transition-all active:scale-[0.99] shadow-lg flex items-center justify-center gap-3"
                 >
-                  <i className="fa-solid fa-pen-nib"></i> COMMIT ENTRY TO LOGBOOK
+                  <i className="fa-solid fa-pen-nib"></i> Commit entry to logbook
                 </button>
               </div>
             </form>
           </section>
 
           <section className="space-y-8">
-            <div className="bg-brand-white border border-brand-black/5 rounded-sm p-8 shadow-sm">
-              <label className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 block mb-4">FIND REFLECTIONS</label>
+            <div className="bg-brand-white border border-brand-black/5 rounded-lg p-8 shadow-sm">
+              <label className="text-xs font-medium text-brand-black/40 block mb-4">Find reflections</label>
               <div className="relative">
-                <input 
+                <input
                   type="text"
-                  placeholder="SEARCH BY TITLE OR TAGS..."
+                  placeholder="Search by title or tags..."
                   value={journalSearch}
                   onChange={(e) => setJournalSearch(e.target.value)}
-                  className="w-full bg-white border border-brand-black/5 rounded-sm px-12 py-4 text-sm focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-brand-gray/30"
+                  className="w-full bg-white border border-brand-black/5 rounded-md px-12 py-4 text-sm focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-brand-gray/30"
                 />
                 <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-brand-rose/40"></i>
                 {journalSearch && (
@@ -2533,27 +2533,27 @@ const App: React.FC = () => {
             </div>
 
             {filteredJournalEntries.length === 0 ? (
-              <div className="py-24 text-center border border-dashed border-brand-gray/20 rounded-sm">
-                <p className="text-brand-gray text-[10px] font-bold uppercase tracking-widest">
-                  {journalSearch ? "NO JOURNAL ENTRIES MATCH THIS SEARCH" : "NO JOURNAL ENTRIES DETECTED"}
+              <div className="py-24 text-center border border-dashed border-brand-gray/20 rounded-lg">
+                <p className="text-sm text-brand-gray/50">
+                  {journalSearch ? "No journal entries match this search" : "No journal entries yet"}
                 </p>
               </div>
             ) : (
               filteredJournalEntries.map(entry => (
-                <div key={entry.id} className="bg-white rounded-sm border border-brand-black/5 shadow-sm overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div key={entry.id} className="bg-white rounded-lg border border-brand-black/5 shadow-sm overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
                   <div className="bg-brand-black p-6 text-brand-white flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-4 mb-2">
-                        <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-rose">{entry.date}</span>
+                        <span className="text-xs font-medium text-brand-rose">{entry.date}</span>
                         {entry.resultRating && (
-                          <div className="flex gap-0.5 text-brand-blue text-[8px]">
+                          <div className="flex gap-0.5 text-brand-blue text-xs">
                             {[...Array(5)].map((_, i) => (
                               <i key={i} className={`fa-solid fa-star ${i < entry.resultRating! ? '' : 'opacity-20'}`}></i>
                             ))}
                           </div>
                         )}
                       </div>
-                      <h3 className="font-display text-2xl leading-none tracking-widest">{entry.title.toUpperCase()}</h3>
+                      <h3 className="text-xl font-bold leading-snug">{entry.title}</h3>
                     </div>
                     <button 
                       onClick={() => deleteJournalEntry(entry.id)}
@@ -2570,20 +2570,20 @@ const App: React.FC = () => {
                           {entry.sessionIds.map(sid => {
                             const s = sessions.find(sess => sess.id === sid);
                             return s ? (
-                              <span key={sid} className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 bg-brand-blue/5 text-brand-blue border border-brand-blue/10 rounded-sm">
-                                SESSION: {s.name.split('_').slice(1).join(' ')}
+                              <span key={sid} className="text-xs font-medium px-2 py-1 bg-brand-blue/5 text-brand-blue border border-brand-blue/10 rounded">
+                                Session: {s.name.split('_').slice(1).join(' ')}
                               </span>
                             ) : null;
                           })}
                         </div>
                         
-                        <p className="text-[11px] text-brand-black leading-relaxed whitespace-pre-wrap italic">
+                        <p className="text-sm text-brand-black leading-relaxed whitespace-pre-wrap italic">
                           "{entry.notes}"
                         </p>
 
                         <div className="flex flex-wrap gap-1.5">
                           {entry.tags.map(tag => (
-                            <span key={tag} className="text-[8px] font-bold uppercase tracking-widest text-brand-gray bg-brand-black/5 px-2 py-1 rounded-sm">
+                            <span key={tag} className="text-xs font-medium text-brand-gray bg-brand-black/5 px-2 py-1 rounded">
                               #{tag}
                             </span>
                           ))}
@@ -2593,20 +2593,20 @@ const App: React.FC = () => {
                       <div className="lg:col-span-1 border-l border-brand-black/5 pl-8 space-y-6">
                          <div className="grid grid-cols-2 gap-2">
                            {entry.images.map(img => (
-                             <a 
-                                key={img.id} 
-                                href={img.dataUrl} 
-                                target="_blank" 
+                             <a
+                                key={img.id}
+                                href={img.dataUrl}
+                                target="_blank"
                                 rel="noreferrer"
-                                className="block aspect-square rounded-sm overflow-hidden border border-brand-black/5 hover:border-brand-rose transition-all group"
+                                className="block aspect-square rounded-md overflow-hidden border border-brand-black/5 hover:border-brand-rose transition-all group"
                              >
                                <img src={img.dataUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="journal" />
                              </a>
                            ))}
                          </div>
                          {entry.processRating && (
-                           <div className="bg-brand-white p-4 rounded-sm border border-brand-black/5">
-                             <p className="text-[8px] font-bold text-brand-gray uppercase tracking-widest mb-2">PROCESS FLOW</p>
+                           <div className="bg-brand-white p-4 rounded-md border border-brand-black/5">
+                             <p className="text-xs font-medium text-brand-gray/70 mb-2">Process flow</p>
                              <div className="flex gap-1 text-brand-rose text-[9px]">
                                 {[...Array(5)].map((_, i) => (
                                   <i key={i} className={`fa-solid fa-bolt ${i < entry.processRating! ? '' : 'opacity-20'}`}></i>
@@ -2634,15 +2634,15 @@ const App: React.FC = () => {
             <button
               onClick={refreshBulletinEvents}
               disabled={isFetchingBulletin}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white text-[9px] font-bold uppercase tracking-widest rounded-sm disabled:opacity-50 hover:bg-[#7a93a0] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white text-xs font-medium rounded-md disabled:opacity-50 hover:bg-[#7a93a0] transition-colors"
             >
-              <i className={`fa-solid fa-rotate-right text-[10px] ${isFetchingBulletin ? 'animate-spin' : ''}`}></i>
-              {isFetchingBulletin ? 'FETCHING...' : 'REFRESH EVENTS'}
+              <i className={`fa-solid fa-rotate-right text-xs ${isFetchingBulletin ? 'animate-spin' : ''}`}></i>
+              {isFetchingBulletin ? 'Fetching...' : 'Refresh events'}
             </button>
           </header>
 
-          <section className="bg-white border border-brand-black/5 rounded-sm p-8 shadow-sm space-y-8">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 border-b border-brand-black/5 pb-4">FILTERS & SEARCH</h3>
+          <section className="bg-white border border-brand-black/5 rounded-lg p-8 shadow-sm space-y-8">
+            <h3 className="text-xs font-medium text-brand-black/40 border-b border-brand-black/5 pb-4">Filters & search</h3>
             <div className="space-y-6">
               {/* Opportunity Type */}
               <div>
@@ -2652,8 +2652,8 @@ const App: React.FC = () => {
                     <button
                       key={t}
                       onClick={() => setTypeFilter(t)}
-                      className={`text-[9px] font-bold px-3 py-1.5 rounded-sm border transition-all ${typeFilter === t ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-brand-gray border-brand-black/5 hover:border-brand-blue/30'}`}
-                    >{t === 'All' ? 'ALL TYPES' : t.toUpperCase()}</button>
+                      className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${typeFilter === t ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-brand-gray border-brand-black/5 hover:border-brand-blue/30'}`}
+                    >{t === 'All' ? 'All types' : t}</button>
                   ))}
                 </div>
               </div>
@@ -2664,7 +2664,7 @@ const App: React.FC = () => {
                   <select
                     value={genreFilter}
                     onChange={(e) => setGenreFilter(e.target.value as Genre | 'All')}
-                    className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-brand-blue outline-none"
+                    className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-2.5 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
                   >
                     <option value="All">All Genres</option>
                     {genreOptions.map((g: Genre) => <option key={g} value={g}>{g}</option>)}
@@ -2676,7 +2676,7 @@ const App: React.FC = () => {
                   <select
                     value={regionFilter}
                     onChange={(e) => setRegionFilter(e.target.value as BulletinRegion | 'All')}
-                    className="w-full bg-brand-white border border-brand-black/5 rounded-sm px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-brand-blue outline-none"
+                    className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-2.5 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
                   >
                     <option value="All">All Regions</option>
                     {(['Global', 'US', 'Europe', 'Asia', 'Latin America', 'Africa', 'Other'] as const).map(r => <option key={r} value={r}>{r}</option>)}
@@ -2688,35 +2688,35 @@ const App: React.FC = () => {
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setPriorityFilter('All')}
-                      className={`text-[9px] font-bold px-3 py-1.5 rounded-sm border transition-all ${priorityFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/5'}`}
-                    >ALL</button>
+                      className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${priorityFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/5'}`}
+                    >All</button>
                     {(['high', 'medium', 'low'] as BulletinPriority[]).map((p) => (
                       <button
                         key={p}
                         onClick={() => setPriorityFilter(p)}
-                        className={`text-[9px] font-bold px-3 py-1.5 rounded-sm border transition-all ${priorityFilter === p ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/5'}`}
-                      >{p.toUpperCase()}</button>
+                        className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${priorityFilter === p ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/5'}`}
+                      >{p.charAt(0).toUpperCase() + p.slice(1)}</button>
                     ))}
                   </div>
                 </div>
               </div>
-              <p className="text-[9px] text-brand-gray/60 uppercase tracking-widest">
-                <i className="fa-solid fa-circle-info mr-1"></i> Filters apply instantly to loaded results. Hit <span className="font-bold text-brand-rose">REFRESH EVENTS</span> to fetch a new set matching your selection.
+              <p className="text-xs text-brand-gray/60">
+                <i className="fa-solid fa-circle-info mr-1"></i> Filters apply instantly to loaded results. Hit <span className="font-medium text-brand-rose">Refresh events</span> to fetch a new set matching your selection.
               </p>
             </div>
           </section>
 
           <section>
             {isFetchingBulletin && aiBulletinItems.length === 0 ? (
-              <div className="py-24 text-center border border-dashed border-brand-gray/20 rounded-sm">
+              <div className="py-24 text-center border border-dashed border-brand-gray/20 rounded-lg">
                 <i className="fa-solid fa-circle-notch animate-spin text-brand-rose text-xl mb-4 block"></i>
-                <p className="text-brand-gray text-[10px] font-bold uppercase tracking-widest">FETCHING UPCOMING EVENTS...</p>
+                <p className="text-brand-gray text-xs font-medium">Fetching upcoming events...</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {primaryBoardItems.length === 0 ? (
-                  <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-sm">
-                    <p className="text-brand-gray text-[10px] font-bold uppercase tracking-widest">NO OPPORTUNITIES MATCH THESE FILTERS</p>
+                  <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-lg">
+                    <p className="text-brand-gray text-xs font-medium">No opportunities match these filters</p>
                   </div>
                 ) : (
                   primaryBoardItems.map((item) => (
@@ -2730,16 +2730,16 @@ const App: React.FC = () => {
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <button
               onClick={() => setActiveTab('cfe-considering')}
-              className="group flex items-center justify-between p-6 bg-white border-2 border-amber-200 hover:border-amber-400 rounded-sm shadow-sm hover:shadow-md transition-all text-left"
+              className="group flex items-center justify-between p-6 bg-white border-2 border-amber-200 hover:border-amber-400 rounded-lg shadow-sm hover:shadow-md transition-all text-left"
             >
               <div className="flex items-center gap-4">
-                <div className="w-1.5 h-12 bg-amber-400 rounded-sm flex-shrink-0"></div>
+                <div className="w-1.5 h-12 bg-amber-400 rounded flex-shrink-0"></div>
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-amber-600 mb-1 flex items-center gap-2">
-                    <i className="fa-solid fa-bookmark"></i> SHORTLIST
+                  <p className="text-xs font-medium text-amber-600 mb-1 flex items-center gap-2">
+                    <i className="fa-solid fa-bookmark"></i> Shortlist
                   </p>
-                  <p className="text-xl font-display text-brand-black tracking-wide">ON THE SHORTLIST</p>
-                  <p className="text-[10px] text-brand-gray mt-1">{consideringItems.length} {consideringItems.length === 1 ? 'opportunity' : 'opportunities'} under consideration</p>
+                  <p className="text-xl font-bold text-brand-black">On the shortlist</p>
+                  <p className="text-xs text-brand-gray mt-1">{consideringItems.length} {consideringItems.length === 1 ? 'opportunity' : 'opportunities'} under consideration</p>
                 </div>
               </div>
               <i className="fa-solid fa-arrow-right text-amber-400 group-hover:translate-x-1 transition-transform"></i>
@@ -2747,16 +2747,16 @@ const App: React.FC = () => {
 
             <button
               onClick={() => setActiveTab('cfe-applied')}
-              className="group flex items-center justify-between p-6 bg-white border-2 border-emerald-200 hover:border-emerald-400 rounded-sm shadow-sm hover:shadow-md transition-all text-left"
+              className="group flex items-center justify-between p-6 bg-white border-2 border-emerald-200 hover:border-emerald-400 rounded-lg shadow-sm hover:shadow-md transition-all text-left"
             >
               <div className="flex items-center gap-4">
-                <div className="w-1.5 h-12 bg-emerald-500 rounded-sm flex-shrink-0"></div>
+                <div className="w-1.5 h-12 bg-emerald-500 rounded flex-shrink-0"></div>
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-emerald-600 mb-1 flex items-center gap-2">
-                    <i className="fa-solid fa-paper-plane"></i> APPLICATIONS
+                  <p className="text-xs font-medium text-emerald-600 mb-1 flex items-center gap-2">
+                    <i className="fa-solid fa-paper-plane"></i> Applications
                   </p>
-                  <p className="text-xl font-display text-brand-black tracking-wide">APPLICATIONS SENT</p>
-                  <p className="text-[10px] text-brand-gray mt-1">{appliedItems.length} {appliedItems.length === 1 ? 'application' : 'applications'} submitted</p>
+                  <p className="text-xl font-bold text-brand-black">Applications sent</p>
+                  <p className="text-xs text-brand-gray mt-1">{appliedItems.length} {appliedItems.length === 1 ? 'application' : 'applications'} submitted</p>
                 </div>
               </div>
               <i className="fa-solid fa-arrow-right text-emerald-500 group-hover:translate-x-1 transition-transform"></i>
@@ -2765,8 +2765,8 @@ const App: React.FC = () => {
 
           {archivedBoardItems.length > 0 && (
             <section className="pt-16 border-t border-brand-black/5">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 mb-8 flex items-center gap-3">
-                <i className="fa-solid fa-box-archive"></i> ARCHIVED OPPORTUNITIES
+              <h3 className="text-xs font-medium text-brand-black/30 mb-8 flex items-center gap-3">
+                <i className="fa-solid fa-box-archive"></i> Archived opportunities
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {archivedBoardItems.map((item) => (
@@ -2783,12 +2783,12 @@ const App: React.FC = () => {
           <header className="mb-10">
             <button
               onClick={() => setActiveTab('cfe')}
-              className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-brand-gray hover:text-brand-rose transition-colors mb-6"
+              className="flex items-center gap-2 text-xs font-medium text-brand-gray hover:text-brand-rose transition-colors mb-6"
             >
-              <i className="fa-solid fa-arrow-left text-[8px]"></i> Bulletin Board
+              <i className="fa-solid fa-arrow-left text-[9px]"></i> Bulletin Board
             </button>
             <div className="flex items-center gap-4">
-              <div className="w-1.5 h-10 bg-amber-400 rounded-sm"></div>
+              <div className="w-1.5 h-10 bg-amber-400 rounded"></div>
               <div>
                 <h2 className="text-4xl font-display text-brand-black tracking-wide">ON THE SHORTLIST</h2>
                 <p className="text-brand-gray mt-1 text-sm font-medium">{consideringItems.length} {consideringItems.length === 1 ? 'opportunity' : 'opportunities'} under consideration</p>
@@ -2796,10 +2796,10 @@ const App: React.FC = () => {
             </div>
           </header>
           {consideringItems.length === 0 ? (
-            <div className="py-24 text-center border border-dashed border-amber-200 rounded-sm">
+            <div className="py-24 text-center border border-dashed border-amber-200 rounded-lg">
               <i className="fa-solid fa-bookmark text-amber-300 text-2xl mb-4 block"></i>
-              <p className="text-brand-gray text-[10px] font-bold uppercase tracking-widest">NO EVENTS ON YOUR SHORTLIST YET</p>
-              <p className="text-brand-gray/50 text-[10px] mt-2">Mark events as Considering from the Bulletin Board.</p>
+              <p className="text-brand-gray text-xs font-medium">No events on your shortlist yet</p>
+              <p className="text-brand-gray/50 text-xs mt-2">Mark events as Considering from the Bulletin Board.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -2816,12 +2816,12 @@ const App: React.FC = () => {
           <header className="mb-10">
             <button
               onClick={() => setActiveTab('cfe')}
-              className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-brand-gray hover:text-brand-rose transition-colors mb-6"
+              className="flex items-center gap-2 text-xs font-medium text-brand-gray hover:text-brand-rose transition-colors mb-6"
             >
-              <i className="fa-solid fa-arrow-left text-[8px]"></i> Bulletin Board
+              <i className="fa-solid fa-arrow-left text-[9px]"></i> Bulletin Board
             </button>
             <div className="flex items-center gap-4">
-              <div className="w-1.5 h-10 bg-emerald-500 rounded-sm"></div>
+              <div className="w-1.5 h-10 bg-emerald-500 rounded"></div>
               <div>
                 <h2 className="text-4xl font-display text-brand-black tracking-wide">APPLICATIONS SENT</h2>
                 <p className="text-brand-gray mt-1 text-sm font-medium">{appliedItems.length} {appliedItems.length === 1 ? 'application' : 'applications'} submitted</p>
@@ -2829,10 +2829,10 @@ const App: React.FC = () => {
             </div>
           </header>
           {appliedItems.length === 0 ? (
-            <div className="py-24 text-center border border-dashed border-emerald-200 rounded-sm">
+            <div className="py-24 text-center border border-dashed border-emerald-200 rounded-lg">
               <i className="fa-solid fa-paper-plane text-emerald-300 text-2xl mb-4 block"></i>
-              <p className="text-brand-gray text-[10px] font-bold uppercase tracking-widest">NO APPLICATIONS RECORDED YET</p>
-              <p className="text-brand-gray/50 text-[10px] mt-2">Mark events as Applied from the Bulletin Board.</p>
+              <p className="text-brand-gray text-xs font-medium">No applications recorded yet</p>
+              <p className="text-brand-gray/50 text-xs mt-2">Mark events as Applied from the Bulletin Board.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -2872,8 +2872,8 @@ const App: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {sessions.filter(s => s.status === 'archived').length === 0 ? (
-              <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-sm">
-                <p className="text-brand-gray text-[10px] font-bold uppercase tracking-widest">NO SESSIONS ARCHIVED YET</p>
+              <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-lg">
+                <p className="text-brand-gray text-xs font-medium">No sessions archived yet</p>
               </div>
             ) : (
               sessions.filter(s => s.status === 'archived').map(session => (
@@ -2899,20 +2899,20 @@ const App: React.FC = () => {
             <p className="text-brand-gray mt-2 text-sm font-medium">Equipment inventory informing strategy and planning.</p>
           </header>
 
-          <section className="bg-brand-black rounded-sm p-8 text-brand-white mb-12 shadow-xl border border-white/5">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-rose mb-6">REGISTER NEW EQUIPMENT</h3>
+          <section className="bg-brand-black rounded-lg p-8 text-brand-white mb-12 shadow-xl border border-white/5">
+            <h3 className="text-xs font-semibold text-brand-rose mb-6">Register new equipment</h3>
             <form onSubmit={addGearItem} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <input 
-                  name="gearName" 
-                  placeholder="NAME (E.G. SONY A9 III)" 
+                <input
+                  name="gearName"
+                  placeholder="Name (e.g. Sony A9 III)"
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
+                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
                 />
-                <select 
+                <select
                   name="category"
                   required
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                 >
                   <option value="Body" className="text-brand-black">Body</option>
                   <option value="Lens" className="text-brand-black">Lens</option>
@@ -2921,27 +2921,27 @@ const App: React.FC = () => {
                   <option value="Support" className="text-brand-black">Support</option>
                   <option value="Accessory" className="text-brand-black">Accessory</option>
                 </select>
-                <input 
-                  name="tags" 
-                  placeholder="TAGS (COMMA SEPARATED)" 
-                  className="bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
+                <input
+                  name="tags"
+                  placeholder="Tags (comma separated)"
+                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
                 />
-                <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-sm px-4 py-3">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">AVAILABLE</span>
+                <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-md px-4 py-3">
+                  <span className="text-xs font-medium text-white/50">Available</span>
                   <input name="available" type="checkbox" defaultChecked className="accent-brand-rose h-4 w-4" />
                 </div>
               </div>
               <div className="flex gap-4 items-start">
-                <textarea 
+                <textarea
                   name="details"
-                  placeholder="EQUIPMENT DETAILS / SPECS (E.G. 24-70MM 2.8, STABILIZED)"
-                  className="flex-1 bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[60px]"
+                  placeholder="Equipment details / specs (e.g. 24-70mm f/2.8, stabilized)"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[60px]"
                 />
-                <button 
+                <button
                   type="submit"
-                  className="bg-brand-blue hover:bg-[#7a93a0] text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-sm py-3 px-10 h-[60px] transition-all active:scale-95 shadow-lg"
+                  className="bg-brand-blue hover:bg-[#7a93a0] text-white text-sm font-semibold rounded-md py-3 px-10 h-[60px] transition-all active:scale-95 shadow-lg"
                 >
-                  ADD TO LOCKER
+                  Add to locker
                 </button>
               </div>
             </form>
@@ -2949,18 +2949,18 @@ const App: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {gear.length === 0 ? (
-              <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-sm">
-                <p className="text-brand-gray text-[10px] font-bold uppercase tracking-widest">GEAR LOCKER EMPTY</p>
+              <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-lg">
+                <p className="text-brand-gray text-xs font-medium">Gear locker empty</p>
               </div>
             ) : (
               gear.map(item => (
-                <div key={item.id} className={`bg-white rounded-sm border border-brand-black/5 p-6 shadow-sm transition-all duration-300 hover:shadow-md flex flex-col ${!item.available ? 'opacity-60' : ''}`}>
+                <div key={item.id} className={`bg-white rounded-lg border border-brand-black/5 p-6 shadow-sm transition-all duration-300 hover:shadow-md flex flex-col ${!item.available ? 'opacity-60' : ''}`}>
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <span className="text-[8px] font-bold uppercase tracking-[0.2em] bg-brand-black/5 px-2 py-0.5 rounded-sm text-brand-gray mb-2 inline-block">
+                      <span className="text-xs font-medium bg-brand-black/5 px-2 py-0.5 rounded text-brand-gray mb-2 inline-block">
                         {item.category}
                       </span>
-                      <h3 className="text-xl font-display text-brand-black tracking-wider leading-none uppercase">{item.name}</h3>
+                      <h3 className="text-base font-semibold text-brand-black leading-snug mt-1">{item.name}</h3>
                     </div>
                     <button 
                       onClick={() => deleteGearItem(item.id)}
@@ -2970,26 +2970,26 @@ const App: React.FC = () => {
                     </button>
                   </div>
                   {item.details && (
-                    <p className="text-[11px] text-brand-gray leading-relaxed mb-4 flex-1 italic">{item.details}</p>
+                    <p className="text-xs text-brand-gray leading-relaxed mb-4 flex-1 italic">{item.details}</p>
                   )}
                   {item.tags && item.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-6">
                       {item.tags.map(tag => (
-                        <span key={tag} className="text-[8px] font-bold uppercase tracking-widest text-brand-blue bg-brand-blue/5 px-1.5 py-0.5 rounded-sm">
+                        <span key={tag} className="text-xs font-medium text-brand-blue bg-brand-blue/5 px-1.5 py-0.5 rounded">
                           #{tag}
                         </span>
                       ))}
                     </div>
                   )}
                   <div className="pt-4 border-t border-brand-black/5 flex items-center justify-between">
-                    <span className={`text-[9px] font-bold uppercase tracking-widest ${item.available ? 'text-emerald-600' : 'text-brand-rose'}`}>
-                      {item.available ? 'AVAILABLE' : 'UNAVAILABLE'}
+                    <span className={`text-xs font-medium ${item.available ? 'text-emerald-600' : 'text-brand-rose'}`}>
+                      {item.available ? 'Available' : 'Unavailable'}
                     </span>
-                    <button 
+                    <button
                       onClick={() => toggleGearAvailability(item.id)}
-                      className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-blue hover:text-brand-black transition-colors"
+                      className="text-xs font-medium text-brand-blue hover:text-brand-black transition-colors"
                     >
-                      TOGGLE STATUS
+                      Toggle status
                     </button>
                   </div>
                 </div>

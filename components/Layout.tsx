@@ -106,7 +106,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
               <button
                 onClick={onSignOut}
                 title="Sign out"
-                className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.2em] text-brand-gray hover:text-brand-rose transition-all active:scale-95"
+                className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-md px-3 py-1.5 text-xs font-medium text-brand-gray hover:text-brand-rose transition-all active:scale-95"
               >
                 {user.photoURL ? (
                   <img src={user.photoURL} alt="avatar" className="w-4 h-4 rounded-full object-cover" />
@@ -121,10 +121,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
 
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-sm border border-white/10 text-[10px] font-bold uppercase tracking-[0.2em] transition-all active:scale-95 min-w-[140px] justify-between"
+              className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-md border border-white/10 text-sm font-medium transition-all active:scale-95 min-w-[140px] justify-between"
             >
-              <span className="font-display text-xs truncate max-w-[100px]">
-                {isMenuOpen ? 'CLOSE' : activeNavItem.label}
+              <span className="truncate max-w-[100px]">
+                {isMenuOpen ? 'Close' : activeNavItem.label}
               </span>
               <i className={`fa-solid ${isMenuOpen ? 'fa-xmark' : 'fa-chevron-down'} text-brand-rose`}></i>
             </button>
@@ -197,22 +197,22 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
         {/* Desktop-only System Status */}
         {!isFieldMode && (
           <div className="flex-shrink-0 p-10 space-y-4 border-t border-white/5">
-            <div className="bg-white/5 p-5 rounded-sm border border-white/5">
-              <p className="text-[10px] font-medium text-brand-gray/60 uppercase tracking-widest mb-4">System status</p>
+            <div className="bg-white/5 p-5 rounded-lg border border-white/5">
+              <p className="text-xs font-medium text-brand-gray/60 mb-4">System status</p>
               <div className="space-y-3">
                 {workflowSummary ? (
-                  <div className="text-[10px] font-bold text-white/40 leading-relaxed uppercase tracking-[0.2em]">
+                  <div className="text-xs text-white/50 leading-relaxed">
                     {workflowSummary}
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-3 text-[10px] font-bold text-white/50 uppercase tracking-widest">
+                    <div className="flex items-center gap-3 text-xs text-white/50">
                       <span className="w-1.5 h-1.5 rounded-full bg-brand-blue animate-pulse"></span>
-                      <span>ENGINE IDLE</span>
+                      <span>Engine idle</span>
                     </div>
-                    <div className="flex items-center gap-3 text-[10px] font-bold text-white/50 uppercase tracking-widest">
+                    <div className="flex items-center gap-3 text-xs text-white/50">
                       <span className="w-1.5 h-1.5 rounded-full bg-brand-rose"></span>
-                      <span>AWAITING INPUT</span>
+                      <span>Awaiting input</span>
                     </div>
                   </>
                 )}
@@ -221,7 +221,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
 
             {/* User avatar + sign-out (desktop) */}
             {user && onSignOut && (
-              <div className="flex items-center gap-3 bg-white/5 p-4 rounded-sm border border-white/5">
+              <div className="flex items-center gap-3 bg-white/5 p-4 rounded-lg border border-white/5">
                 {/* Avatar */}
                 {user.photoURL ? (
                   <img
@@ -272,30 +272,30 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
           <div className="max-w-md mx-auto flex items-center justify-between gap-3">
             <button
               onClick={() => setActiveTab('assignment')}
-              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-sm transition-all ${
+              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-all ${
                 activeTab === 'assignment' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
               }`}
             >
               <i className="fa-solid fa-bolt text-xs"></i>
-              <span className="text-[9px] font-bold uppercase tracking-tight">Assignment</span>
+              <span className="text-xs font-medium">Assignment</span>
             </button>
             <button
               onClick={() => setActiveTab('processing')}
-              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-sm transition-all ${
+              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-all ${
                 activeTab === 'processing' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
               }`}
             >
               <i className="fa-solid fa-wand-sparkles text-xs"></i>
-              <span className="text-[9px] font-bold uppercase tracking-tight">Guides</span>
+              <span className="text-xs font-medium">Guides</span>
             </button>
             <button
               onClick={() => setActiveTab('askpro')}
-              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-sm transition-all ${
+              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-all ${
                 activeTab === 'askpro' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
               }`}
             >
               <i className="fa-solid fa-comments text-xs"></i>
-              <span className="text-[9px] font-bold uppercase tracking-tight">Ask Pro</span>
+              <span className="text-xs font-medium">Ask Pro</span>
             </button>
           </div>
         </div>

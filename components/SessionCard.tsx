@@ -71,35 +71,35 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
 
   if (editing) {
     return (
-      <div className="bg-white rounded-sm shadow-sm border border-brand-blue/30 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-brand-blue/30 overflow-hidden">
         <div className="p-8 space-y-3">
           <p className="text-xs font-semibold text-brand-blue/70 mb-4">Edit session</p>
           <input
             type="text"
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
-            placeholder="SESSION TITLE (OPTIONAL)"
-            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20"
+            placeholder="Session title (optional)"
+            className="w-full border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20"
           />
           <div className="grid grid-cols-2 gap-3">
             <input
               type="date"
               value={editDate}
               onChange={e => setEditDate(e.target.value)}
-              className="border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
+              className="border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
             />
             <LocationAutocomplete
               name="editLocation"
-              placeholder="LOCATION"
+              placeholder="Location"
               initialValue={editLocation}
               onChange={setEditLocation}
-              className="border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20"
+              className="border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20"
             />
           </div>
           <select
             value={editGenre}
             onChange={e => setEditGenre(e.target.value as Genre)}
-            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
+            className="w-full border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
           >
             {GENRE_OPTIONS.map(g => (
               <option key={g} value={g}>{g}</option>
@@ -108,14 +108,14 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
           <textarea
             value={editNotes}
             onChange={e => setEditNotes(e.target.value)}
-            placeholder="NOTES / CREATIVE BRIEF"
-            className="w-full border border-brand-black/10 rounded-sm px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20 min-h-[70px]"
+            placeholder="Notes / creative brief"
+            className="w-full border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20 min-h-[70px]"
           />
           {(session.strategy || session.dayPlan) && (
             <div className="pt-2 space-y-2">
-              <p className="text-[10px] font-medium text-brand-black/30">Attached documents</p>
+              <p className="text-xs font-medium text-brand-black/30">Attached documents</p>
               {session.strategy && (
-                <div className="flex items-center justify-between px-3 py-2 bg-brand-blue/5 border border-brand-blue/20 rounded-sm">
+                <div className="flex items-center justify-between px-3 py-2 bg-brand-blue/5 border border-brand-blue/20 rounded-md">
                   <div className="flex items-center gap-2">
                     <i className="fa-solid fa-file-contract text-brand-blue text-[9px]"></i>
                     <span className="text-xs font-medium text-brand-blue">Assignment Strategy</span>
@@ -130,7 +130,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
                 </div>
               )}
               {session.dayPlan && (
-                <div className="flex items-center justify-between px-3 py-2 bg-brand-rose/5 border border-brand-rose/20 rounded-sm">
+                <div className="flex items-center justify-between px-3 py-2 bg-brand-rose/5 border border-brand-rose/20 rounded-md">
                   <div className="flex items-center gap-2">
                     <i className="fa-solid fa-stopwatch text-brand-rose text-[9px]"></i>
                     <span className="text-xs font-medium text-brand-rose">Assignment Day Plan</span>
@@ -150,15 +150,15 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
           <div className="flex gap-2 pt-2">
             <button
               onClick={handleSave}
-              className="flex-1 bg-brand-blue text-white text-xs font-bold uppercase tracking-[0.15em] py-3 rounded-sm hover:bg-[#7a93a0] transition-all"
+              className="flex-1 bg-brand-blue text-white text-sm font-semibold py-3 rounded-md hover:bg-[#7a93a0] transition-all"
             >
-              SAVE
+              Save
             </button>
             <button
               onClick={handleCancel}
-              className="flex-1 border border-brand-black/10 text-brand-gray text-xs font-bold uppercase tracking-[0.15em] py-3 rounded-sm hover:border-brand-black/20 transition-all"
+              className="flex-1 border border-brand-black/10 text-brand-gray text-sm font-medium py-3 rounded-md hover:border-brand-black/20 transition-all"
             >
-              CANCEL
+              Cancel
             </button>
           </div>
         </div>
@@ -167,18 +167,18 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
   }
 
   return (
-    <div className={`bg-white rounded-sm shadow-sm border border-brand-black/5 overflow-hidden hover:shadow-md transition-all duration-500 ${isArchived ? 'opacity-80 grayscale-[0.3]' : ''}`}>
+    <div className={`bg-white rounded-lg shadow-sm border border-brand-black/5 overflow-hidden hover:shadow-md transition-all duration-500 ${isArchived ? 'opacity-80 grayscale-[0.3]' : ''}`}>
       <div className="p-8">
         <div className="flex justify-between items-start mb-6">
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <span className={`text-xs font-medium uppercase tracking-wide px-2.5 py-1 rounded-sm ${getStatusColor(session.status)}`}>
+              <span className={`text-xs font-medium px-2.5 py-1 rounded ${getStatusColor(session.status)}`}>
                 {session.status}
               </span>
               {hasJournal && (
                 <button
                   onClick={onGoToJournal}
-                  className="bg-brand-black text-white px-2.5 py-1 rounded-sm text-xs font-medium flex items-center gap-1.5 hover:bg-brand-blue transition-colors"
+                  className="bg-brand-black text-white px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 hover:bg-brand-blue transition-colors"
                   title="Has journal entry"
                 >
                   <i className="fa-solid fa-book-open"></i> Journal
@@ -223,7 +223,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
 
         <div className="flex flex-wrap gap-2 mb-6">
           {session.genre.map((g) => (
-            <div key={g} className="flex items-center gap-2 px-3 py-2 bg-brand-white border border-brand-black/5 rounded-sm text-xs font-bold uppercase tracking-wide text-brand-gray shadow-sm">
+            <div key={g} className="flex items-center gap-2 px-3 py-2 bg-brand-white border border-brand-black/5 rounded-md text-xs font-medium text-brand-gray shadow-sm">
               <span className="text-brand-blue text-[11px]">{GENRE_ICONS[g]}</span>
               {g}
             </div>
@@ -231,14 +231,14 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
         </div>
 
         {session.notes && (
-          <div className="mb-8 p-4 bg-brand-white border-l-2 border-brand-rose rounded-r-sm">
-            <p className="text-xs font-bold text-brand-gray/60 uppercase tracking-widest mb-2">NOTES / BRIEF</p>
+          <div className="mb-8 p-4 bg-brand-white border-l-2 border-brand-rose rounded-r-md">
+            <p className="text-xs font-medium text-brand-gray/60 mb-2">Notes</p>
             <p className="text-xs text-brand-black leading-relaxed italic">{session.notes}</p>
           </div>
         )}
 
         {session.strategy && (
-          <div className="mb-4 border border-brand-blue/20 rounded-sm overflow-hidden">
+          <div className="mb-4 border border-brand-blue/20 rounded-lg overflow-hidden">
             <button
               onClick={() => setStrategyExpanded(v => !v)}
               className="w-full flex items-center justify-between px-4 py-3 bg-brand-blue/5 hover:bg-brand-blue/10 transition-colors"
@@ -260,7 +260,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
         )}
 
         {session.dayPlan && (
-          <div className="mb-8 border border-brand-rose/20 rounded-sm overflow-hidden">
+          <div className="mb-8 border border-brand-rose/20 rounded-lg overflow-hidden">
             <button
               onClick={() => setDayPlanExpanded(v => !v)}
               className="w-full flex items-center justify-between px-4 py-3 bg-brand-rose/5 hover:bg-brand-rose/10 transition-colors"
@@ -289,7 +289,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
                 <button
                   key={s}
                   onClick={() => onUpdateStatus(session.id, s)}
-                  className={`text-xs font-bold uppercase tracking-wide px-3 py-2 rounded-sm transition-all border ${
+                  className={`text-xs font-medium px-3 py-2 rounded-md transition-all border ${
                     session.status === s
                       ? 'bg-brand-blue text-white border-brand-blue shadow-md'
                       : 'bg-white text-brand-gray border-brand-black/5 hover:border-brand-blue/30 hover:text-brand-blue'

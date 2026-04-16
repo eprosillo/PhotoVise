@@ -79,17 +79,17 @@ const MarkdownBlock: React.FC<{ text: string }> = ({ text }) => (
     {text.split('\n').map((line, i) => {
       if (!line.trim()) return <div key={i} className="h-2" />;
       if (/^###\s/.test(line))
-        return <p key={i} className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-gray mt-4 mb-1">{line.replace(/^###\s/, '')}</p>;
+        return <p key={i} className="text-xs font-bold tracking-wide text-brand-gray mt-4 mb-1">{line.replace(/^###\s/, '')}</p>;
       if (/^##\s/.test(line))
-        return <p key={i} className="text-[11px] font-bold uppercase tracking-[0.3em] text-brand-black mt-5 mb-1">{line.replace(/^##\s/, '')}</p>;
+        return <p key={i} className="text-sm font-bold tracking-wide text-brand-black mt-5 mb-1">{line.replace(/^##\s/, '')}</p>;
       if (/^#\s/.test(line))
-        return <p key={i} className="text-sm font-bold uppercase tracking-[0.3em] text-brand-black mt-5 mb-2">{line.replace(/^#\s/, '')}</p>;
+        return <p key={i} className="text-base font-bold text-brand-black mt-5 mb-2">{line.replace(/^#\s/, '')}</p>;
       const boldParsed = line.split(/\*\*([^*]+)\*\*/g).map((part, j) =>
         j % 2 === 1 ? <strong key={j} className="font-bold text-brand-black">{part}</strong> : part
       );
       if (/^[-•]\s/.test(line))
-        return <p key={i} className="text-[11px] text-brand-gray leading-relaxed flex gap-2"><span className="text-brand-rose flex-shrink-0">—</span><span>{boldParsed}</span></p>;
-      return <p key={i} className="text-[11px] text-brand-gray leading-relaxed">{boldParsed}</p>;
+        return <p key={i} className="text-sm text-brand-gray leading-relaxed flex gap-2"><span className="text-brand-rose flex-shrink-0">—</span><span>{boldParsed}</span></p>;
+      return <p key={i} className="text-sm text-brand-gray leading-relaxed">{boldParsed}</p>;
     })}
   </div>
 );
@@ -102,7 +102,7 @@ const Highlight: React.FC<{ text: string; query: string }> = ({ text, query }) =
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === query.toLowerCase()
-          ? <mark key={i} className="bg-brand-rose/20 text-brand-rose rounded-sm px-0.5">{part}</mark>
+          ? <mark key={i} className="bg-brand-rose/20 text-brand-rose rounded px-0.5">{part}</mark>
           : part
       )}
     </>
@@ -279,25 +279,25 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <button onClick={() => setShowJournal(p => !p)}
-            className={`flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest px-3 py-2 rounded-sm border transition-all ${showJournal ? 'bg-brand-black text-white border-brand-black' : 'border-brand-black/10 text-brand-gray hover:border-brand-black/30'}`}>
-            <i className="fa-solid fa-book-open text-[9px]"></i> Journal
+            className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-md border transition-all ${showJournal ? 'bg-brand-black text-white border-brand-black' : 'border-brand-black/10 text-brand-gray hover:border-brand-black/30'}`}>
+            <i className="fa-solid fa-book-open text-xs"></i> Journal
           </button>
-          <button onClick={goToday} className="text-[9px] font-bold uppercase tracking-widest px-4 py-2 border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">Today</button>
-          <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">
+          <button onClick={goToday} className="text-xs font-medium px-4 py-2 border border-brand-black/10 rounded-md hover:border-brand-rose hover:text-brand-rose transition-all">Today</button>
+          <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-md hover:border-brand-rose hover:text-brand-rose transition-all">
             <i className="fa-solid fa-chevron-left text-[10px]"></i>
           </button>
-          <span className="text-[13px] font-display tracking-widest text-brand-black min-w-[160px] text-center uppercase">
+          <span className="text-sm font-semibold text-brand-black min-w-[160px] text-center">
             {MONTHS[current.getMonth()]} {current.getFullYear()}
           </span>
-          <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">
+          <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-md hover:border-brand-rose hover:text-brand-rose transition-all">
             <i className="fa-solid fa-chevron-right text-[10px]"></i>
           </button>
         </div>
       </header>
 
-      <div className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden">
+      <div className="bg-white border border-brand-black/5 rounded-lg shadow-sm overflow-hidden">
         <div className="grid grid-cols-7 border-b border-brand-black/5">
-          {GRID_DAYS.map(d => <div key={d} className="py-3 text-center text-[9px] font-bold uppercase tracking-[0.2em] text-brand-gray">{d}</div>)}
+          {GRID_DAYS.map(d => <div key={d} className="py-3 text-center text-xs font-semibold text-brand-gray">{d}</div>)}
         </div>
         <div className="grid grid-cols-7">
           {cells.map(({ date, inMonth }) => {
@@ -317,13 +317,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 </span>
                 <div className="space-y-1 hidden md:block">
                   {daySessions.slice(0, 2).map(s => (
-                    <div key={s.id} className={`text-[8px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded-sm border truncate leading-tight ${STATUS_CHIP[s.status]}`}>
+                    <div key={s.id} className={`text-[9px] font-medium px-1.5 py-0.5 rounded border truncate leading-tight ${STATUS_CHIP[s.status]}`}>
                       {s.title || s.location || 'Untitled'}
                     </div>
                   ))}
                   {dayJournal.slice(0, 2).map(e => (
-                    <div key={e.id} className="text-[8px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded-sm border truncate leading-tight bg-purple-50 text-purple-700 border-purple-200">
-                      <i className="fa-solid fa-book-open mr-1 text-[7px]"></i>{e.title || 'Journal'}
+                    <div key={e.id} className="text-[9px] font-medium px-1.5 py-0.5 rounded border truncate leading-tight bg-brand-rose/5 text-brand-rose/80 border-brand-rose/20">
+                      <i className="fa-solid fa-book-open mr-1 text-[8px]"></i>{e.title || 'Journal'}
                     </div>
                   ))}
                   {(daySessions.length + dayJournal.length) > 4 && (
@@ -333,7 +333,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 {(daySessions.length > 0 || dayJournal.length > 0) && (
                   <div className="flex gap-0.5 flex-wrap mt-1 md:hidden">
                     {daySessions.slice(0, 3).map(s => <span key={s.id} className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status]}`}></span>)}
-                    {dayJournal.slice(0, 2).map(e => <span key={e.id} className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>)}
+                    {dayJournal.slice(0, 2).map(e => <span key={e.id} className="w-1.5 h-1.5 rounded-full bg-brand-rose/50"></span>)}
                   </div>
                 )}
               </button>
@@ -346,19 +346,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         {(Object.keys(STATUS_DOT) as SessionStatus[]).filter(s => s !== 'archived').map(s => (
           <div key={s} className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${STATUS_DOT[s]}`}></span>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-brand-gray">{s}</span>
+            <span className="text-xs text-brand-gray/70">{s}</span>
           </div>
         ))}
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-purple-400"></span>
-          <span className="text-[9px] font-bold uppercase tracking-widest text-brand-gray">Journal</span>
+          <span className="w-2 h-2 rounded-full bg-brand-rose/50"></span>
+          <span className="text-xs text-brand-gray/70">Journal</span>
         </div>
       </div>
 
       {selectedDate && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/40">
+            <h3 className="text-xs font-medium text-brand-black/50">
               {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
             </h3>
             <button onClick={() => setSelectedDate(null)} className="text-brand-gray/40 hover:text-brand-rose transition-colors">
@@ -366,27 +366,27 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             </button>
           </div>
           {selectedSessions.length === 0 && selectedJournal.length === 0 && (
-            <div className="py-12 text-center border border-dashed border-brand-black/10 rounded-sm">
-              <p className="text-brand-gray/40 text-[10px] font-bold uppercase tracking-widest">Nothing logged on this day</p>
+            <div className="py-12 text-center border border-dashed border-brand-black/10 rounded-lg">
+              <p className="text-sm text-brand-gray/40">Nothing logged on this day</p>
             </div>
           )}
           {selectedSessions.length > 0 && (
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-brand-black/30 mb-3">Sessions</p>
+              <p className="text-xs font-medium text-brand-black/40 mb-3">Sessions</p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {selectedSessions.map(s => (
-                  <div key={s.id} className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all">
+                  <div key={s.id} className="bg-white border border-brand-black/5 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
                     <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
-                      <p className="font-display text-lg text-white leading-none tracking-widest truncate">{(s.title || s.location || 'Untitled').toUpperCase()}</p>
+                      <p className="text-base font-semibold text-white leading-snug truncate">{s.title || s.location || 'Untitled'}</p>
                       <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${STATUS_DOT[s.status]}`}></span>
                     </div>
                     <div className="px-5 py-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className={`text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
-                        {s.genre && s.genre.length > 0 && <span className="text-[8px] text-brand-gray uppercase tracking-widest font-bold">{s.genre.join(' · ')}</span>}
+                        <span className={`text-xs font-medium px-2 py-1 rounded border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
+                        {s.genre && s.genre.length > 0 && <span className="text-xs text-brand-gray/70">{s.genre.join(' · ')}</span>}
                       </div>
-                      {s.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-2">{s.notes}</p>}
-                      <button onClick={() => onGoToSession(s.id)} className="w-full text-xs font-bold uppercase tracking-wide py-2.5 bg-brand-black/5 hover:bg-brand-blue hover:text-white text-brand-black rounded-sm transition-all">
+                      {s.notes && <p className="text-xs text-brand-gray leading-relaxed line-clamp-2">{s.notes}</p>}
+                      <button onClick={() => onGoToSession(s.id)} className="w-full text-xs font-medium py-2.5 bg-brand-black/5 hover:bg-brand-blue hover:text-white text-brand-black rounded-md transition-all">
                         Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                       </button>
                     </div>
@@ -397,22 +397,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           )}
           {selectedJournal.length > 0 && (
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-brand-black/30 mb-3">Journal Entries</p>
+              <p className="text-xs font-medium text-brand-black/40 mb-3">Journal Entries</p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {selectedJournal.map(e => (
-                  <div key={e.id} className="bg-white border border-purple-100 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all">
+                  <div key={e.id} className="bg-white border border-brand-rose/10 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
                     <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
-                      <p className="font-display text-lg text-white leading-none tracking-widest truncate">{(e.title || 'Journal Entry').toUpperCase()}</p>
-                      <i className="fa-solid fa-book-open text-purple-400/60 flex-shrink-0 ml-2"></i>
+                      <p className="text-base font-semibold text-white leading-snug truncate">{e.title || 'Journal Entry'}</p>
+                      <i className="fa-solid fa-book-open text-brand-rose/50 flex-shrink-0 ml-2"></i>
                     </div>
                     <div className="px-5 py-4 space-y-3">
-                      {e.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-3 italic">{e.notes}</p>}
+                      {e.notes && <p className="text-xs text-brand-gray leading-relaxed line-clamp-3 italic">{e.notes}</p>}
                       {e.tags && e.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
-                          {e.tags.map(t => <span key={t} className="text-[8px] px-2 py-0.5 bg-purple-50 text-purple-600 border border-purple-100 rounded-sm font-bold uppercase tracking-widest">{t}</span>)}
+                          {e.tags.map(t => <span key={t} className="text-xs px-2 py-0.5 bg-brand-rose/5 text-brand-rose/70 border border-brand-rose/15 rounded font-medium">{t}</span>)}
                         </div>
                       )}
-                      <button onClick={onGoToJournal} className="w-full text-xs font-bold uppercase tracking-wide py-2.5 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 rounded-sm transition-all">
+                      <button onClick={onGoToJournal} className="w-full text-xs font-medium py-2.5 bg-brand-rose/5 hover:bg-brand-blue hover:text-white text-brand-rose/80 rounded-md transition-all">
                         Open Journal <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                       </button>
                     </div>
@@ -437,7 +437,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         <i className="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-brand-gray/40 text-sm"></i>
         <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
           placeholder="Search by title, location, genre, notes, tags, strategy..." autoFocus
-          className="w-full pl-12 pr-5 py-4 bg-white border border-brand-black/10 rounded-sm focus:ring-2 focus:ring-brand-blue outline-none text-sm text-brand-black placeholder:text-brand-gray/40 shadow-sm" />
+          className="w-full pl-12 pr-5 py-4 bg-white border border-brand-black/10 rounded-md focus:ring-2 focus:ring-brand-blue outline-none text-sm text-brand-black placeholder:text-brand-gray/40 shadow-sm" />
         {searchQuery && (
           <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-gray/40 hover:text-brand-rose transition-colors">
             <i className="fa-solid fa-xmark"></i>
@@ -445,39 +445,39 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         )}
       </div>
       {!searchQuery.trim() ? (
-        <div className="py-20 text-center border border-dashed border-brand-black/10 rounded-sm">
+        <div className="py-20 text-center border border-dashed border-brand-black/10 rounded-lg">
           <i className="fa-solid fa-magnifying-glass text-brand-gray/20 text-3xl mb-4 block"></i>
           <p className="text-sm text-brand-gray/50 font-normal">Type to search your sessions and journal</p>
         </div>
       ) : searchResults.sessions.length === 0 && searchResults.journal.length === 0 ? (
-        <div className="py-20 text-center border border-dashed border-brand-black/10 rounded-sm">
+        <div className="py-20 text-center border border-dashed border-brand-black/10 rounded-lg">
           <p className="text-sm text-brand-gray/50 font-normal">No results for "{searchQuery}"</p>
         </div>
       ) : (
         <div className="space-y-10">
           {searchResults.sessions.length > 0 && (
             <section>
-              <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-black/30 mb-4 flex items-center gap-2">
+              <p className="text-xs font-medium text-brand-black/40 mb-4 flex items-center gap-2">
                 <i className="fa-solid fa-camera"></i> Sessions
-                <span className="bg-brand-blue/10 text-brand-blue px-2 py-0.5 rounded-sm">{searchResults.sessions.length}</span>
+                <span className="bg-brand-blue/10 text-brand-blue px-2 py-0.5 rounded">{searchResults.sessions.length}</span>
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {searchResults.sessions.map(s => (
-                  <div key={s.id} className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all">
+                  <div key={s.id} className="bg-white border border-brand-black/5 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
                     <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
                       <div>
-                        <p className="font-display text-lg text-white leading-none tracking-widest"><Highlight text={(s.title || s.location || 'Untitled').toUpperCase()} query={searchQuery} /></p>
+                        <p className="text-base font-semibold text-white leading-snug"><Highlight text={s.title || s.location || 'Untitled'} query={searchQuery} /></p>
                         <p className="text-xs text-brand-gray/60 mt-1">{s.date}</p>
                       </div>
                       <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${STATUS_DOT[s.status]}`}></span>
                     </div>
                     <div className="px-5 py-4 space-y-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
-                        {s.genre?.map(g => <span key={g} className="text-[8px] text-brand-gray font-bold uppercase tracking-widest">{g}</span>)}
+                        <span className={`text-xs font-medium px-2 py-1 rounded border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
+                        {s.genre?.map(g => <span key={g} className="text-xs text-brand-gray/70">{g}</span>)}
                       </div>
-                      {s.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-2"><Highlight text={s.notes} query={searchQuery} /></p>}
-                      <button onClick={() => onGoToSession(s.id)} className="w-full text-xs font-bold uppercase tracking-wide py-2.5 bg-brand-black/5 hover:bg-brand-blue hover:text-white text-brand-black rounded-sm transition-all mt-2">
+                      {s.notes && <p className="text-xs text-brand-gray leading-relaxed line-clamp-2"><Highlight text={s.notes} query={searchQuery} /></p>}
+                      <button onClick={() => onGoToSession(s.id)} className="w-full text-xs font-medium py-2.5 bg-brand-black/5 hover:bg-brand-blue hover:text-white text-brand-black rounded-md transition-all mt-2">
                         Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                       </button>
                     </div>
@@ -488,30 +488,30 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           )}
           {searchResults.journal.length > 0 && (
             <section>
-              <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-black/30 mb-4 flex items-center gap-2">
+              <p className="text-xs font-medium text-brand-black/40 mb-4 flex items-center gap-2">
                 <i className="fa-solid fa-book-open"></i> Journal Entries
-                <span className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded-sm">{searchResults.journal.length}</span>
+                <span className="bg-brand-rose/10 text-brand-rose/70 px-2 py-0.5 rounded">{searchResults.journal.length}</span>
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {searchResults.journal.map(e => (
-                  <div key={e.id} className="bg-white border border-purple-100 rounded-sm shadow-sm overflow-hidden hover:shadow-md transition-all">
+                  <div key={e.id} className="bg-white border border-brand-rose/10 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
                     <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
                       <div>
-                        <p className="font-display text-lg text-white leading-none tracking-widest"><Highlight text={(e.title || 'Journal Entry').toUpperCase()} query={searchQuery} /></p>
+                        <p className="text-base font-semibold text-white leading-snug"><Highlight text={e.title || 'Journal Entry'} query={searchQuery} /></p>
                         <p className="text-xs text-brand-gray/60 mt-1">{e.date}</p>
                       </div>
-                      <i className="fa-solid fa-book-open text-purple-400/60 ml-2"></i>
+                      <i className="fa-solid fa-book-open text-brand-rose/50 ml-2"></i>
                     </div>
                     <div className="px-5 py-4 space-y-2">
-                      {e.notes && <p className="text-[10px] text-brand-gray leading-relaxed line-clamp-3 italic"><Highlight text={e.notes} query={searchQuery} /></p>}
+                      {e.notes && <p className="text-xs text-brand-gray leading-relaxed line-clamp-3 italic"><Highlight text={e.notes} query={searchQuery} /></p>}
                       {e.tags && e.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {e.tags.map(t => (
-                            <span key={t} className={`text-[8px] px-2 py-0.5 rounded-sm font-bold uppercase tracking-widest border ${t.toLowerCase().includes(searchQuery.toLowerCase()) ? 'bg-brand-rose/10 text-brand-rose border-brand-rose/20' : 'bg-purple-50 text-purple-600 border-purple-100'}`}>{t}</span>
+                            <span key={t} className={`text-xs px-2 py-0.5 rounded font-medium border ${t.toLowerCase().includes(searchQuery.toLowerCase()) ? 'bg-brand-rose/10 text-brand-rose border-brand-rose/20' : 'bg-brand-rose/5 text-brand-rose/70 border-brand-rose/15'}`}>{t}</span>
                           ))}
                         </div>
                       )}
-                      <button onClick={onGoToJournal} className="w-full text-xs font-bold uppercase tracking-wide py-2.5 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 rounded-sm transition-all mt-2">
+                      <button onClick={onGoToJournal} className="w-full text-xs font-medium py-2.5 bg-brand-rose/5 hover:bg-brand-blue hover:text-white text-brand-rose/80 rounded-md transition-all mt-2">
                         Open Journal <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                       </button>
                     </div>
@@ -534,14 +534,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       </header>
 
       {activeSessions.length === 0 ? (
-        <div className="py-24 text-center border border-dashed border-brand-black/10 rounded-sm">
+        <div className="py-24 text-center border border-dashed border-brand-black/10 rounded-lg">
           <i className="fa-solid fa-calendar-days text-brand-gray/20 text-3xl mb-4 block"></i>
           <p className="text-sm text-brand-gray/50 font-normal">No active sessions to schedule</p>
         </div>
       ) : (
         <>
           {/* Step 1 — Sessions */}
-          <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
+          <section className="bg-white border border-brand-black/5 rounded-lg shadow-sm p-8 space-y-6">
             <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-brand-black/50 border-b border-brand-black/5 pb-4">
               <span className="text-brand-rose mr-2">01</span> SELECT SESSIONS TO SCHEDULE
             </h3>
@@ -550,16 +550,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 const selected = plannerSessions.has(s.id);
                 return (
                   <button key={s.id} onClick={() => togglePlannerSession(s.id)}
-                    className={`flex items-center gap-4 p-4 rounded-sm border text-left transition-all ${selected ? 'border-brand-blue bg-brand-blue/5' : 'border-brand-black/5 hover:border-brand-black/15'}`}>
-                    <div className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected ? 'bg-brand-blue border-brand-blue' : 'border-brand-gray/30'}`}>
+                    className={`flex items-center gap-4 p-4 rounded-md border text-left transition-all ${selected ? 'border-brand-blue bg-brand-blue/5' : 'border-brand-black/5 hover:border-brand-black/15'}`}>
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected ? 'bg-brand-blue border-brand-blue' : 'border-brand-gray/30'}`}>
                       {selected && <i className="fa-solid fa-check text-white text-[8px]"></i>}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-brand-black truncate">{s.title || s.location || 'Untitled'}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-sm border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
                         <span className="text-xs text-brand-gray/60">{s.date}</span>
-                        {s.strategy && <span className="text-[8px] text-brand-blue font-bold uppercase tracking-widest"><i className="fa-solid fa-bolt mr-0.5"></i>Strategy</span>}
+                        {s.strategy && <span className="text-xs text-brand-blue font-medium"><i className="fa-solid fa-bolt mr-0.5"></i>Strategy</span>}
                       </div>
                     </div>
                   </button>
@@ -569,45 +569,45 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </section>
 
           {/* Step 2 — Week of */}
-          <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
+          <section className="bg-white border border-brand-black/5 rounded-lg shadow-sm p-8 space-y-6">
             <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-brand-black/50 border-b border-brand-black/5 pb-4">
               <span className="text-brand-rose mr-2">02</span> CHOOSE WEEK
             </h3>
             <div className="flex items-center gap-3 flex-wrap">
-              <button onClick={prevWeek} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">
+              <button onClick={prevWeek} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-md hover:border-brand-rose hover:text-brand-rose transition-all">
                 <i className="fa-solid fa-chevron-left text-[10px]"></i>
               </button>
-              <div className="flex items-center gap-3 bg-brand-black/[0.03] px-5 py-2.5 rounded-sm border border-brand-black/5">
+              <div className="flex items-center gap-3 bg-brand-black/[0.03] px-5 py-2.5 rounded-md border border-brand-black/5">
                 <i className="fa-solid fa-calendar text-brand-rose text-[10px]"></i>
-                <span className="text-[11px] font-bold uppercase tracking-widest text-brand-black">Week of {currentWeekLabel}</span>
+                <span className="text-sm font-semibold text-brand-black">Week of {currentWeekLabel}</span>
               </div>
-              <button onClick={nextWeek} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-sm hover:border-brand-rose hover:text-brand-rose transition-all">
+              <button onClick={nextWeek} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-md hover:border-brand-rose hover:text-brand-rose transition-all">
                 <i className="fa-solid fa-chevron-right text-[10px]"></i>
               </button>
               {/* Jump to date */}
               <div className="flex items-center gap-2">
-                <span className="text-[9px] text-brand-gray/50 uppercase tracking-widest font-bold">Jump to:</span>
+                <span className="text-xs text-brand-gray/50">Jump to:</span>
                 <input
                   type="date"
                   onChange={e => { if (e.target.value) setWeekMonday(getMondayOf(new Date(e.target.value + 'T12:00:00'))); }}
-                  className="text-[10px] font-bold border border-brand-black/10 rounded-sm px-3 py-2 focus:ring-1 focus:ring-brand-blue outline-none bg-white"
+                  className="text-xs font-medium border border-brand-black/10 rounded-md px-3 py-2 focus:ring-1 focus:ring-brand-blue outline-none bg-white"
                 />
               </div>
             </div>
             {/* Mini week preview */}
             <div className="grid grid-cols-7 gap-1">
               {currentWeekDates.map((d, i) => (
-                <div key={i} className={`text-center p-2 rounded-sm border ${toYMD(d) === todayStr ? 'border-brand-rose bg-brand-rose/5' : 'border-brand-black/5 bg-brand-black/[0.01]'}`}>
-                  <p className="text-[8px] font-bold uppercase tracking-widest text-brand-gray">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</p>
-                  <p className={`text-[11px] font-bold mt-0.5 ${toYMD(d) === todayStr ? 'text-brand-rose' : 'text-brand-black'}`}>{d.getDate()}</p>
-                  <p className="text-[9px] text-brand-gray/50 uppercase">{SHORT_MONTHS[d.getMonth()]}</p>
+                <div key={i} className={`text-center p-2 rounded-md border ${toYMD(d) === todayStr ? 'border-brand-rose bg-brand-rose/5' : 'border-brand-black/5 bg-brand-black/[0.01]'}`}>
+                  <p className="text-xs font-semibold text-brand-gray">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</p>
+                  <p className={`text-xs font-bold mt-0.5 ${toYMD(d) === todayStr ? 'text-brand-rose' : 'text-brand-black'}`}>{d.getDate()}</p>
+                  <p className="text-[9px] text-brand-gray/50">{SHORT_MONTHS[d.getMonth()]}</p>
                 </div>
               ))}
             </div>
           </section>
 
           {/* Step 3 — Availability */}
-          <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-6">
+          <section className="bg-white border border-brand-black/5 rounded-lg shadow-sm p-8 space-y-6">
             <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-brand-black/50 border-b border-brand-black/5 pb-4">
               <span className="text-brand-rose mr-2">03</span> SET YOUR AVAILABILITY
             </h3>
@@ -616,15 +616,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 const { enabled, times } = availability[day];
                 const realDate = currentWeekDates[i];
                 return (
-                  <div key={day} className={`rounded-sm border transition-all ${enabled ? 'border-brand-black/10 bg-brand-black/[0.015]' : 'border-brand-black/5'}`}>
+                  <div key={day} className={`rounded-md border transition-all ${enabled ? 'border-brand-black/10 bg-brand-black/[0.015]' : 'border-brand-black/5'}`}>
                     <div className="flex items-center gap-4 px-5 py-3 flex-wrap">
                       <button onClick={() => toggleDay(day)}
-                        className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all ${enabled ? 'bg-brand-blue border-brand-blue' : 'border-brand-gray/30'}`}>
+                        className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${enabled ? 'bg-brand-blue border-brand-blue' : 'border-brand-gray/30'}`}>
                         {enabled && <i className="fa-solid fa-check text-white text-[8px]"></i>}
                       </button>
                       <div className="flex items-baseline gap-2 w-44 flex-shrink-0">
-                        <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${enabled ? 'text-brand-black' : 'text-brand-gray/40'}`}>{day.slice(0,3)}</span>
-                        <span className={`text-[9px] ${toYMD(realDate) === todayStr ? 'text-brand-rose font-bold' : 'text-brand-gray/50'}`}>
+                        <span className={`text-xs font-semibold ${enabled ? 'text-brand-black' : 'text-brand-gray/40'}`}>{day.slice(0,3)}</span>
+                        <span className={`text-xs ${toYMD(realDate) === todayStr ? 'text-brand-rose font-semibold' : 'text-brand-gray/50'}`}>
                           {shortDate(realDate)}{toYMD(realDate) === todayStr ? ' · Today' : ''}
                         </span>
                       </div>
@@ -632,7 +632,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         <div className="flex gap-2 flex-wrap">
                           {TIME_SLOTS.map(slot => (
                             <button key={slot} onClick={() => toggleTime(day, slot)}
-                              className={`text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm border transition-all ${times.has(slot) ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}>
+                              className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${times.has(slot) ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}>
                               {slot === 'Morning' ? '🌅' : slot === 'Afternoon' ? '☀️' : '🌙'} {slot}
                             </button>
                           ))}
@@ -649,30 +649,30 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </section>
 
           {/* Step 4 — Limitations */}
-          <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm p-8 space-y-4">
+          <section className="bg-white border border-brand-black/5 rounded-lg shadow-sm p-8 space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-brand-black/50 border-b border-brand-black/5 pb-4">
               <span className="text-brand-rose mr-2">04</span> ADDITIONAL CONSTRAINTS (OPTIONAL)
             </h3>
             <textarea value={limitations} onChange={e => setLimitations(e.target.value)}
               placeholder="e.g. I have a job interview on Tuesday afternoon, golden hour only for outdoor shoots, avoid back-to-back editing days..."
-              className="w-full h-28 p-4 bg-brand-white border border-brand-black/5 rounded-sm focus:ring-1 focus:ring-brand-blue outline-none text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40 resize-none" />
+              className="w-full h-28 p-4 bg-brand-white border border-brand-black/5 rounded-md focus:ring-1 focus:ring-brand-blue outline-none text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40 resize-none" />
           </section>
 
           {/* Generate button */}
           <div className="flex justify-end">
             <button disabled={!canGenerate || isGenerating} onClick={handleGenerate}
-              className={`flex items-center gap-3 px-10 py-4 rounded-sm font-bold uppercase tracking-[0.2em] text-[10px] transition-all ${!canGenerate || isGenerating ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed' : 'bg-brand-blue text-white hover:bg-[#7a93a0] hover:shadow-md active:scale-95 shadow-sm'}`}>
-              {isGenerating ? <><i className="fa-solid fa-circle-notch animate-spin"></i> BUILDING YOUR SCHEDULE...</> : <><i className="fa-solid fa-calendar-check"></i> GENERATE WEEK SCHEDULE</>}
+              className={`flex items-center gap-3 px-10 py-4 rounded-md text-sm font-semibold transition-all ${!canGenerate || isGenerating ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed' : 'bg-brand-blue text-white hover:bg-[#7a93a0] hover:shadow-md active:scale-95 shadow-sm'}`}>
+              {isGenerating ? <><i className="fa-solid fa-circle-notch animate-spin"></i> Building schedule...</> : <><i className="fa-solid fa-calendar-check"></i> Generate week schedule</>}
             </button>
           </div>
 
           {/* Result */}
           {(planResult || isGenerating) && (
-            <section className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden animate-in fade-in duration-500">
+            <section className="bg-white border border-brand-black/5 rounded-lg shadow-sm overflow-hidden animate-in fade-in duration-500">
               <div className="bg-brand-black px-8 py-5 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.25em] text-brand-rose mb-1">PHOTOVISE SCHEDULING AI</p>
-                  <p className="font-display text-xl text-white tracking-widest">WEEK OF {currentWeekLabel.toUpperCase()}</p>
+                  <p className="text-base font-semibold text-white">Week of {currentWeekLabel}</p>
                 </div>
                 <i className="fa-solid fa-calendar-week text-brand-rose/40 text-xl"></i>
               </div>
@@ -680,14 +680,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 {isGenerating && !planResult ? (
                   <div className="py-12 text-center">
                     <i className="fa-solid fa-circle-notch animate-spin text-brand-rose text-xl mb-3 block"></i>
-                    <p className="text-brand-gray/50 text-[10px] font-bold uppercase tracking-widest">Building your schedule...</p>
+                    <p className="text-sm text-brand-gray/50">Building your schedule...</p>
                   </div>
                 ) : (
                   <>
                     <MarkdownBlock text={planResult} />
                     <div className="mt-8 pt-6 border-t border-brand-black/5 flex justify-end">
                       <button onClick={handlePin} disabled={pinnedThisResult}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-sm text-[9px] font-bold uppercase tracking-widest transition-all ${pinnedThisResult ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 cursor-default' : 'bg-brand-black text-white hover:bg-zinc-700 active:scale-95 shadow-sm'}`}>
+                        className={`flex items-center gap-2 px-6 py-3 rounded-md text-xs font-medium transition-all ${pinnedThisResult ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 cursor-default' : 'bg-brand-black text-white hover:bg-zinc-700 active:scale-95 shadow-sm'}`}>
                         <i className={`fa-solid ${pinnedThisResult ? 'fa-circle-check' : 'fa-thumbtack'}`}></i>
                         {pinnedThisResult ? 'Pinned!' : 'Pin This Schedule'}
                       </button>
@@ -701,8 +701,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           {/* Pinned plans */}
           {weekPlans.length > 0 && (
             <section className="pt-10 border-t border-brand-black/5 space-y-6">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 flex items-center gap-2">
-                <i className="fa-solid fa-thumbtack text-brand-rose"></i> PINNED SCHEDULES ({weekPlans.length})
+              <h3 className="text-xs font-medium text-brand-black/40 flex items-center gap-2">
+                <i className="fa-solid fa-thumbtack text-brand-rose"></i> Pinned schedules ({weekPlans.length})
               </h3>
               <div className="space-y-4">
                 {weekPlans.map(plan => (
@@ -718,14 +718,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="animate-in fade-in duration-700 space-y-8">
-      <div className="flex gap-1 bg-brand-black/5 p-1 rounded-sm w-fit">
+      <div className="flex gap-1 bg-brand-black/5 p-1 rounded-lg w-fit">
         {([
           { key: 'calendar', icon: 'fa-calendar',         label: 'Calendar'     },
           { key: 'planner',  icon: 'fa-calendar-week',    label: 'Week Planner' },
           { key: 'search',   icon: 'fa-magnifying-glass', label: 'Search'       },
         ] as const).map(({ key, icon, label }) => (
           <button key={key} onClick={() => setView(key)}
-            className={`px-6 py-2 text-sm font-medium rounded-sm transition-all ${view === key ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'}`}>
+            className={`px-6 py-2 text-sm font-medium rounded-md transition-all ${view === key ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'}`}>
             <i className={`fa-solid ${icon} mr-2`}></i>{label}
           </button>
         ))}
@@ -739,7 +739,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 const PinnedPlanCard: React.FC<{ plan: WeekPlan; onDelete: (id: string) => void }> = ({ plan, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="bg-white border border-brand-black/5 rounded-sm shadow-sm overflow-hidden">
+    <div className="bg-white border border-brand-black/5 rounded-lg shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-brand-black/[0.02] transition-all" onClick={() => setExpanded(p => !p)}>
         <div className="flex items-center gap-4">
           <i className="fa-solid fa-thumbtack text-brand-rose text-[10px]"></i>
