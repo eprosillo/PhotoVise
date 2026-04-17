@@ -2237,6 +2237,20 @@ const App: React.FC = () => {
                 <span className="text-xs font-semibold text-brand-blue">Accelerated delivery plan</span>
                 <div className="flex items-center gap-3 flex-wrap">
                   <button
+                    onClick={() => {
+                      setAssignmentInput('');
+                      setAssignmentOutput('');
+                      setSelectedAssignmentSessionIds([]);
+                      setAssignmentAttachId('');
+                      setAssignmentAttached(false);
+                      setLastAssignmentInput('');
+                      setShowFullAssignmentOutput(false);
+                    }}
+                    className="text-xs font-medium text-white/40 hover:text-brand-rose transition-colors border border-white/10 hover:border-brand-rose/30 px-3 py-1 rounded-md"
+                  >
+                    <i className="fa-solid fa-rotate-left mr-1.5"></i>New assignment
+                  </button>
+                  <button
                     onClick={() => handleCopy(assignmentOutput, setAssignmentCopied)}
                     className="text-xs font-medium text-brand-rose hover:text-white transition-colors border border-brand-rose/30 px-3 py-1 rounded-md bg-brand-rose/5"
                   >
