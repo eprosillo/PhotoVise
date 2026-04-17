@@ -15,6 +15,7 @@ interface CalendarViewProps {
 // ── Shared constants ──────────────────────────────────────────────────────────
 
 const STATUS_DOT: Record<SessionStatus, string> = {
+  capturing:   'bg-amber-400',
   shot:        'bg-brand-rose',
   culled:      'bg-brand-blue',
   edited:      'bg-amber-400',
@@ -24,6 +25,7 @@ const STATUS_DOT: Record<SessionStatus, string> = {
 };
 
 const STATUS_CHIP: Record<SessionStatus, string> = {
+  capturing:   'bg-amber-50 text-amber-700 border-amber-200',
   shot:        'bg-brand-rose/10 text-brand-rose border-brand-rose/20',
   culled:      'bg-brand-blue/10 text-brand-blue border-brand-blue/20',
   edited:      'bg-amber-50 text-amber-700 border-amber-200',

@@ -1613,11 +1613,11 @@ const App: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-brand-gray/50 font-medium mb-2">Progress</p>
                         <div className="flex flex-wrap gap-1.5">
-                          {(['All', 'shot', 'culled', 'edited', 'backed up', 'posted'] as const).map(s => (
+                          {(['All', 'capturing', 'shot', 'culled', 'edited', 'backed up', 'posted'] as const).map(s => (
                             <button key={s}
                               onClick={() => setDashboardStatusFilter(s)}
                               className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${dashboardStatusFilter === s ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
-                            >{s === 'All' ? 'All' : { shot: 'Culling', culled: 'Editing', edited: 'Backing Up', 'backed up': 'Posting', posted: 'Complete' }[s]}</button>
+                            >{s === 'All' ? 'All' : { capturing: 'Capturing', shot: 'Culling', culled: 'Editing', edited: 'Backing Up', 'backed up': 'Posting', posted: 'Complete' }[s]}</button>
                           ))}
                         </div>
                       </div>

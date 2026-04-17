@@ -21,6 +21,7 @@ interface SessionCardProps {
 }
 
 const STATUS_STAGE_LABELS: Record<SessionStatus, string> = {
+  'capturing': 'Capturing',
   'shot': 'Culling',
   'culled': 'Editing',
   'edited': 'Backing Up',
@@ -30,7 +31,7 @@ const STATUS_STAGE_LABELS: Record<SessionStatus, string> = {
 };
 
 const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUpdate, onDelete, hasJournal, onGoToJournal }) => {
-  const statuses: SessionStatus[] = ['shot', 'culled', 'edited', 'backed up', 'posted'];
+  const statuses: SessionStatus[] = ['capturing', 'shot', 'culled', 'edited', 'backed up', 'posted'];
 
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(session.title || '');
@@ -43,6 +44,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
 
   const getStatusColor = (status: SessionStatus) => {
     switch (status) {
+      case 'capturing': return 'bg-amber-100 text-amber-700';
       case 'shot': return 'bg-brand-rose/10 text-brand-rose';
       case 'culled': return 'bg-brand-blue/10 text-brand-blue';
       case 'edited': return 'bg-brand-black/5 text-brand-black';

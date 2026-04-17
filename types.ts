@@ -21,7 +21,7 @@ export type Genre =
   | 'Travel'
   | 'Other';
 
-export type SessionStatus = 'shot' | 'culled' | 'edited' | 'backed up' | 'posted' | 'archived';
+export type SessionStatus = 'capturing' | 'shot' | 'culled' | 'edited' | 'backed up' | 'posted' | 'archived';
 
 export interface WeekPlan {
   id: string;
