@@ -331,9 +331,10 @@ const AskProPage: React.FC<{
 interface BulletinCardProps {
   item: CfeBulletinItem & { status: BulletinStatus };
   updateBulletinStatus: (id: string, status: BulletinStatus) => void;
+  onRemove?: (id: string) => void;
 }
 
-const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus }) => {
+const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus, onRemove }) => {
   const isArchived = item.status === 'archived';
   
   const statusConfig: Record<BulletinStatus, { label: string; color: string }> = {
@@ -418,16 +419,16 @@ const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus 
 
         <div className="mt-auto space-y-4 pt-6 border-t border-brand-black/5">
           <div className="flex gap-2">
-            <a 
-              href={item.url} 
-              target="_blank" 
+            <a
+              href={item.url}
+              target="_blank"
               rel="noopener noreferrer"
               className="flex-1 bg-brand-black text-white hover:bg-zinc-700 text-sm font-semibold rounded-md py-4 text-center transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
             >
               View details <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
             </a>
             {!isArchived ? (
-              <button 
+              <button
                 onClick={() => updateBulletinStatus(item.id, 'archived')}
                 className="px-5 bg-brand-white border border-brand-black/5 hover:bg-brand-rose/5 text-brand-gray hover:text-brand-rose transition-all rounded-md"
                 title="Archive"
@@ -435,12 +436,21 @@ const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus 
                 <i className="fa-solid fa-box-archive"></i>
               </button>
             ) : (
-              <button 
+              <button
                 onClick={() => updateBulletinStatus(item.id, 'unmarked')}
                 className="px-5 bg-brand-white border border-brand-black/5 hover:bg-brand-blue/5 text-brand-gray hover:text-brand-blue transition-all rounded-md"
                 title="Restore"
               >
                 <i className="fa-solid fa-box-open"></i>
+              </button>
+            )}
+            {onRemove && (
+              <button
+                onClick={() => onRemove(item.id)}
+                className="px-5 bg-brand-white border border-brand-black/5 hover:bg-brand-rose/5 text-brand-gray hover:text-brand-rose transition-all rounded-md"
+                title="Remove"
+              >
+                <i className="fa-solid fa-xmark"></i>
               </button>
             )}
           </div>
@@ -979,7 +989,7 @@ const App: React.FC = () => {
       date,
       location,
       genre: [genre],
-      status: 'shot',
+      status: 'capturing',
       notes: notes || ''
     };
     
@@ -1046,6 +1056,11 @@ const App: React.FC = () => {
 
   const updateBulletinStatus = (id: string, status: BulletinStatus) => {
     setBulletinState(prev => ({ ...prev, [id]: status }));
+  };
+
+  const removeBulletinItem = (id: string) => {
+    setAiBulletinItems(prev => prev.filter(item => item.id !== id));
+    setBulletinState(prev => { const next = { ...prev }; delete next[id]; return next; });
   };
 
   const getBulletinItemStatus = (id: string): BulletinStatus => {
@@ -2770,7 +2785,7 @@ const App: React.FC = () => {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {archivedBoardItems.map((item) => (
-                  <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} />
+                  <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} onRemove={removeBulletinItem} />
                 ))}
               </div>
             </section>
@@ -2804,7 +2819,7 @@ const App: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {consideringItems.map((item) => (
-                <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} />
+                <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} onRemove={removeBulletinItem} />
               ))}
             </div>
           )}
@@ -2837,7 +2852,7 @@ const App: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {appliedItems.map((item) => (
-                <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} />
+                <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} onRemove={removeBulletinItem} />
               ))}
             </div>
           )}
