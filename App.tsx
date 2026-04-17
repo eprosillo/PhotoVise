@@ -2068,6 +2068,18 @@ const App: React.FC = () => {
                 <span className="text-xs font-semibold text-brand-rose">Assignment strategy</span>
                 <div className="flex items-center gap-3 flex-wrap">
                   <button
+                    onClick={() => {
+                      setPlannerInput('');
+                      setPlannerOutput('');
+                      setSelectedPlannerSessionIds([]);
+                      setPlannerAttachId('');
+                      setPlannerAttached(false);
+                    }}
+                    className="text-xs font-medium text-white/70 hover:text-brand-rose transition-colors border border-white/20 hover:border-brand-rose/30 px-3 py-1 rounded-md"
+                  >
+                    <i className="fa-solid fa-rotate-left mr-1.5"></i>Reset
+                  </button>
+                  <button
                     onClick={() => handleCopy(plannerOutput, setPlannerCopied)}
                     className="text-xs font-medium text-brand-blue hover:text-white transition-colors border border-brand-blue/30 px-3 py-1 rounded-md bg-brand-blue/5"
                   >
