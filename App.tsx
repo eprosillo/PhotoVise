@@ -218,6 +218,7 @@ const AskProPage: React.FC<{
   askProAnswer: string;
   isGeneratingAskPro: boolean;
   onAskProSubmit: () => void;
+  onReset: () => void;
   isFieldMode?: boolean;
   onFeedback: (note: string) => void;
   activeTab: string;
@@ -296,7 +297,17 @@ const AskProPage: React.FC<{
         <div className="bg-white rounded-lg border border-brand-black/5 shadow-sm overflow-hidden flex flex-col h-full">
           <div className="bg-brand-black/5 px-8 py-5 border-b border-brand-black/5 flex items-center justify-between">
             <span className="text-xs font-medium text-brand-black/40">The Pro's Response</span>
-            <i className="fa-solid fa-pen-nib text-brand-rose/40"></i>
+            <div className="flex items-center gap-3">
+              {props.askProAnswer && (
+                <button
+                  onClick={props.onReset}
+                  className="text-xs font-medium text-brand-gray/50 hover:text-brand-rose transition-colors border border-brand-black/10 hover:border-brand-rose/30 px-3 py-1 rounded-md"
+                >
+                  <i className="fa-solid fa-rotate-left mr-1.5"></i>Reset
+                </button>
+              )}
+              <i className="fa-solid fa-pen-nib text-brand-rose/40"></i>
+            </div>
           </div>
           <div className="p-10 flex-1 overflow-y-auto custom-scrollbar min-h-[300px]">
             {props.askProAnswer ? (
@@ -2327,6 +2338,7 @@ const App: React.FC = () => {
           askProAnswer={askProAnswer}
           isGeneratingAskPro={isGeneratingAskPro}
           onAskProSubmit={handleAskProSubmit}
+          onReset={() => { setAskProInput(''); setAskProAnswer(''); }}
           isFieldMode={isFieldMode}
           onFeedback={(note) => {
             setFeedbackLog(prev => [...prev, { id: crypto.randomUUID(), section: 'Ask a Pro', note, createdAt: new Date().toISOString() }]);
