@@ -1528,7 +1528,9 @@ const App: React.FC = () => {
 
           <section className="bg-brand-white border border-brand-black/5 rounded-lg p-8 mb-12 shadow-sm relative overflow-hidden group hover:border-brand-rose/20 transition-all duration-700">
              <div className="absolute top-0 left-0 w-1 h-full bg-brand-rose/20"></div>
-             <p className="text-xs font-semibold text-brand-rose/70 mb-5">Daily inspiration</p>
+             <p className="text-xs font-semibold text-brand-rose/70 mb-5">
+               {user?.displayName ? `Hey ${user.displayName.split(' ')[0]}, here's your daily inspiration` : 'Daily inspiration'}
+             </p>
              <div className="max-w-2xl">
                <p className="text-xl md:text-2xl font-serif italic text-brand-black leading-snug mb-4">
                  "{dailyQuote.text}"
