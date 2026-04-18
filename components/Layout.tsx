@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FeedbackModal from './FeedbackModal';
 
 interface UserLike {
   displayName?: string | null;
@@ -20,6 +21,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, workflowSummary, isFieldMode, user, onSignOut }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'fa-gauge' },
@@ -265,6 +267,23 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
           {children}
         </div>
       </main>
+
+      {/* Feedback Button */}
+      <button
+        onClick={() => setIsFeedbackOpen(true)}
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-brand-black text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg border border-white/10 hover:bg-zinc-700 transition-all active:scale-95"
+        style={isFieldMode ? { bottom: '5rem' } : undefined}
+        aria-label="Send feedback"
+      >
+        <i className="fa-regular fa-comment-dots text-brand-rose"></i>
+        Feedback
+      </button>
+
+      <FeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+        currentPage={activeTab}
+      />
 
       {/* Field Mode Quick Access Bottom Strip */}
       {isFieldMode && (
