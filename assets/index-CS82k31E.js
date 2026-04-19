@@ -3697,6 +3697,38 @@ TIME WINDOW:
 - If time is short, focus on fewer, higher-impact shots and a lean workflow.
 - Never assume extra time beyond what is given.
 
+TEMPLATE AND STRUCTURE:
+- Always use the template below for the final answer.
+- Do NOT change the section headings or their order.
+- Do NOT add new sections.
+- Fill each bracketed area with concrete, assignment-specific content.
+- Remove all bracket text in the final output.
+
+TEMPLATE TO FILL:
+
+**Shot List**
+- [Essential frame 1 for this genre and time window.]
+- [Essential frame 2.]
+- [Essential frame 3.]
+- [Optional frame 4 if time allows.]
+- [Optional frame 5 if time allows.]
+
+**Workflow**
+- [Step 1: backup or card management.]
+- [Step 2: culling approach.]
+- [Step 3: first-pass edit using the user’s software.]
+
+**Milestones**
+- [Pacing target 1, e.g. ‘First keepers locked by 20 min’.]
+- [Pacing target 2.]
+- [Pacing target 3 if time window allows.]
+
+**Red Zone**
+- [Critical check 1: battery / card / gear before shoot.]
+- [Critical check 2.]
+- [Critical check 3.]
+- [Critical check 4 if relevant.]
+
 HARD RULES:
 - Stay under 300 words total.
 - Be direct, practical, and specific.
@@ -3706,15 +3738,9 @@ HARD RULES:
 - Do not invent missing details; omit them instead of guessing.
 - Skip any section that is not relevant — no padding.
 
-REQUIRED SECTIONS (bold label + 1–3 tight bullets each):
-• Shot List — 3–5 essential frames for this genre and time window.
-• Workflow — 2–3 profile-compatible steps to back up, cull, and do a first pass edit.
-• Milestones — pacing targets to hit within the time window (e.g. ‘first keepers by 20 min’).
-• Red Zone — 3–5 critical gear / battery / card / safety checks before and during the shoot.
-
 FORMAT RULES:
-- No introductory paragraph — start directly with the first section.
-- Use short headings (2–4 words max).
+- No introductory paragraph — start directly with **Shot List**.
+- Use the exact section headings from the template.
 - Each bullet is 1–2 lines max.
 - Use bold labels for section titles.
 - Keep any paragraph to 2–3 sentences at most.
