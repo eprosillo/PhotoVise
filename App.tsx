@@ -1190,7 +1190,14 @@ const App: React.FC = () => {
       "• Timing — best lighting window in one line.\n" +
       "• Settings — 2–3 technical starting points.\n" +
       "• Workflow — one software-specific tip from the profile.\n" +
-      "Tailor everything to the photographer's strengths, risk profile, and constraints. Skip any section that isn't relevant.";
+      "Tailor everything to the photographer's strengths, risk profile, and constraints. Skip any section that isn't relevant.\n\n" +
+      "FORMAT RULES — follow these strictly for in-app readability:\n" +
+      "- Use short headings (2–4 words max).\n" +
+      "- No long introductory paragraph — get straight to the sections.\n" +
+      "- Each bullet must be 1–2 lines max.\n" +
+      "- Use bold labels where helpful to guide the eye.\n" +
+      "- Short paragraphs only — 2–3 sentences at most.\n" +
+      "- Make it visually easy to scan at a glance.";
 
     const result = await generateWeeklyPlan(finalPrompt);
     setPlannerOutput(result);
@@ -1247,7 +1254,14 @@ const App: React.FC = () => {
       "• Workflow — 2–3 profile-compatible backup and culling steps.\n" +
       "• Milestones — pacing targets to hit within the time window.\n" +
       "• Red Zone — 3–5 critical gear and safety checks.\n" +
-      "Skip any section that isn’t relevant. No padding.";
+      "Skip any section that isn’t relevant. No padding.\n\n" +
+      "FORMAT RULES — follow these strictly for in-app readability:\n" +
+      "- Use short headings (2–4 words max).\n" +
+      "- No long introductory paragraph — get straight to the sections.\n" +
+      "- Each bullet must be 1–2 lines max.\n" +
+      "- Use bold labels where helpful to guide the eye.\n" +
+      "- Short paragraphs only — 2–3 sentences at most.\n" +
+      "- Make it visually easy to scan at a glance.";
 
     const result = await generateAssignmentGuide(finalPrompt);
     setAssignmentOutput(result);
