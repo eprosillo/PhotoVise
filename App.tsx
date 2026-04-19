@@ -1179,25 +1179,41 @@ const App: React.FC = () => {
     const combinedPrompt = pieces.join("\n\n");
     
     const finalPrompt = combinedPrompt + "\n\n" +
-      "You are an expert photographer and assignment editor. " +
-      "Using the profile, gear, and session context above, write a concise ASSIGNMENT PLAN the photographer can follow in the field. " +
-      "CRITICAL: Do not use the words 'week' or 'weekly'. Refer to it only as an 'assignment plan' or 'shooting plan'. " +
-      "Keep the entire response under 400 words. Be direct and practical — no filler, no lengthy explanations. " +
-      "Use short sections with a bold label and 1–3 tight bullet points each:\n" +
-      "• Objective — one sentence on what success looks like.\n" +
-      "• Shot List — 3–5 specific shots suited to the genre.\n" +
+      "ROLE: Expert photographer and assignment editor.\n\n" +
+      "AUDIENCE: A working photographer who needs a field-ready shooting plan they can scan quickly on mobile during an assignment.\n\n" +
+      "CORE DIRECTIVE: Write a concise assignment plan the photographer can follow in the field.\n\n" +
+      "OUTPUT GOAL: Create a practical, scannable shooting plan that helps the user prepare before the assignment and make fast decisions on location.\n\n" +
+      "HARD RULES:\n" +
+      "- Never use 'week' or 'weekly' — use 'assignment plan' or 'shooting plan' only.\n" +
+      "- Stay under 300 words total.\n" +
+      "- Be direct, practical, and specific.\n" +
+      "- No filler, no motivational language, no abstract strategy language.\n" +
+      "- Use only the provided assignment details, photographer profile, strengths, constraints, and available gear.\n" +
+      "- Do not invent missing details.\n" +
+      "- If key information is missing, omit that detail rather than guessing.\n" +
+      "- Skip any section that is not relevant.\n\n" +
+      "REQUIRED SECTIONS:\n" +
+      "• Objective — 1 sentence on what success looks like.\n" +
+      "• Shot List — 3–5 specific shots suited to the assignment.\n" +
       "• Gear — key items from the available gear list only.\n" +
-      "• Timing — best lighting window in one line.\n" +
+      "• Timing — best lighting or timing window in 1 line.\n" +
       "• Settings — 2–3 technical starting points.\n" +
-      "• Workflow — one software-specific tip from the profile.\n" +
-      "Tailor everything to the photographer's strengths, risk profile, and constraints. Skip any section that isn't relevant.\n\n" +
-      "FORMAT RULES — follow these strictly for in-app readability:\n" +
-      "- Use short headings (2–4 words max).\n" +
-      "- No long introductory paragraph — get straight to the sections.\n" +
-      "- Each bullet must be 1–2 lines max.\n" +
-      "- Use bold labels where helpful to guide the eye.\n" +
-      "- Short paragraphs only — 2–3 sentences at most.\n" +
-      "- Make it visually easy to scan at a glance.";
+      "• Workflow — 1 software-specific tip from the photographer profile.\n\n" +
+      "FORMAT RULES:\n" +
+      "- No intro paragraph — start directly with the first section.\n" +
+      "- Use short section headings only.\n" +
+      "- Keep each section compact.\n" +
+      "- Use bold labels for section titles.\n" +
+      "- Use 1–3 bullets per section when helpful.\n" +
+      "- Keep each bullet to 1–2 lines max.\n" +
+      "- Make the whole response easy to scan at a glance on mobile and desktop.\n\n" +
+      "WRITING STYLE: Plainspoken, field-ready, specific, compact, helpful, confident — not verbose.\n\n" +
+      "AVOID:\n" +
+      "- Long explanations.\n" +
+      "- Repeating the assignment brief.\n" +
+      "- Generic photography advice.\n" +
+      "- Vague phrasing like 'capture the essence' unless followed by something concrete.\n" +
+      "- Gear or settings not supported by the user's actual profile or assignment.";
 
     const result = await generateWeeklyPlan(finalPrompt);
     setPlannerOutput(result);
