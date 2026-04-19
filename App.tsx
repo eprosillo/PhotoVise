@@ -1183,6 +1183,35 @@ const App: React.FC = () => {
       "AUDIENCE: A working photographer who needs a field-ready shooting plan they can scan quickly on mobile during an assignment.\n\n" +
       "CORE DIRECTIVE: Write a concise assignment plan the photographer can follow in the field.\n\n" +
       "OUTPUT GOAL: Create a practical, scannable shooting plan that helps the user prepare before the assignment and make fast decisions on location.\n\n" +
+      "TEMPLATE AND STRUCTURE:\n" +
+      "- Always use the template below for the final answer.\n" +
+      "- Do NOT change the section headings or their order.\n" +
+      "- Do NOT add new sections.\n" +
+      "- Fill each bracketed area with concrete, assignment-specific content.\n" +
+      "- Remove all bracket text in the final output.\n\n" +
+      "TEMPLATE TO FILL:\n\n" +
+      "**Objective**\n" +
+      "[One sentence on what success looks like for this assignment.]\n\n" +
+      "**Shot List**\n" +
+      "- [Key shot 1 tailored to the assignment.]\n" +
+      "- [Key shot 2.]\n" +
+      "- [Key shot 3.]\n" +
+      "- [Optional shot 4.]\n" +
+      "- [Optional shot 5.]\n\n" +
+      "**Gear**\n" +
+      "- [Camera body]\n" +
+      "- [Primary lens]\n" +
+      "- [Secondary lens / specialty lens]\n" +
+      "- [Support (tripod/monopod) if needed]\n" +
+      "- [Key accessory (flash/remote/etc.)]\n\n" +
+      "**Timing**\n" +
+      "[Best time window for this assignment (light, crowd, or event timing).]\n\n" +
+      "**Settings**\n" +
+      "- Aperture: [Starting range] for [depth/sharpness goal].\n" +
+      "- ISO: [Baseline ISO] for [noise/quality goal].\n" +
+      "- Shutter speed: [Starting point] for [motion/static subject].\n\n" +
+      "**Workflow**\n" +
+      "[Software name] — [1–2 steps for culling and first-pass edit that match the user's workflow].\n\n" +
       "HARD RULES:\n" +
       "- Never use 'week' or 'weekly' — use 'assignment plan' or 'shooting plan' only.\n" +
       "- Stay under 300 words total.\n" +
@@ -1192,21 +1221,14 @@ const App: React.FC = () => {
       "- Do not invent missing details.\n" +
       "- If key information is missing, omit that detail rather than guessing.\n" +
       "- Skip any section that is not relevant.\n\n" +
-      "REQUIRED SECTIONS:\n" +
-      "• Objective — 1 sentence on what success looks like.\n" +
-      "• Shot List — 3–5 specific shots suited to the assignment.\n" +
-      "• Gear — key items from the available gear list only.\n" +
-      "• Timing — best lighting or timing window in 1 line.\n" +
-      "• Settings — 2–3 technical starting points.\n" +
-      "• Workflow — 1 software-specific tip from the photographer profile.\n\n" +
       "FORMAT RULES:\n" +
-      "- No intro paragraph — start directly with the first section.\n" +
-      "- Use short section headings only.\n" +
+      "- No intro paragraph — start directly with **Objective**.\n" +
+      "- Use the exact section headings from the template.\n" +
       "- Keep each section compact.\n" +
       "- Use bold labels for section titles.\n" +
       "- Use 1–3 bullets per section when helpful.\n" +
-      "- Keep each bullet to 1–2 lines max.\n" +
-      "- Make the whole response easy to scan at a glance on mobile and desktop.\n\n" +
+      "- Keep each bullet 1–2 lines max.\n" +
+      "- Make the plan easy to scan on mobile and desktop.\n\n" +
       "WRITING STYLE: Plainspoken, field-ready, specific, compact, helpful, confident — not verbose.\n\n" +
       "AVOID:\n" +
       "- Long explanations.\n" +
