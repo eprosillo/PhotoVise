@@ -1238,15 +1238,16 @@ const App: React.FC = () => {
     const combinedPrompt = pieces.join('\n\n');
 
     const finalPrompt = combinedPrompt + "\n\n" +
-      "As an expert professional photographer and assignment editor, provide an ACCELERATED DELIVERY STRATEGY. " +
-      "Tailor all recommendations (shot list, gear choices, time of day, camera settings, workflow tips) to the ASSIGNMENT GENRE FOCUS and the user's software workflow in their Profile. " +
-      "If it is a specific genre, make your advice strongly grounded in that genre’s best practices. " +
-      "Design the plan so it can realistically be executed within the specified time window. " +
-      "Include sections for: \n" +
-      "1) Rapid Shot List: Essential frames.\n" +
-      "2) Accelerated Workflow: Profile-compatible backup and culling steps.\n" +
-      "3) Delivery Milestones: Pacing targets.\n" +
-      "4) RED ZONE Checklist: Critical gear and safety checks.";
+      "You are an expert photographer and assignment editor. " +
+      "Write a concise ACCELERATED DELIVERY PLAN the photographer can execute within the specified time window. " +
+      "Keep the entire response under 400 words. Be direct and practical — no filler, no lengthy explanations. " +
+      "Tailor everything to the ASSIGNMENT GENRE FOCUS and the user’s software workflow from their Profile. " +
+      "Use short sections with a bold label and 1–3 tight bullet points each:\n" +
+      "• Shot List — 3–5 essential frames for the genre.\n" +
+      "• Workflow — 2–3 profile-compatible backup and culling steps.\n" +
+      "• Milestones — pacing targets to hit within the time window.\n" +
+      "• Red Zone — 3–5 critical gear and safety checks.\n" +
+      "Skip any section that isn’t relevant. No padding.";
 
     const result = await generateAssignmentGuide(finalPrompt);
     setAssignmentOutput(result);
