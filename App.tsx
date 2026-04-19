@@ -1261,23 +1261,38 @@ const App: React.FC = () => {
     const combinedPrompt = pieces.join('\n\n');
 
     const finalPrompt = combinedPrompt + "\n\n" +
-      "You are an expert photographer and assignment editor. " +
-      "Write a concise ACCELERATED DELIVERY PLAN the photographer can execute within the specified time window. " +
-      "Keep the entire response under 400 words. Be direct and practical — no filler, no lengthy explanations. " +
-      "Tailor everything to the ASSIGNMENT GENRE FOCUS and the user’s software workflow from their Profile. " +
-      "Use short sections with a bold label and 1–3 tight bullet points each:\n" +
-      "• Shot List — 3–5 essential frames for the genre.\n" +
-      "• Workflow — 2–3 profile-compatible backup and culling steps.\n" +
-      "• Milestones — pacing targets to hit within the time window.\n" +
-      "• Red Zone — 3–5 critical gear and safety checks.\n" +
-      "Skip any section that isn’t relevant. No padding.\n\n" +
-      "FORMAT RULES — follow these strictly for in-app readability:\n" +
+      "ROLE: Expert photographer and assignment editor.\n\n" +
+      "AUDIENCE: A working photographer currently on an assignment who needs a fast, realistic plan they can execute within the available time.\n\n" +
+      "CORE DIRECTIVE: Write a concise Accelerated Delivery Plan the photographer can execute inside the specified time window.\n\n" +
+      "TIME WINDOW:\n" +
+      "- Always use the provided time window to prioritize and cut.\n" +
+      "- If time is short, focus on fewer, higher-impact shots and a lean workflow.\n" +
+      "- Never assume extra time beyond what is given.\n\n" +
+      "HARD RULES:\n" +
+      "- Stay under 300 words total.\n" +
+      "- Be direct, practical, and specific.\n" +
+      "- No filler, no motivational language, no abstract strategy talk.\n" +
+      "- Tailor the plan to the Assignment Genre Focus and the user’s software workflow from their profile.\n" +
+      "- Use only the information given about the photographer, their gear, and the assignment.\n" +
+      "- Do not invent missing details; omit them instead of guessing.\n" +
+      "- Skip any section that is not relevant — no padding.\n\n" +
+      "REQUIRED SECTIONS (bold label + 1–3 tight bullets each):\n" +
+      "• Shot List — 3–5 essential frames for this genre and time window.\n" +
+      "• Workflow — 2–3 profile-compatible steps to back up, cull, and do a first pass edit.\n" +
+      "• Milestones — pacing targets to hit within the time window (e.g. ‘first keepers by 20 min’).\n" +
+      "• Red Zone — 3–5 critical gear / battery / card / safety checks before and during the shoot.\n\n" +
+      "FORMAT RULES:\n" +
+      "- No introductory paragraph — start directly with the first section.\n" +
       "- Use short headings (2–4 words max).\n" +
-      "- No long introductory paragraph — get straight to the sections.\n" +
-      "- Each bullet must be 1–2 lines max.\n" +
-      "- Use bold labels where helpful to guide the eye.\n" +
-      "- Short paragraphs only — 2–3 sentences at most.\n" +
-      "- Make it visually easy to scan at a glance.";
+      "- Each bullet is 1–2 lines max.\n" +
+      "- Use bold labels for section titles.\n" +
+      "- Keep any paragraph to 2–3 sentences at most.\n" +
+      "- Make the plan scannable at a glance on a phone in the field.\n\n" +
+      "WRITING STYLE:\n" +
+      "- Plainspoken and field-ready.\n" +
+      "- Priority-driven: focus on what to do first, then next.\n" +
+      "- Calm, confident, and concise.\n" +
+      "- Avoid repeating the brief or explaining basic photography concepts.";
 
     const result = await generateAssignmentGuide(finalPrompt);
     setAssignmentOutput(result);
