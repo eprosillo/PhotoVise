@@ -3605,22 +3605,49 @@ Managed by Photovise.`,start:{date:r.date},end:{date:r.date}};try{const c=await 
 
 `)+`
 
-You are an expert photographer and assignment editor. Using the profile, gear, and session context above, write a concise ASSIGNMENT PLAN the photographer can follow in the field. CRITICAL: Do not use the words 'week' or 'weekly'. Refer to it only as an 'assignment plan' or 'shooting plan'. Keep the entire response under 400 words. Be direct and practical — no filler, no lengthy explanations. Use short sections with a bold label and 1–3 tight bullet points each:
-• Objective — one sentence on what success looks like.
-• Shot List — 3–5 specific shots suited to the genre.
-• Gear — key items from the available gear list only.
-• Timing — best lighting window in one line.
-• Settings — 2–3 technical starting points.
-• Workflow — one software-specific tip from the profile.
-Tailor everything to the photographer's strengths, risk profile, and constraints. Skip any section that isn't relevant.
+ROLE: Expert photographer and assignment editor.
 
-FORMAT RULES — follow these strictly for in-app readability:
-- Use short headings (2–4 words max).
-- No long introductory paragraph — get straight to the sections.
-- Each bullet must be 1–2 lines max.
-- Use bold labels where helpful to guide the eye.
-- Short paragraphs only — 2–3 sentences at most.
-- Make it visually easy to scan at a glance.`,Fe=await $w(He);kt(Fe),Er(!1)},Rr=async()=>{if(!Cn.trim()&&kn.length===0)return;aa(!0),C(Cn),Z(!1);const _={"30min":"30 minutes","1hr":"1 hour","2hr":"2 hours","4hr":"4 hours",fullday:"a full day (8+ hours)"}[Ws],R=Ms==="All"?"General / All Genres":Ms,q=$t(kn),fe=ca(at),he=[];if(fe.trim()&&he.push(fe),q.trim()&&he.push(q),Cn.trim()&&he.push(`ASSIGNMENT DETAILS:
+AUDIENCE: A working photographer who needs a field-ready shooting plan they can scan quickly on mobile during an assignment.
+
+CORE DIRECTIVE: Write a concise assignment plan the photographer can follow in the field.
+
+OUTPUT GOAL: Create a practical, scannable shooting plan that helps the user prepare before the assignment and make fast decisions on location.
+
+HARD RULES:
+- Never use 'week' or 'weekly' — use 'assignment plan' or 'shooting plan' only.
+- Stay under 300 words total.
+- Be direct, practical, and specific.
+- No filler, no motivational language, no abstract strategy language.
+- Use only the provided assignment details, photographer profile, strengths, constraints, and available gear.
+- Do not invent missing details.
+- If key information is missing, omit that detail rather than guessing.
+- Skip any section that is not relevant.
+
+REQUIRED SECTIONS:
+• Objective — 1 sentence on what success looks like.
+• Shot List — 3–5 specific shots suited to the assignment.
+• Gear — key items from the available gear list only.
+• Timing — best lighting or timing window in 1 line.
+• Settings — 2–3 technical starting points.
+• Workflow — 1 software-specific tip from the photographer profile.
+
+FORMAT RULES:
+- No intro paragraph — start directly with the first section.
+- Use short section headings only.
+- Keep each section compact.
+- Use bold labels for section titles.
+- Use 1–3 bullets per section when helpful.
+- Keep each bullet to 1–2 lines max.
+- Make the whole response easy to scan at a glance on mobile and desktop.
+
+WRITING STYLE: Plainspoken, field-ready, specific, compact, helpful, confident — not verbose.
+
+AVOID:
+- Long explanations.
+- Repeating the assignment brief.
+- Generic photography advice.
+- Vague phrasing like 'capture the essence' unless followed by something concrete.
+- Gear or settings not supported by the user's actual profile or assignment.`,Fe=await $w(He);kt(Fe),Er(!1)},Rr=async()=>{if(!Cn.trim()&&kn.length===0)return;aa(!0),C(Cn),Z(!1);const _={"30min":"30 minutes","1hr":"1 hour","2hr":"2 hours","4hr":"4 hours",fullday:"a full day (8+ hours)"}[Ws],R=Ms==="All"?"General / All Genres":Ms,q=$t(kn),fe=ca(at),he=[];if(fe.trim()&&he.push(fe),q.trim()&&he.push(q),Cn.trim()&&he.push(`ASSIGNMENT DETAILS:
 `+Cn.trim()),Dn){const Pe=ye.filter(mt=>kn.includes(mt.id)&&mt.strategy).map(mt=>`--- Strategy for ${mt.title||mt.location} ---
 ${mt.strategy}`);Pe.length>0&&he.push(`ATTACHED ASSIGNMENT STRATEGY (use this as the foundation and adapt it into an execution-ready day-of plan):
 
