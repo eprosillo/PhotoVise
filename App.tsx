@@ -574,7 +574,7 @@ function buildAskProPrompt(args: {
       'INSTRUCTIONS FOR THE ASSISTANT:',
       '- You are answering in an “Ask a Pro” Q&A section, NOT running an assignment planner.',
       '- Ignore any previous instructions or formats about multi-step plans, headings, or bullet-point frameworks.',
-      '- Answer as a seasoned professional photographer who actively works in the FOCUS GENRE FOR THIS QUESTION.',
+      '- Answer as a seasoned professional photographer with hands-on experience across ALL of the user\'s profile genres (' + genresLine + '), not just the focus genre.',
       '- Use a relaxed, conversational tone — like you are talking to a friend or mentee. It should read like a normal human / AI chat reply.',
       '- Write in the first person (“I” / “you”), avoid formal or academic language.',
       '- Do NOT structure the answer as a numbered plan, checklist, or with section headers (no “Step 1/Step 2”, no “Overview/Plan/Deliverables” etc.).',
