@@ -1297,12 +1297,25 @@ const App: React.FC = () => {
       "- Fill each bracketed area with concrete, assignment-specific content.\n" +
       "- Remove all bracket text in the final output.\n\n" +
       "TEMPLATE TO FILL:\n\n" +
+      "**Objective**\n" +
+      "[One sentence on what success looks like for this assignment.]\n\n" +
       "**Shot List**\n" +
       "- [Essential frame 1 for this genre and time window.]\n" +
       "- [Essential frame 2.]\n" +
       "- [Essential frame 3.]\n" +
       "- [Optional frame 4 if time allows.]\n" +
       "- [Optional frame 5 if time allows.]\n\n" +
+      "**Gear**\n" +
+      "- [Camera body from gear list.]\n" +
+      "- [Primary lens from gear list.]\n" +
+      "- [Secondary or specialty lens if relevant.]\n" +
+      "- [Key accessory (flash, card, battery) if relevant.]\n\n" +
+      "**Timing**\n" +
+      "[Best lighting or timing window for this assignment in 1 line.]\n\n" +
+      "**Settings**\n" +
+      "- Aperture: [Starting range] for [depth/sharpness goal].\n" +
+      "- ISO: [Baseline ISO] for [noise/quality goal].\n" +
+      "- Shutter speed: [Starting point] for [motion/static subject].\n\n" +
       "**Workflow**\n" +
       "- [Step 1: backup or card management.]\n" +
       "- [Step 2: culling approach.]\n" +
@@ -1322,10 +1335,12 @@ const App: React.FC = () => {
       "- No filler, no motivational language, no abstract strategy talk.\n" +
       "- Tailor the plan to the Assignment Genre Focus and the user’s software workflow from their profile.\n" +
       "- Use only the information given about the photographer, their gear, and the assignment.\n" +
+      "- Use only gear from the provided gear list — do not invent camera bodies, lenses, or accessories.\n" +
+      "- Do not invent settings or technical details not supported by the user’s profile or assignment.\n" +
       "- Do not invent missing details; omit them instead of guessing.\n" +
       "- Skip any section that is not relevant — no padding.\n\n" +
       "FORMAT RULES:\n" +
-      "- No introductory paragraph — start directly with **Shot List**.\n" +
+      "- No introductory paragraph — start directly with **Objective**.\n" +
       "- Use the exact section headings from the template.\n" +
       "- Each bullet is 1–2 lines max.\n" +
       "- Use bold labels for section titles.\n" +
