@@ -1179,22 +1179,18 @@ const App: React.FC = () => {
     const combinedPrompt = pieces.join("\n\n");
     
     const finalPrompt = combinedPrompt + "\n\n" +
-      "You are an expert professional photographer and assignment editor. " +
-      "CRITICAL: Use the PHOTOGRAPHER PROFILE provided above to tailor the assignment strategy to this specific individual's " +
-      "strengths, software workflow, growth goals, physical constraints, and access level. Adjust the tone and " +
-      "risk level of your suggestions based on their Risk Profile. " +
-      "Using the available gear and attached session context above, create a detailed ASSIGNMENT STRATEGY for the upcoming work. " +
-      "CRITICAL: Do not use the words 'week' or 'weekly' in your response. " +
-      "Refer to it solely as an 'assignment strategy', 'assignment plan', or 'shooting plan'. " +
-      "For each distinct assignment, include sections that cover:\n" +
-      "1) Objective: What success looks like.\n" +
-      "2) Shot List & Examples: Specific shot ideas suited to the focus genre.\n" +
-      "3) Gear Recommendations: Use available gear list.\n" +
-      "4) Time of Day: Best windows for lighting.\n" +
-      "5) Camera Settings: Suggested technical starting points.\n" +
-      "6) Workflow Tips: Software-specific advice (refer to Profile).\n" +
-      "7) Additional Gear Suggestions: Treatments for missing kit.\n\n" +
-      "Write the plan as a clear, practical document I can follow in the field.";
+      "You are an expert photographer and assignment editor. " +
+      "Using the profile, gear, and session context above, write a concise ASSIGNMENT PLAN the photographer can follow in the field. " +
+      "CRITICAL: Do not use the words 'week' or 'weekly'. Refer to it only as an 'assignment plan' or 'shooting plan'. " +
+      "Keep the entire response under 400 words. Be direct and practical — no filler, no lengthy explanations. " +
+      "Use short sections with a bold label and 1–3 tight bullet points each:\n" +
+      "• Objective — one sentence on what success looks like.\n" +
+      "• Shot List — 3–5 specific shots suited to the genre.\n" +
+      "• Gear — key items from the available gear list only.\n" +
+      "• Timing — best lighting window in one line.\n" +
+      "• Settings — 2–3 technical starting points.\n" +
+      "• Workflow — one software-specific tip from the profile.\n" +
+      "Tailor everything to the photographer's strengths, risk profile, and constraints. Skip any section that isn't relevant.";
 
     const result = await generateWeeklyPlan(finalPrompt);
     setPlannerOutput(result);
