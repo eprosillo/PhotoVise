@@ -1,9 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchBulletinEvents = exports.fetchLocationSuggestions = exports.askProQuestion = exports.generateAssignmentGuide = exports.generateWeeklyPlan = void 0;
+exports.cleanupExpiredCommunityPosts = exports.ratePost = exports.validateAndCreateCommunityPost = exports.fetchBulletinEvents = exports.fetchLocationSuggestions = exports.askProQuestion = exports.generateAssignmentGuide = exports.generateWeeklyPlan = void 0;
 const https_1 = require("firebase-functions/v2/https");
+const scheduler_1 = require("firebase-functions/v2/scheduler");
 const params_1 = require("firebase-functions/params");
 const genai_1 = require("@google/genai");
+const admin = require("firebase-admin");
+// Initialise Admin SDK once
+if (!admin.apps.length)
+    admin.initializeApp();
 const geminiApiKey = (0, params_1.defineSecret)('GEMINI_API_KEY');
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const SYSTEM_INSTRUCTION = `You are Photovise, a design-aware personal workflow assistant for a professional photographer.
@@ -176,5 +181,125 @@ exports.fetchBulletinEvents = (0, https_1.onCall)({ secrets: [geminiApiKey] }, a
         console.error('fetchBulletinEvents error:', e);
         return { items: [] };
     }
+});
+// ── validateAndCreateCommunityPost ───────────────────────────────────────────
+// Enforces a 3-active-post limit per user, then creates the Firestore document.
+// Images must be uploaded to Storage by the client first; their download URLs are
+// passed in as `imageUrls`.
+exports.validateAndCreateCommunityPost = (0, https_1.onCall)(async (request) => {
+    const uid = requireAuth(request.auth);
+    const { displayName, caption, assignmentTag, imageUrls, cameraBody, lens, settings, expiresAtMs } = request.data;
+    if (!caption || !assignmentTag || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+        throw new https_1.HttpsError('invalid-argument', 'caption, assignmentTag, and imageUrls are required.');
+    }
+    const db = admin.firestore();
+    const now = Date.now();
+    // Query by userId only (no composite index needed), filter active + non-expired in code
+    const snap = await db.collection('communityPosts').where('userId', '==', uid).get();
+    const activeCount = snap.docs.filter(d => {
+        var _a, _b, _c;
+        const data = d.data();
+        const expires = (_c = (_b = (_a = data.expiresAt) === null || _a === void 0 ? void 0 : _a.toMillis) === null || _b === void 0 ? void 0 : _b.call(_a)) !== null && _c !== void 0 ? _c : 0;
+        return data.status === 'active' && expires > now;
+    }).length;
+    if (activeCount >= 3) {
+        throw new https_1.HttpsError('resource-exhausted', 'Post limit reached. Remove a post to continue.');
+    }
+    const docRef = await db.collection('communityPosts').add(Object.assign(Object.assign(Object.assign(Object.assign({ userId: uid, displayName: displayName !== null && displayName !== void 0 ? displayName : 'Photographer', caption: String(caption).trim(), assignmentTag,
+        imageUrls }, (cameraBody && { cameraBody })), (lens && { lens })), (settings && { settings })), { createdAt: admin.firestore.FieldValue.serverTimestamp(), expiresAt: admin.firestore.Timestamp.fromMillis(Number(expiresAtMs)), status: 'active', ratingSum: 0, ratingCount: 0 }));
+    console.log(`validateAndCreateCommunityPost: created ${docRef.id} for uid=${uid} (activeCount was ${activeCount})`);
+    return { id: docRef.id };
+});
+// ── ratePost ──────────────────────────────────────────────────────────────────
+// Adds or updates a 1-5 star rating for a community post.
+// Uses a Firestore transaction to keep ratingSum / ratingCount in sync on the post doc.
+// Ratings are stored in the subcollection: communityPosts/{postId}/ratings/{uid}
+exports.ratePost = (0, https_1.onCall)(async (request) => {
+    const uid = requireAuth(request.auth);
+    const { postId, rating } = request.data;
+    if (!postId)
+        throw new https_1.HttpsError('invalid-argument', 'postId is required.');
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+        throw new https_1.HttpsError('invalid-argument', 'rating must be an integer between 1 and 5.');
+    }
+    const db = admin.firestore();
+    const postRef = db.collection('communityPosts').doc(postId);
+    const ratingRef = postRef.collection('ratings').doc(uid);
+    const { ratingSum, ratingCount } = await db.runTransaction(async (tx) => {
+        var _a, _b, _c, _d, _e, _f, _g;
+        const [postSnap, ratingSnap] = await Promise.all([tx.get(postRef), tx.get(ratingRef)]);
+        if (!postSnap.exists)
+            throw new https_1.HttpsError('not-found', 'Post not found.');
+        if (((_a = postSnap.data()) === null || _a === void 0 ? void 0 : _a.status) !== 'active') {
+            throw new https_1.HttpsError('failed-precondition', 'Post is no longer active.');
+        }
+        const currentSum = (_c = (_b = postSnap.data()) === null || _b === void 0 ? void 0 : _b.ratingSum) !== null && _c !== void 0 ? _c : 0;
+        const currentCount = (_e = (_d = postSnap.data()) === null || _d === void 0 ? void 0 : _d.ratingCount) !== null && _e !== void 0 ? _e : 0;
+        const oldRating = ratingSnap.exists ? ((_g = (_f = ratingSnap.data()) === null || _f === void 0 ? void 0 : _f.rating) !== null && _g !== void 0 ? _g : 0) : 0;
+        let newSum = currentSum;
+        let newCount = currentCount;
+        if (ratingSnap.exists) {
+            // Replace existing rating — count stays the same, just swap the value
+            newSum = currentSum - oldRating + rating;
+        }
+        else {
+            // First rating from this user
+            newSum = currentSum + rating;
+            newCount = currentCount + 1;
+        }
+        tx.update(postRef, { ratingSum: newSum, ratingCount: newCount });
+        tx.set(ratingRef, {
+            rating,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return { ratingSum: newSum, ratingCount: newCount };
+    });
+    console.log(`ratePost: uid=${uid} rated post=${postId} with ${rating} stars (sum=${ratingSum}, count=${ratingCount})`);
+    return { ratingSum, ratingCount };
+});
+// ── cleanupExpiredCommunityPosts ──────────────────────────────────────────────
+// Runs every 24 hours. Deletes Firestore docs and Storage files for posts
+// whose expiresAt timestamp has passed.
+exports.cleanupExpiredCommunityPosts = (0, scheduler_1.onSchedule)({ schedule: '0 3 * * *', timeZone: 'UTC' }, // 03:00 UTC daily
+async () => {
+    var _a;
+    const db = admin.firestore();
+    const bucket = admin.storage().bucket();
+    const now = admin.firestore.Timestamp.now();
+    const snap = await db.collection('communityPosts')
+        .where('expiresAt', '<=', now)
+        .get();
+    if (snap.empty) {
+        console.log('cleanupExpiredCommunityPosts: no expired posts found.');
+        return;
+    }
+    let deletedPosts = 0;
+    let deletedFiles = 0;
+    const batch = db.batch();
+    for (const doc of snap.docs) {
+        const data = doc.data();
+        const imageUrls = (_a = data.imageUrls) !== null && _a !== void 0 ? _a : [];
+        // Delete each Storage file derived from its download URL
+        for (const url of imageUrls) {
+            try {
+                // Extract the storage path from the download URL
+                // URL format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?...
+                const match = url.match(/\/o\/([^?]+)/);
+                if (match) {
+                    const filePath = decodeURIComponent(match[1]);
+                    await bucket.file(filePath).delete();
+                    deletedFiles++;
+                }
+            }
+            catch (err) {
+                // Log but don't abort — file may already be gone
+                console.warn(`cleanupExpiredCommunityPosts: failed to delete file from ${url}`, err);
+            }
+        }
+        batch.delete(doc.ref);
+        deletedPosts++;
+    }
+    await batch.commit();
+    console.log(`cleanupExpiredCommunityPosts: deleted ${deletedPosts} posts and ${deletedFiles} files.`);
 });
 //# sourceMappingURL=index.js.map

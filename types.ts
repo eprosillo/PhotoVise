@@ -170,3 +170,30 @@ export interface FeedbackEntry {
 }
 
 export type AssignmentTimeframe = '30min' | '1hr' | '2hr' | '4hr' | 'fullday';
+
+export type CommunityTag =
+  | 'Street'
+  | 'Portrait'
+  | 'Architecture'
+  | 'Sports'
+  | 'Event'
+  | 'Nature'
+  | 'Abstract'
+  | 'Other';
+
+export interface CommunityPost {
+  id: string;
+  userId: string;
+  displayName: string;
+  caption: string;
+  assignmentTag: CommunityTag;
+  imageUrls: string[];
+  cameraBody?: string;
+  lens?: string;
+  settings?: string;
+  createdAt: Date | { seconds: number; nanoseconds: number };
+  expiresAt: Date | { seconds: number; nanoseconds: number };
+  status: 'active' | 'removed';
+  ratingSum?: number;
+  ratingCount?: number;
+}

@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Per-user data ──────────────────────────────────────────────────────────
+    // All sessions, gear, journal, profile, bulletinState, etc. live here.
+    // Only the owner may read or write their own document.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── Community posts ────────────────────────────────────────────────────────
+    match /communityPosts/{postId} {
+      // Public gallery — anyone may read
+      allow read: if true;
+
+      // Creates go through the validateAndCreateCommunityPost Cloud Function
+      // which uses the Admin SDK (bypasses rules) and enforces the 3-post limit.
+      // Allow direct client creates only for authenticated users as a fallback.
+      allow create: if request.auth != null;
+
+      // Owners may only update their own post to set status = 'removed'.
+      // All other fields are locked to prevent tampering.
+      allow update: if request.auth != null
+                    && request.auth.uid == resource.data.userId
+                    && request.resource.data.status    == 'removed'
+                    && request.resource.data.userId    == resource.data.userId
+                    && request.resource.data.imageUrls == resource.data.imageUrls
+                    && request.resource.data.caption   == resource.data.caption;
+
+      // Hard deletes from the client are never allowed
+      allow delete: if false;
+
+      // ── Rating subcollection ─────────────────────────────────────────────
+      // Writes go through the ratePost Cloud Function (Admin SDK, bypasses rules).
+      // Authenticated users may read any rating doc (needed to fetch their own rating).
+      match /ratings/{userId} {
+        allow read: if request.auth != null;
+        allow write: if false; // Cloud Function only
+      }
+    }
+
+  }
+}

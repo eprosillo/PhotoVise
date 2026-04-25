@@ -1,6 +1,11 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret } from 'firebase-functions/params';
 import { GoogleGenAI } from '@google/genai';
+import * as admin from 'firebase-admin';
+
+// Initialise Admin SDK once
+if (!admin.apps.length) admin.initializeApp();
 
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
 
@@ -201,5 +206,178 @@ export const fetchBulletinEvents = onCall(
       console.error('fetchBulletinEvents error:', e);
       return { items: [] };
     }
+  }
+);
+
+// ── validateAndCreateCommunityPost ───────────────────────────────────────────
+// Enforces a 3-active-post limit per user, then creates the Firestore document.
+// Images must be uploaded to Storage by the client first; their download URLs are
+// passed in as `imageUrls`.
+export const validateAndCreateCommunityPost = onCall(
+  async (request) => {
+    const uid = requireAuth(request.auth);
+
+    const { displayName, caption, assignmentTag, imageUrls, cameraBody, lens, settings, expiresAtMs } =
+      request.data as {
+        displayName: string;
+        caption: string;
+        assignmentTag: string;
+        imageUrls: string[];
+        cameraBody?: string;
+        lens?: string;
+        settings?: string;
+        expiresAtMs: number;
+      };
+
+    if (!caption || !assignmentTag || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+      throw new HttpsError('invalid-argument', 'caption, assignmentTag, and imageUrls are required.');
+    }
+
+    const db  = admin.firestore();
+    const now = Date.now();
+
+    // Query by userId only (no composite index needed), filter active + non-expired in code
+    const snap = await db.collection('communityPosts').where('userId', '==', uid).get();
+    const activeCount = snap.docs.filter(d => {
+      const data    = d.data();
+      const expires = (data.expiresAt as admin.firestore.Timestamp)?.toMillis?.() ?? 0;
+      return data.status === 'active' && expires > now;
+    }).length;
+
+    if (activeCount >= 3) {
+      throw new HttpsError(
+        'resource-exhausted',
+        'Post limit reached. Remove a post to continue.',
+      );
+    }
+
+    const docRef = await db.collection('communityPosts').add({
+      userId:        uid,
+      displayName:   displayName ?? 'Photographer',
+      caption:       String(caption).trim(),
+      assignmentTag,
+      imageUrls,
+      ...(cameraBody && { cameraBody }),
+      ...(lens       && { lens       }),
+      ...(settings   && { settings   }),
+      createdAt:   admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt:   admin.firestore.Timestamp.fromMillis(Number(expiresAtMs)),
+      status:      'active',
+      ratingSum:   0,
+      ratingCount: 0,
+    });
+
+    console.log(`validateAndCreateCommunityPost: created ${docRef.id} for uid=${uid} (activeCount was ${activeCount})`);
+    return { id: docRef.id };
+  }
+);
+
+// ── ratePost ──────────────────────────────────────────────────────────────────
+// Adds or updates a 1-5 star rating for a community post.
+// Uses a Firestore transaction to keep ratingSum / ratingCount in sync on the post doc.
+// Ratings are stored in the subcollection: communityPosts/{postId}/ratings/{uid}
+export const ratePost = onCall(
+  async (request) => {
+    const uid = requireAuth(request.auth);
+    const { postId, rating } = request.data as { postId: string; rating: number };
+
+    if (!postId) throw new HttpsError('invalid-argument', 'postId is required.');
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw new HttpsError('invalid-argument', 'rating must be an integer between 1 and 5.');
+    }
+
+    const db        = admin.firestore();
+    const postRef   = db.collection('communityPosts').doc(postId);
+    const ratingRef = postRef.collection('ratings').doc(uid);
+
+    const { ratingSum, ratingCount } = await db.runTransaction(async (tx) => {
+      const [postSnap, ratingSnap] = await Promise.all([tx.get(postRef), tx.get(ratingRef)]);
+
+      if (!postSnap.exists) throw new HttpsError('not-found', 'Post not found.');
+      if (postSnap.data()?.status !== 'active') {
+        throw new HttpsError('failed-precondition', 'Post is no longer active.');
+      }
+
+      const currentSum   = postSnap.data()?.ratingSum   ?? 0;
+      const currentCount = postSnap.data()?.ratingCount ?? 0;
+      const oldRating    = ratingSnap.exists ? (ratingSnap.data()?.rating ?? 0) : 0;
+
+      let newSum   = currentSum;
+      let newCount = currentCount;
+
+      if (ratingSnap.exists) {
+        // Replace existing rating — count stays the same, just swap the value
+        newSum = currentSum - oldRating + rating;
+      } else {
+        // First rating from this user
+        newSum   = currentSum + rating;
+        newCount = currentCount + 1;
+      }
+
+      tx.update(postRef, { ratingSum: newSum, ratingCount: newCount });
+      tx.set(ratingRef, {
+        rating,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return { ratingSum: newSum, ratingCount: newCount };
+    });
+
+    console.log(`ratePost: uid=${uid} rated post=${postId} with ${rating} stars (sum=${ratingSum}, count=${ratingCount})`);
+    return { ratingSum, ratingCount };
+  }
+);
+
+// ── cleanupExpiredCommunityPosts ──────────────────────────────────────────────
+// Runs every 24 hours. Deletes Firestore docs and Storage files for posts
+// whose expiresAt timestamp has passed.
+export const cleanupExpiredCommunityPosts = onSchedule(
+  { schedule: '0 3 * * *', timeZone: 'UTC' }, // 03:00 UTC daily
+  async () => {
+    const db      = admin.firestore();
+    const bucket  = admin.storage().bucket();
+    const now     = admin.firestore.Timestamp.now();
+
+    const snap = await db.collection('communityPosts')
+      .where('expiresAt', '<=', now)
+      .get();
+
+    if (snap.empty) {
+      console.log('cleanupExpiredCommunityPosts: no expired posts found.');
+      return;
+    }
+
+    let deletedPosts = 0;
+    let deletedFiles = 0;
+
+    const batch = db.batch();
+
+    for (const doc of snap.docs) {
+      const data      = doc.data();
+      const imageUrls = (data.imageUrls as string[]) ?? [];
+
+      // Delete each Storage file derived from its download URL
+      for (const url of imageUrls) {
+        try {
+          // Extract the storage path from the download URL
+          // URL format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?...
+          const match = url.match(/\/o\/([^?]+)/);
+          if (match) {
+            const filePath = decodeURIComponent(match[1]);
+            await bucket.file(filePath).delete();
+            deletedFiles++;
+          }
+        } catch (err) {
+          // Log but don't abort — file may already be gone
+          console.warn(`cleanupExpiredCommunityPosts: failed to delete file from ${url}`, err);
+        }
+      }
+
+      batch.delete(doc.ref);
+      deletedPosts++;
+    }
+
+    await batch.commit();
+    console.log(`cleanupExpiredCommunityPosts: deleted ${deletedPosts} posts and ${deletedFiles} files.`);
   }
 );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Layout from './components/Layout';
 import CalendarView from './components/CalendarView';
+import CommunityView from './components/CommunityView';
 import SessionCard from './components/SessionCard';
 import SessionSelector from './components/SessionSelector';
 import LocationAutocomplete from './components/LocationAutocomplete';
@@ -3045,6 +3046,10 @@ const App: React.FC = () => {
             )}
           </div>
         </div>
+      )}
+
+      {activeTab === 'community' && (
+        <CommunityView user={user} profileGenres={profile.primaryGenres} profileName={profile.name} />
       )}
 
       {activeTab === 'gear' && (
