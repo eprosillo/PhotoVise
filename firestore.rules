@@ -40,6 +40,14 @@ service cloud.firestore {
       }
     }
 
+    // ── Gemini request queue ───────────────────────────────────────────────────
+    // Jobs are written only by Cloud Functions (Admin SDK bypasses rules).
+    // Each user may read their own job document to poll for results.
+    match /geminiQueue/{jobId} {
+      allow read:  if request.auth != null && request.auth.uid == resource.data.userId;
+      allow write: if false;
+    }
+
     // ── Feedback submissions ───────────────────────────────────────────────────
     // Authenticated users may submit feedback; no client-side reads allowed.
     // Feedback is read-only via Firebase Console / Admin SDK.

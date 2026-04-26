@@ -5,7 +5,7 @@ import {
   QueryDocumentSnapshot, DocumentData,
   where, doc as fsDoc, updateDoc,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject, UploadTask } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
 import { db, storage, functions } from '../firebase';
 import { CommunityPost, CommunityTag, Genre } from '../types';
@@ -733,9 +733,12 @@ const NewPostForm: React.FC<NewPostFormProps> = ({ userId, displayName, availabl
   const [cameraBody, setCameraBody] = useState('');
   const [lens, setLens]             = useState('');
   const [settings, setSettings]     = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError]           = useState('');
-  const fileInputRef                = useRef<HTMLInputElement>(null);
+  const [submitting, setSubmitting]             = useState(false);
+  const [error, setError]                       = useState('');
+  const [uploadProgress, setUploadProgress]     = useState<number[]>([]);
+  const fileInputRef   = useRef<HTMLInputElement>(null);
+  const uploadTasksRef = useRef<UploadTask[]>([]);
+  const cancelledRef   = useRef(false);
 
   const handleFiles = (selected: FileList | null) => {
     if (!selected) return;
@@ -753,23 +756,100 @@ const NewPostForm: React.FC<NewPostFormProps> = ({ userId, displayName, availabl
     setPreviews(prev => prev.filter((_, idx) => idx !== i));
   };
 
+  // ── Upload helper: retry each file up to 3 times with exponential backoff ──
+  const uploadWithRetry = async (
+    file: File,
+    path: string,
+    fileIndex: number,
+    maxAttempts = 3,
+  ): Promise<string> => {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (cancelledRef.current) throw new Error('cancelled');
+
+      const storageRef = ref(storage, path);
+      const task       = uploadBytesResumable(storageRef, file);
+      uploadTasksRef.current[fileIndex] = task;
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          task.on(
+            'state_changed',
+            (snapshot) => {
+              const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+              setUploadProgress(prev => {
+                const next = [...prev];
+                next[fileIndex] = pct;
+                return next;
+              });
+            },
+            (err) => reject(err),
+            () => resolve(),
+          );
+        });
+        return await getDownloadURL(storageRef);
+      } catch (e: unknown) {
+        const code = (e as { code?: string })?.code;
+        if (code === 'storage/cancelled' || cancelledRef.current) throw new Error('cancelled');
+        if (attempt === maxAttempts - 1) throw e;
+        // Reset this file's progress bar before retry
+        setUploadProgress(prev => { const n = [...prev]; n[fileIndex] = 0; return n; });
+        await new Promise<void>(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+      }
+    }
+    throw new Error('Upload failed after all attempts');
+  };
+
+  // ── Cancel: abort all in-flight uploads and return to gallery ──────────────
+  const handleCancelUpload = useCallback(() => {
+    cancelledRef.current = true;
+    uploadTasksRef.current.forEach(task => { try { task.cancel(); } catch {} });
+    uploadTasksRef.current = [];
+    setFiles([]);
+    setPreviews([]);
+    setSubmitting(false);
+    setError('');
+    setUploadProgress([]);
+    onCancel();
+  }, [onCancel]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (files.length === 0) { setError('Please add at least one photo.'); return; }
     if (!caption.trim())    { setError('Please add a caption.');          return; }
     setSubmitting(true);
     setError('');
+    cancelledRef.current = false;
+    uploadTasksRef.current = [];
+    setUploadProgress(new Array(files.length).fill(0));
 
+    const ts   = Date.now();
+    const urls: string[] = [];
+
+    // ── Phase 1: upload each image (retry ×3, backoff 1s/2s/4s) ─────────────
+    // If any upload fails after all retries, abort here — Firestore doc is
+    // never created, so no broken image URLs can end up on the post.
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const url = await uploadWithRetry(
+          files[i],
+          `community-posts/${userId}/${ts}/${files[i].name}`,
+          i,
+        );
+        urls.push(url);
+      } catch (uploadErr: unknown) {
+        if (cancelledRef.current) return; // handleCancelUpload already cleaned up
+        console.error(`Image ${i + 1} upload failed after all retries:`, uploadErr);
+        setError('Image upload failed. Please check your connection and try again.');
+        setFiles([]);
+        setPreviews([]);
+        setUploadProgress([]);
+        setSubmitting(false);
+        return; // ← hard stop: Firestore doc is NOT created
+      }
+    }
+
+    // ── Phase 2: create Firestore document (only reached if all uploads OK) ──
     try {
-      const ts   = Date.now();
-      const urls: string[] = await Promise.all(
-        files.map(async (file) => {
-          const path = `community-posts/${userId}/${ts}/${file.name}`;
-          await uploadBytes(ref(storage, path), file);
-          return getDownloadURL(ref(storage, path));
-        })
-      );
-
       await validateAndCreate({
         displayName,
         caption:       caption.trim(),
@@ -780,17 +860,15 @@ const NewPostForm: React.FC<NewPostFormProps> = ({ userId, displayName, availabl
         ...(settings.trim()   && { settings:   settings.trim()   }),
         expiresAtMs: ts + TTL_MS,
       });
-
       onSuccess();
     } catch (err: unknown) {
-      console.error(err);
+      console.error('Post creation failed:', err);
       const msg = (err as { message?: string })?.message;
-      if (msg?.toLowerCase().includes('limit')) {
-        setError(msg);
-      } else {
-        setError('Upload failed. Please check your connection and try again.');
-      }
-    } finally {
+      setError(
+        msg?.toLowerCase().includes('limit')
+          ? msg
+          : 'Upload failed. Please check your connection and try again.',
+      );
       setSubmitting(false);
     }
   };
@@ -893,17 +971,59 @@ const NewPostForm: React.FC<NewPostFormProps> = ({ userId, displayName, availabl
           </div>
         )}
 
-        {/* Submit */}
+        {/* Per-file upload progress (visible only while uploading) */}
+        {submitting && uploadProgress.length > 0 && (
+          <div className="space-y-3 bg-brand-white border border-brand-black/5 rounded-lg p-4">
+            <p className="text-xs font-semibold text-brand-black/40">Uploading photos…</p>
+            {files.map((file, i) => {
+              const pct  = uploadProgress[i] ?? 0;
+              const done = pct >= 100;
+              return (
+                <div key={i}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-brand-gray/70 truncate max-w-[240px]">{file.name}</span>
+                    <span className="text-xs font-semibold text-brand-black ml-2">
+                      {done
+                        ? <i className="fa-solid fa-circle-check text-emerald-500"></i>
+                        : `${pct}%`
+                      }
+                    </span>
+                  </div>
+                  <div className="w-full bg-brand-black/5 rounded-full h-1.5">
+                    <div
+                      className={`h-1.5 rounded-full transition-all duration-300 ${done ? 'bg-emerald-500' : 'bg-brand-blue'}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Submit / Cancel */}
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={submitting}
             className="flex-1 bg-brand-black text-white text-sm font-semibold py-4 rounded-md hover:bg-zinc-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
             {submitting
-              ? <><i className="fa-solid fa-spinner fa-spin"></i> Uploading…</>
+              ? <><i className="fa-solid fa-spinner fa-spin"></i>
+                  {uploadProgress.length > 0 && uploadProgress.every(p => p >= 100)
+                    ? 'Creating post…'
+                    : 'Uploading…'
+                  }</>
               : <><i className="fa-solid fa-paper-plane text-brand-rose"></i> Post to Community</>
             }
           </button>
-          <button type="button" onClick={onCancel}
-            className="px-6 border border-brand-black/10 text-brand-gray text-sm font-medium rounded-md hover:border-brand-black/20 transition-all">
+          {/* During upload: Cancel aborts tasks. Otherwise: Cancel returns to gallery. */}
+          <button
+            type="button"
+            onClick={submitting ? handleCancelUpload : onCancel}
+            className={`px-6 border text-sm font-medium rounded-md transition-all ${
+              submitting
+                ? 'border-brand-rose/30 text-brand-rose hover:bg-brand-rose hover:text-white'
+                : 'border-brand-black/10 text-brand-gray hover:border-brand-black/20'
+            }`}
+          >
             Cancel
           </button>
         </div>

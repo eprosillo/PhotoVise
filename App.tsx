@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Layout from './components/Layout';
 import CalendarView from './components/CalendarView';
 import CommunityView from './components/CommunityView';
+import ErrorBoundary from './components/ErrorBoundary';
 import SessionCard from './components/SessionCard';
 import SessionSelector from './components/SessionSelector';
 import LocationAutocomplete from './components/LocationAutocomplete';
@@ -2130,6 +2131,7 @@ const App: React.FC = () => {
       )}
 
       {activeTab === 'planner' && (
+        <ErrorBoundary>
         <div className="animate-in slide-in-from-bottom-4 duration-700">
           <header className="mb-10">
             <h2 className="text-4xl font-display text-brand-black tracking-wide">ASSIGNMENT PLANNER</h2>
@@ -2234,9 +2236,11 @@ const App: React.FC = () => {
             </div>
           )}
         </div>
+        </ErrorBoundary>
       )}
 
       {activeTab === 'assignment' && (
+        <ErrorBoundary>
         <div className="animate-in slide-in-from-bottom-4 duration-700">
           <header className="mb-10">
             <h2 className="text-4xl font-display text-brand-black tracking-wide">ASSIGNMENT MODE</h2>
@@ -2426,9 +2430,11 @@ const App: React.FC = () => {
             </div>
           )}
         </div>
+        </ErrorBoundary>
       )}
 
       {activeTab === 'askpro' && (
+        <ErrorBoundary>
         <AskProPage
           profile={profile}
           assignmentGenre={derivedAssignmentGenre}
@@ -2446,9 +2452,11 @@ const App: React.FC = () => {
           }}
           activeTab={activeTab}
         />
+        </ErrorBoundary>
       )}
 
       {activeTab === 'processing' && (
+        <ErrorBoundary>
         <div className="animate-in fade-in duration-700 space-y-12">
           <header className="mb-10">
             <h2 className="text-4xl font-display text-brand-black tracking-wide">PROCESSING GUIDES</h2>
@@ -2529,6 +2537,7 @@ const App: React.FC = () => {
             )}
           </div>
         </div>
+        </ErrorBoundary>
       )}
 
       {activeTab === 'journal' && (
@@ -3049,7 +3058,9 @@ const App: React.FC = () => {
       )}
 
       {activeTab === 'community' && (
-        <CommunityView user={user} profileGenres={profile.primaryGenres} profileName={profile.name} />
+        <ErrorBoundary>
+          <CommunityView user={user} profileGenres={profile.primaryGenres} profileName={profile.name} />
+        </ErrorBoundary>
       )}
 
       {activeTab === 'gear' && (
