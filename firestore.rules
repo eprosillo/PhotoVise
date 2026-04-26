@@ -11,8 +11,8 @@ service cloud.firestore {
 
     // ── Community posts ────────────────────────────────────────────────────────
     match /communityPosts/{postId} {
-      // Public gallery — anyone may read
-      allow read: if true;
+      // Authenticated users may read community posts
+      allow read: if request.auth != null;
 
       // Creates go through the validateAndCreateCommunityPost Cloud Function
       // which uses the Admin SDK (bypasses rules) and enforces the 3-post limit.
@@ -38,6 +38,14 @@ service cloud.firestore {
         allow read: if request.auth != null;
         allow write: if false; // Cloud Function only
       }
+    }
+
+    // ── Feedback submissions ───────────────────────────────────────────────────
+    // Authenticated users may submit feedback; no client-side reads allowed.
+    // Feedback is read-only via Firebase Console / Admin SDK.
+    match /feedback/{docId} {
+      allow read: if false;
+      allow create: if request.auth != null;
     }
 
   }
