@@ -94,8 +94,13 @@ async function enqueueAndPoll(
         const data = snap.data()!;
 
         if (data.status === 'pending') {
-          const ahead    = (data.queuedBefore as number) ?? 0;
-          const position = ahead + 1;
+          // queuedBefore is the depth at enqueue time. On each poll we subtract
+          // the elapsed minutes × 30 (the scheduler's throughput) to give an
+          // approximate live countdown rather than a frozen initial value.
+          const initialAhead  = (data.queuedBefore as number) ?? 0;
+          const elapsedMin    = (Date.now() - startAt) / 60_000;
+          const estimatedAhead = Math.max(0, Math.round(initialAhead - elapsedMin * 30));
+          const position       = estimatedAhead + 1;
           showStatus(
             position <= 1
               ? 'Your request is next in line…'
