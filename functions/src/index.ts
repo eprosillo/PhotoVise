@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret } from 'firebase-functions/params';
+import { logger } from 'firebase-functions';
 import { GoogleGenAI } from '@google/genai';
 import * as admin from 'firebase-admin';
 
@@ -58,7 +59,13 @@ export const generateWeeklyPlan = onCall(
       });
       return { text: response.text || 'Communication error with Photovise core.' };
     } catch (e) {
-      console.error('generateWeeklyPlan error:', e);
+      logger.error('Gemini API call failed', {
+        functionName: 'generateWeeklyPlan',
+        uid:          request.auth?.uid,
+        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
+        errorMessage: e instanceof Error ? e.message : String(e),
+        timestamp:    new Date().toISOString(),
+      });
       throw new HttpsError('internal', 'Photovise is temporarily unreachable.');
     }
   }
@@ -81,7 +88,13 @@ export const generateAssignmentGuide = onCall(
       });
       return { text: response.text || 'Communication error with Photovise core.' };
     } catch (e) {
-      console.error('generateAssignmentGuide error:', e);
+      logger.error('Gemini API call failed', {
+        functionName: 'generateAssignmentGuide',
+        uid:          request.auth?.uid,
+        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
+        errorMessage: e instanceof Error ? e.message : String(e),
+        timestamp:    new Date().toISOString(),
+      });
       throw new HttpsError('internal', 'Photovise is temporarily unreachable.');
     }
   }
@@ -104,7 +117,13 @@ export const askProQuestion = onCall(
       });
       return { text: response.text || 'The pro is currently silent. Please try asking again.' };
     } catch (e) {
-      console.error('askProQuestion error:', e);
+      logger.error('Gemini API call failed', {
+        functionName: 'askProQuestion',
+        uid:          request.auth?.uid,
+        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
+        errorMessage: e instanceof Error ? e.message : String(e),
+        timestamp:    new Date().toISOString(),
+      });
       throw new HttpsError('internal', 'Photovise is temporarily unreachable.');
     }
   }
@@ -153,7 +172,13 @@ export const fetchLocationSuggestions = onCall(
 
       return { suggestions: lines };
     } catch (e) {
-      console.error('fetchLocationSuggestions error:', e);
+      logger.error('Gemini API call failed', {
+        functionName: 'fetchLocationSuggestions',
+        uid:          request.auth?.uid,
+        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
+        errorMessage: e instanceof Error ? e.message : String(e),
+        timestamp:    new Date().toISOString(),
+      });
       return { suggestions: [] };
     }
   }
@@ -219,19 +244,36 @@ export const fetchBulletinEvents = onCall(
       try {
         parsed = JSON.parse(text);
       } catch {
-        console.error('fetchBulletinEvents: JSON parse failed. Raw response:', text);
+        logger.error('Gemini response JSON parse failed', {
+          functionName: 'fetchBulletinEvents',
+          uid:          request.auth?.uid,
+          errorCode:    'JsonParseError',
+          rawResponse:  text.slice(0, 500),
+          timestamp:    new Date().toISOString(),
+        });
         return { items: [] };
       }
 
       if (!Array.isArray(parsed)) {
-        console.error('fetchBulletinEvents: response is not an array. Raw response:', text);
+        logger.error('Gemini response is not an array', {
+          functionName: 'fetchBulletinEvents',
+          uid:          request.auth?.uid,
+          errorCode:    'InvalidResponseShape',
+          rawResponse:  text.slice(0, 500),
+          timestamp:    new Date().toISOString(),
+        });
         return { items: [] };
       }
 
       const items = parsed
         .filter((item: unknown) => {
           const valid = isValidBulletinItem(item);
-          if (!valid) console.warn('fetchBulletinEvents: dropping invalid item:', JSON.stringify(item));
+          if (!valid) logger.warn('Dropping invalid bulletin item', {
+            functionName: 'fetchBulletinEvents',
+            uid:          request.auth?.uid,
+            invalidItem:  JSON.stringify(item).slice(0, 200),
+            timestamp:    new Date().toISOString(),
+          });
           return valid;
         })
         .map((item: Record<string, unknown>) => ({
@@ -241,7 +283,13 @@ export const fetchBulletinEvents = onCall(
         }));
       return { items };
     } catch (e) {
-      console.error('fetchBulletinEvents error:', e);
+      logger.error('Gemini API call failed', {
+        functionName: 'fetchBulletinEvents',
+        uid:          request.auth?.uid,
+        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
+        errorMessage: e instanceof Error ? e.message : String(e),
+        timestamp:    new Date().toISOString(),
+      });
       return { items: [] };
     }
   }
@@ -314,17 +362,31 @@ async function runGeminiForFunction(
     try {
       parsed = JSON.parse(text);
     } catch {
-      console.error('runGeminiForFunction fetchBulletinEvents: JSON parse failed:', text);
+      logger.error('Gemini response JSON parse failed', {
+        functionName: 'runGeminiForFunction/fetchBulletinEvents',
+        errorCode:    'JsonParseError',
+        rawResponse:  text.slice(0, 500),
+        timestamp:    new Date().toISOString(),
+      });
       return { items: [] };
     }
     if (!Array.isArray(parsed)) {
-      console.error('runGeminiForFunction fetchBulletinEvents: not an array:', text);
+      logger.error('Gemini response is not an array', {
+        functionName: 'runGeminiForFunction/fetchBulletinEvents',
+        errorCode:    'InvalidResponseShape',
+        rawResponse:  text.slice(0, 500),
+        timestamp:    new Date().toISOString(),
+      });
       return { items: [] };
     }
     const items = parsed
       .filter((item: unknown) => {
         const valid = isValidBulletinItem(item);
-        if (!valid) console.warn('runGeminiForFunction: dropping invalid item:', JSON.stringify(item));
+        if (!valid) logger.warn('Dropping invalid bulletin item', {
+          functionName: 'runGeminiForFunction/fetchBulletinEvents',
+          invalidItem:  JSON.stringify(item).slice(0, 200),
+          timestamp:    new Date().toISOString(),
+        });
         return valid;
       })
       .map((item: Record<string, unknown>) => ({
@@ -389,7 +451,14 @@ export const enqueueGeminiRequest = onCall(async (request) => {
     queuedBefore,             // approximate position shown to client
   });
 
-  console.log(`enqueueGeminiRequest: ${functionName} uid=${uid} jobId=${jobRef.id} pos=${queuedBefore + 1}`);
+  logger.info('Gemini job enqueued', {
+    functionName: 'enqueueGeminiRequest',
+    uid,
+    jobId:        jobRef.id,
+    geminiTarget: functionName,
+    queuePosition: queuedBefore + 1,
+    timestamp:    new Date().toISOString(),
+  });
   return { jobId: jobRef.id };
 });
 
@@ -413,7 +482,12 @@ export const processGeminiQueue = onSchedule(
     for (const stuckDoc of processingSnap.docs) {
       const processedAt = stuckDoc.data().processedAt?.toMillis?.() ?? 0;
       if (Date.now() - processedAt > STUCK_MS) {
-        console.warn(`processGeminiQueue: recovering stuck job ${stuckDoc.id}`);
+        logger.warn('Recovering stuck Gemini queue job', {
+          functionName: 'processGeminiQueue',
+          jobId:        stuckDoc.id,
+          stuckForMs:   Date.now() - processedAt,
+          timestamp:    new Date().toISOString(),
+        });
         await stuckDoc.ref.update({ status: 'pending' });
       }
     }
@@ -425,7 +499,10 @@ export const processGeminiQueue = onSchedule(
       .get();
 
     if (pendingSnap.empty) {
-      console.log('processGeminiQueue: no pending jobs.');
+      logger.info('No pending Gemini jobs', {
+        functionName: 'processGeminiQueue',
+        timestamp:    new Date().toISOString(),
+      });
     } else {
       const sorted = pendingSnap.docs
         .slice()
@@ -435,7 +512,11 @@ export const processGeminiQueue = onSchedule(
         )
         .slice(0, RATE_LIMIT);
 
-      console.log(`processGeminiQueue: processing ${sorted.length} jobs.`);
+      logger.info('Processing Gemini queue batch', {
+        functionName: 'processGeminiQueue',
+        jobCount:     sorted.length,
+        timestamp:    new Date().toISOString(),
+      });
 
       for (const jobDoc of sorted) {
         // Atomic claim — prevents double-processing if scheduler fires twice
@@ -462,9 +543,23 @@ export const processGeminiQueue = onSchedule(
             result,
             completedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
-          console.log(`processGeminiQueue: job ${jobDoc.id} (${job.functionName}) complete.`);
+          logger.info('Gemini job completed', {
+            functionName: 'processGeminiQueue',
+            jobId:        jobDoc.id,
+            geminiTarget: job.functionName,
+            uid:          job.userId,
+            timestamp:    new Date().toISOString(),
+          });
         } catch (e) {
-          console.error(`processGeminiQueue: job ${jobDoc.id} failed:`, e);
+          logger.error('Gemini job failed', {
+            functionName: 'processGeminiQueue',
+            jobId:        jobDoc.id,
+            geminiTarget: job.functionName,
+            uid:          job.userId,
+            errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
+            errorMessage: e instanceof Error ? e.message : String(e),
+            timestamp:    new Date().toISOString(),
+          });
           await jobDoc.ref.update({
             status:      'failed',
             error:       e instanceof Error ? e.message : 'Unknown error',
@@ -488,7 +583,11 @@ export const processGeminiQueue = onSchedule(
       const batch = db.batch();
       toDelete.forEach(d => batch.delete(d.ref));
       await batch.commit();
-      console.log(`processGeminiQueue: cleaned up ${toDelete.length} old jobs.`);
+      logger.info('Cleaned up old Gemini queue jobs', {
+        functionName: 'processGeminiQueue',
+        deletedCount: toDelete.length,
+        timestamp:    new Date().toISOString(),
+      });
     }
   },
 );
@@ -551,7 +650,13 @@ export const validateAndCreateCommunityPost = onCall(
       ratingCount: 0,
     });
 
-    console.log(`validateAndCreateCommunityPost: created ${docRef.id} for uid=${uid} (activeCount was ${activeCount})`);
+    logger.info('Community post created', {
+      functionName: 'validateAndCreateCommunityPost',
+      uid,
+      postId:       docRef.id,
+      activeCount,
+      timestamp:    new Date().toISOString(),
+    });
     return { id: docRef.id };
   }
 );
@@ -604,7 +709,15 @@ export const ratePost = onCall(
       };
     });
 
-    console.log(`ratePost: uid=${uid} rated post=${postId} with ${rating} stars (sum=${ratingSum}, count=${ratingCount})`);
+    logger.info('Post rated', {
+      functionName: 'ratePost',
+      uid,
+      postId,
+      rating,
+      ratingSum,
+      ratingCount,
+      timestamp:    new Date().toISOString(),
+    });
     return { ratingSum, ratingCount };
   }
 );
@@ -624,7 +737,10 @@ export const cleanupExpiredCommunityPosts = onSchedule(
       .get();
 
     if (snap.empty) {
-      console.log('cleanupExpiredCommunityPosts: no expired posts found.');
+      logger.info('No expired community posts found', {
+        functionName: 'cleanupExpiredCommunityPosts',
+        timestamp:    new Date().toISOString(),
+      });
       return;
     }
 
@@ -650,7 +766,14 @@ export const cleanupExpiredCommunityPosts = onSchedule(
           }
         } catch (err) {
           // Log but don't abort — file may already be gone
-          console.warn(`cleanupExpiredCommunityPosts: failed to delete file from ${url}`, err);
+          logger.warn('Failed to delete Storage file for expired post', {
+            functionName: 'cleanupExpiredCommunityPosts',
+            postId:       doc.id,
+            storageUrl:   url,
+            errorCode:    err instanceof Error ? err.constructor.name : 'UnknownError',
+            errorMessage: err instanceof Error ? err.message : String(err),
+            timestamp:    new Date().toISOString(),
+          });
         }
       }
 
@@ -659,6 +782,11 @@ export const cleanupExpiredCommunityPosts = onSchedule(
     }
 
     await batch.commit();
-    console.log(`cleanupExpiredCommunityPosts: deleted ${deletedPosts} posts and ${deletedFiles} files.`);
+    logger.info('Expired community posts cleaned up', {
+      functionName:  'cleanupExpiredCommunityPosts',
+      deletedPosts,
+      deletedFiles,
+      timestamp:     new Date().toISOString(),
+    });
   }
 );
