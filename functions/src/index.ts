@@ -616,48 +616,77 @@ export const validateAndCreateCommunityPost = onCall(
       throw new HttpsError('invalid-argument', 'caption, assignmentTag, and imageUrls are required.');
     }
 
-    const db  = admin.firestore();
-    const now = Date.now();
+    const db      = admin.firestore();
+    const userRef = db.collection('users').doc(uid);
+    // Pre-allocate a document ID so we can reference it inside the transaction
+    // and return it to the caller without a second round-trip.
+    const postRef = db.collection('communityPosts').doc();
 
-    // Query by userId only (no composite index needed), filter active + non-expired in code
-    const snap = await db.collection('communityPosts').where('userId', '==', uid).get();
-    const activeCount = snap.docs.filter(d => {
-      const data    = d.data();
-      const expires = (data.expiresAt as admin.firestore.Timestamp)?.toMillis?.() ?? 0;
-      return data.status === 'active' && expires > now;
-    }).length;
+    // ── Atomic transaction ───────────────────────────────────────────────────
+    // Reads users/{uid}.activePostCount, enforces the 3-post cap, creates the
+    // community post document, and increments the counter — all in one commit.
+    // If any step fails the entire transaction is rolled back automatically.
+    let activeCount: number;
+    try {
+      activeCount = await db.runTransaction(async (tx) => {
+        const userSnap = await tx.get(userRef);
 
-    if (activeCount >= 3) {
-      throw new HttpsError(
-        'resource-exhausted',
-        'Post limit reached. Remove a post to continue.',
-      );
+        // Treat a missing field (or a brand-new user doc) as 0.
+        const count = (userSnap.data()?.activePostCount as number) ?? 0;
+
+        if (count >= 3) {
+          throw new HttpsError(
+            'resource-exhausted',
+            'Post limit reached. Remove a post to continue.',
+          );
+        }
+
+        // Write the new post document.
+        tx.set(postRef, {
+          userId:        uid,
+          displayName:   displayName ?? 'Photographer',
+          caption:       String(caption).trim(),
+          assignmentTag,
+          imageUrls,
+          ...(cameraBody && { cameraBody }),
+          ...(lens       && { lens       }),
+          ...(settings   && { settings   }),
+          createdAt:   admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt:   admin.firestore.Timestamp.fromMillis(Number(expiresAtMs)),
+          status:      'active',
+          ratingSum:   0,
+          ratingCount: 0,
+        });
+
+        // Increment the counter on the user document.
+        // merge: true handles the case where activePostCount doesn't exist yet
+        // (FieldValue.increment creates the field and sets it to 1).
+        tx.set(userRef, { activePostCount: admin.firestore.FieldValue.increment(1) }, { merge: true });
+
+        return count; // value before increment — used for logging
+      });
+    } catch (e) {
+      // Re-throw HttpsErrors (e.g. limit reached); wrap everything else.
+      if (e instanceof HttpsError) throw e;
+      logger.error('Community post transaction failed', {
+        functionName: 'validateAndCreateCommunityPost',
+        uid,
+        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
+        errorMessage: e instanceof Error ? e.message : String(e),
+        timestamp:    new Date().toISOString(),
+      });
+      throw new HttpsError('internal', 'Failed to create post. Please try again.');
     }
 
-    const docRef = await db.collection('communityPosts').add({
-      userId:        uid,
-      displayName:   displayName ?? 'Photographer',
-      caption:       String(caption).trim(),
-      assignmentTag,
-      imageUrls,
-      ...(cameraBody && { cameraBody }),
-      ...(lens       && { lens       }),
-      ...(settings   && { settings   }),
-      createdAt:   admin.firestore.FieldValue.serverTimestamp(),
-      expiresAt:   admin.firestore.Timestamp.fromMillis(Number(expiresAtMs)),
-      status:      'active',
-      ratingSum:   0,
-      ratingCount: 0,
-    });
-
     logger.info('Community post created', {
-      functionName: 'validateAndCreateCommunityPost',
+      functionName:       'validateAndCreateCommunityPost',
       uid,
-      postId:       docRef.id,
-      activeCount,
-      timestamp:    new Date().toISOString(),
+      postId:             postRef.id,
+      activeCountBefore:  activeCount,
+      activeCountAfter:   activeCount + 1,
+      timestamp:          new Date().toISOString(),
     });
-    return { id: docRef.id };
+    return { id: postRef.id };
   }
 );
 
@@ -732,11 +761,25 @@ export const cleanupExpiredCommunityPosts = onSchedule(
     const bucket  = admin.storage().bucket();
     const now     = admin.firestore.Timestamp.now();
 
-    const snap = await db.collection('communityPosts')
-      .where('expiresAt', '<=', now)
-      .get();
+    // ── Collect posts to delete ──────────────────────────────────────────────
+    // Two independent queries — no composite index needed:
+    //   1. Posts whose expiry timestamp has passed (any status).
+    //   2. Posts explicitly removed by the owner (any expiry).
+    // We deduplicate by document ID so a removed+expired post is only counted once.
+    const [expiredSnap, removedSnap] = await Promise.all([
+      db.collection('communityPosts').where('expiresAt', '<=', now).get(),
+      db.collection('communityPosts').where('status',    '==', 'removed').get(),
+    ]);
 
-    if (snap.empty) {
+    // Deduplicate: use a Set to track IDs we've already included.
+    const seen    = new Set<string>();
+    const allDocs = [...expiredSnap.docs, ...removedSnap.docs].filter(doc => {
+      if (seen.has(doc.id)) return false;
+      seen.add(doc.id);
+      return true;
+    });
+
+    if (allDocs.length === 0) {
       logger.info('No expired community posts found', {
         functionName: 'cleanupExpiredCommunityPosts',
         timestamp:    new Date().toISOString(),
@@ -744,19 +787,30 @@ export const cleanupExpiredCommunityPosts = onSchedule(
       return;
     }
 
+    // ── Tally per-user decrements ────────────────────────────────────────────
+    // Multiple posts from the same user collapse into one batch.set() call,
+    // so we accumulate the total delta before building the batch.
+    const decrementByUid = new Map<string, number>();
+    for (const doc of allDocs) {
+      const userId = doc.data().userId as string | undefined;
+      if (userId) {
+        decrementByUid.set(userId, (decrementByUid.get(userId) ?? 0) + 1);
+      }
+    }
+
     let deletedPosts = 0;
     let deletedFiles = 0;
 
     const batch = db.batch();
 
-    for (const doc of snap.docs) {
+    // ── Delete Storage files and queue Firestore doc deletes ─────────────────
+    for (const doc of allDocs) {
       const data      = doc.data();
       const imageUrls = (data.imageUrls as string[]) ?? [];
 
       // Delete each Storage file derived from its download URL
       for (const url of imageUrls) {
         try {
-          // Extract the storage path from the download URL
           // URL format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?...
           const match = url.match(/\/o\/([^?]+)/);
           if (match) {
@@ -781,11 +835,25 @@ export const cleanupExpiredCommunityPosts = onSchedule(
       deletedPosts++;
     }
 
+    // ── Decrement activePostCount for every affected user ────────────────────
+    // merge: true handles the edge case where the user doc was deleted;
+    // FieldValue.increment on a missing field creates it at -delta (harmless,
+    // as the CF re-initialises on next create via merge: true).
+    for (const [userId, delta] of decrementByUid) {
+      const userRef = db.collection('users').doc(userId);
+      batch.set(
+        userRef,
+        { activePostCount: admin.firestore.FieldValue.increment(-delta) },
+        { merge: true },
+      );
+    }
+
     await batch.commit();
     logger.info('Expired community posts cleaned up', {
       functionName:  'cleanupExpiredCommunityPosts',
       deletedPosts,
       deletedFiles,
+      affectedUsers: decrementByUid.size,
       timestamp:     new Date().toISOString(),
     });
   }

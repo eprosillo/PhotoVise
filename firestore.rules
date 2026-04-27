@@ -4,9 +4,24 @@ service cloud.firestore {
 
     // ── Per-user data ──────────────────────────────────────────────────────────
     // All sessions, gear, journal, profile, bulletinState, etc. live here.
-    // Only the owner may read or write their own document.
+    // Only the owner may read or write their own document, with one exception:
+    // activePostCount is maintained exclusively by Cloud Functions (Admin SDK)
+    // and must never be writable from the client — otherwise the 3-post cap
+    // enforced in the Firestore rules below could be bypassed.
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      // Users may create their own profile, but may not initialise activePostCount.
+      allow create: if request.auth != null && request.auth.uid == uid
+                    && !('activePostCount' in request.resource.data);
+
+      // Users may update any profile field except activePostCount.
+      allow update: if request.auth != null && request.auth.uid == uid
+                    && !request.resource.data.diff(resource.data)
+                          .affectedKeys().hasAny(['activePostCount']);
+
+      // Users may delete their own profile (account-deletion flow).
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
     // ── Community posts ────────────────────────────────────────────────────────
@@ -15,9 +30,14 @@ service cloud.firestore {
       allow read: if request.auth != null;
 
       // Creates go through the validateAndCreateCommunityPost Cloud Function
-      // which uses the Admin SDK (bypasses rules) and enforces the 3-post limit.
-      // Allow direct client creates only for authenticated users as a fallback.
-      allow create: if request.auth != null;
+      // (Admin SDK, bypasses rules). This rule is a defence-in-depth gate that
+      // blocks any direct client write when the user already has 3 active posts.
+      // activePostCount is incremented by the CF on create and decremented on
+      // expiry/removal — and is write-protected on users/{uid} above, so it
+      // cannot be zeroed out to bypass this check.
+      allow create: if request.auth != null
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid))
+                          .data.get('activePostCount', 0) < 3;
 
       // Owners may only update their own post to set status = 'removed'.
       // All other fields are locked to prevent tampering.
