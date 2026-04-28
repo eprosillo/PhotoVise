@@ -221,6 +221,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const canGenerate = plannerSessions.size > 0 && WEEK_DAYS.some(d => availability[d].enabled);
 
+  // Maps each session status to what the photographer needs to do NEXT
+  const STATUS_NEXT_TASK: Record<SessionStatus, string> = {
+    capturing:   'NEXT: Shoot day — plan the shoot, location scout, and gear prep. The shutter has not been pressed yet.',
+    shot:        'NEXT: Cull — review and select the best frames from the shoot.',
+    culled:      'NEXT: Edit — process and retouch the selected images.',
+    edited:      'NEXT: Back up — export finals and back up all files.',
+    'backed up': 'NEXT: Deliver / post — send to client or publish online.',
+    posted:      'NEXT: Archive — organise and store the completed project.',
+    archived:    'NEXT: Complete — no remaining tasks.',
+  };
+
   const handleGenerate = async () => {
     if (!canGenerate) return;
     setIsGenerating(true);
@@ -232,11 +243,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       .map(s => {
         const lines = [
           `- Session: "${s.title || s.location || 'Untitled'}"`,
-          `  Date: ${s.date}`, `  Location: ${s.location || 'N/A'}`,
-          `  Genre: ${s.genre?.join(', ') || 'N/A'}`, `  Status: ${s.status}`,
+          `  Scheduled date: ${s.date}`,
+          `  Location: ${s.location || 'N/A'}`,
+          `  Genre: ${s.genre?.join(', ') || 'N/A'}`,
+          `  Current status: ${s.status}`,
+          `  ${STATUS_NEXT_TASK[s.status]}`,
         ];
-        if (s.strategy) lines.push(`  Strategy: ${s.strategy.slice(0, 400)}...`);
-        if (s.dayPlan)  lines.push(`  Day Plan: ${s.dayPlan.slice(0, 400)}...`);
+        if (s.strategy) lines.push(`  Existing strategy notes: ${s.strategy.slice(0, 400)}`);
+        if (s.dayPlan)  lines.push(`  Existing day plan notes: ${s.dayPlan.slice(0, 400)}`);
         return lines.join('\n');
       }).join('\n\n');
 
@@ -251,7 +265,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       })
       .join('\n');
 
-    const prompt = `You are a professional photography scheduling assistant. Create a practical shooting and workflow schedule for the photographer for the week of ${currentWeekLabel}.\n\nSESSIONS TO SCHEDULE:\n${selectedSessionData}\n\nPHOTOGRAPHER'S AVAILABLE DAYS & TIMES (use these exact dates):\n${availableDaysText}\n\nADDITIONAL CONSTRAINTS & NOTES:\n${limitations.trim() || 'None provided.'}\n\nTODAY'S DATE: ${toYMD(today)}\n\nINSTRUCTIONS:\n- Assign specific sessions or session tasks (scouting, shooting, culling, editing, backup) to the available dates listed above.\n- Use the exact dates (e.g. "Monday Apr 7") as headings for each day.\n- Respect the session's existing strategy and day plan — use them to inform which tasks fit each phase.\n- Keep shoots on days with enough time; avoid cramming multiple full shoots on the same day.\n- Include brief reasoning for each day's assignment (1 sentence).\n- End with a short prep checklist for before the week starts.\n- Format clearly with each day as a heading.`;
+    const prompt = `You are a professional photography scheduling assistant. Create a practical, forward-looking work schedule for the photographer for the week of ${currentWeekLabel}.
+
+SESSIONS TO PLAN:
+${selectedSessionData}
+
+PHOTOGRAPHER'S AVAILABLE DAYS & TIMES (use these exact dates):
+${availableDaysText}
+
+ADDITIONAL CONSTRAINTS & NOTES:
+${limitations.trim() || 'None provided.'}
+
+TODAY'S DATE: ${toYMD(today)}
+
+INSTRUCTIONS:
+- For each session, schedule ONLY the tasks that come NEXT based on its current status. Do not describe or summarise what has already been done.
+- Use the "NEXT" task label as your guide for what to assign this week.
+- A session with status "capturing" needs a shoot day — assign gear prep, scouting, and the shoot itself.
+- A session with status "shot" needs culling time — assign a focused review/selection block.
+- A session with status "culled" needs editing time — assign an editing block.
+- A session with status "edited" needs backup/export — assign a short backup block.
+- Use the exact dates provided (e.g. "Monday Apr 28") as headings for each day.
+- Respect existing strategy and day plan notes to inform timing and approach.
+- Avoid scheduling full shoot days back-to-back; spread heavy tasks across the week.
+- Include one sentence of reasoning per day explaining why that task fits that day.
+- End with a short prep checklist of things to do before the week starts.
+- Be concise and action-oriented. Do not add filler text.`;
 
     const result = await generateWeeklyPlan(prompt);
     setPlanResult(result);
@@ -558,11 +597,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-brand-black truncate">{s.title || s.location || 'Untitled'}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
                         <span className="text-xs text-brand-gray/60">{s.date}</span>
                         {s.strategy && <span className="text-xs text-brand-blue font-medium"><i className="fa-solid fa-bolt mr-0.5"></i>Strategy</span>}
                       </div>
+                      {s.genre && s.genre.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {s.genre.map(g => (
+                            <span key={g} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-brand-black/5 text-brand-gray/70">
+                              {g}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </button>
                 );
