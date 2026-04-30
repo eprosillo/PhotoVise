@@ -41,7 +41,7 @@ function requireAuth(auth) {
     return auth.uid;
 }
 // ── generateWeeklyPlan ────────────────────────────────────────────────────────
-exports.generateWeeklyPlan = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
+exports.generateWeeklyPlan = (0, https_1.onCall)({ secrets: [geminiApiKey], timeoutSeconds: 120 }, async (request) => {
     var _a;
     requireAuth(request.auth);
     const input = request.data.input;
@@ -68,7 +68,7 @@ exports.generateWeeklyPlan = (0, https_1.onCall)({ secrets: [geminiApiKey] }, as
     }
 });
 // ── generateAssignmentGuide ───────────────────────────────────────────────────
-exports.generateAssignmentGuide = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
+exports.generateAssignmentGuide = (0, https_1.onCall)({ secrets: [geminiApiKey], timeoutSeconds: 120 }, async (request) => {
     var _a;
     requireAuth(request.auth);
     const input = request.data.input;
@@ -95,7 +95,7 @@ exports.generateAssignmentGuide = (0, https_1.onCall)({ secrets: [geminiApiKey] 
     }
 });
 // ── askProQuestion ────────────────────────────────────────────────────────────
-exports.askProQuestion = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
+exports.askProQuestion = (0, https_1.onCall)({ secrets: [geminiApiKey], timeoutSeconds: 120 }, async (request) => {
     var _a;
     requireAuth(request.auth);
     const prompt = request.data.prompt;

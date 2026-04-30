@@ -12,8 +12,11 @@ import { CfeBulletinItem } from '../types';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getFn<T = unknown, R = unknown>(name: string) {
-  return httpsCallable<T, R>(functions, name);
+/** Default timeout for Gemini Cloud Function calls (ms). Matches server timeoutSeconds. */
+const GEMINI_TIMEOUT_MS = 120_000;
+
+function getFn<T = unknown, R = unknown>(name: string, timeoutMs = GEMINI_TIMEOUT_MS) {
+  return httpsCallable<T, R>(functions, name, { timeout: timeoutMs });
 }
 
 function handleError(error: unknown): string {

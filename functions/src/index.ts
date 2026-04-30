@@ -44,7 +44,7 @@ function requireAuth(auth: { uid: string } | undefined): string {
 
 // ── generateWeeklyPlan ────────────────────────────────────────────────────────
 export const generateWeeklyPlan = onCall(
-  { secrets: [geminiApiKey] },
+  { secrets: [geminiApiKey], timeoutSeconds: 120 },
   async (request) => {
     requireAuth(request.auth);
     const input = request.data.input as string;
@@ -73,7 +73,7 @@ export const generateWeeklyPlan = onCall(
 
 // ── generateAssignmentGuide ───────────────────────────────────────────────────
 export const generateAssignmentGuide = onCall(
-  { secrets: [geminiApiKey] },
+  { secrets: [geminiApiKey], timeoutSeconds: 120 },
   async (request) => {
     requireAuth(request.auth);
     const input = request.data.input as string;
@@ -102,7 +102,7 @@ export const generateAssignmentGuide = onCall(
 
 // ── askProQuestion ────────────────────────────────────────────────────────────
 export const askProQuestion = onCall(
-  { secrets: [geminiApiKey] },
+  { secrets: [geminiApiKey], timeoutSeconds: 120 },
   async (request) => {
     requireAuth(request.auth);
     const prompt = request.data.prompt as string;
