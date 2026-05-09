@@ -15,6 +15,7 @@ import { PHOTO_QUOTES } from './quotes';
 import { useAuth } from './AuthContext';
 import LoginScreen from './LoginScreen';
 import { useFirestore } from './hooks/useFirestore';
+import { toast } from './utils/toast';
 import { storage } from './firebase';
 import { ref as storageRef, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 
@@ -1064,6 +1065,34 @@ const App: React.FC = () => {
 
   const toggleScoutFavorite = (id: string) => {
     setScoutLocations(prev => prev.map(l => l.id === id ? { ...l, favorite: !l.favorite } : l));
+  };
+
+  const useLocationForAssignment = (location: ScoutLocation, sessionId: string) => {
+    // Build a compact scout-notes block to append to the session's notes field
+    const lines = [
+      `📍 SCOUTED LOCATION: ${location.name}`,
+      location.area                                        && `Area: ${location.area}`,
+      location.mapLink                                     && `Address: ${location.mapLink}`,
+      location.bestTime && location.bestTime !== 'Any Time' && `Best time: ${location.bestTime}`,
+      location.shotIdeas                                   && `Shot ideas: ${location.shotIdeas}`,
+      location.lightingNotes                               && `Lighting: ${location.lightingNotes}`,
+      location.accessNotes                                 && `Access: ${location.accessNotes}`,
+      location.safetyNotes                                 && `Safety: ${location.safetyNotes}`,
+      location.parkingNotes                                && `Parking/transit: ${location.parkingNotes}`,
+      location.backupSpot                                  && `Backup spot: ${location.backupSpot}`,
+    ].filter(Boolean).join('\n');
+
+    setSessions(prev => prev.map(s => {
+      if (s.id !== sessionId) return s;
+      const existingNotes = s.notes?.trim();
+      return { ...s, notes: existingNotes ? `${existingNotes}\n\n${lines}` : lines };
+    }));
+
+    // Link the scout location to this session
+    setScoutLocations(prev => prev.map(l => l.id === location.id ? { ...l, sessionId } : l));
+
+    toast.success(`Scout notes for "${location.name}" added to session.`);
+    setActiveTab('dashboard');
   };
 
   const addSession = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -3261,10 +3290,7 @@ const App: React.FC = () => {
             onUpdate={updateScoutLocation}
             onDelete={deleteScoutLocation}
             onToggleFavorite={toggleScoutFavorite}
-            onUseForAssignment={loc => {
-              // v2: pre-fill Assignment Mode with this location
-              console.info('Photovise: "Use for assignment" stub — location:', loc.name);
-            }}
+            onUseForAssignment={useLocationForAssignment}
           />
         </ErrorBoundary>
       )}

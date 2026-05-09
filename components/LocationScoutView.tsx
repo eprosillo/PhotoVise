@@ -323,7 +323,7 @@ interface LocationCardProps {
   onToggleFavorite: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
-  onUseForAssignment?: (location: ScoutLocation) => void;
+  onOpenAssignmentPicker: (location: ScoutLocation) => void;
   editingId: string | null;
   onSaveEdit: (id: string, data: Omit<ScoutLocation, 'id' | 'createdAt'>) => void;
   onCancelEdit: () => void;
@@ -334,7 +334,7 @@ function LocationCard({
   onToggleFavorite,
   onEdit,
   onDelete,
-  onUseForAssignment,
+  onOpenAssignmentPicker,
   editingId,
   onSaveEdit,
   onCancelEdit,
@@ -546,17 +546,14 @@ function LocationCard({
             </span>
           )}
         </div>
-        {/* "Use for assignment" stub */}
-        {onUseForAssignment && (
-          <button
-            onClick={() => onUseForAssignment(location)}
-            className="text-[11px] font-semibold text-brand-blue hover:text-brand-black border border-brand-blue/20 hover:border-brand-blue/60 rounded px-2.5 py-1 transition-all"
-            title="Coming in v2 — will attach this location to an assignment"
-          >
-            <i className="fa-solid fa-bolt text-[9px] mr-1" />
-            Use for assignment
-          </button>
-        )}
+        {/* Attach to session */}
+        <button
+          onClick={() => onOpenAssignmentPicker(location)}
+          className="text-[11px] font-semibold text-brand-blue hover:text-brand-black border border-brand-blue/20 hover:border-brand-blue/60 rounded px-2.5 py-1 transition-all"
+        >
+          <i className="fa-solid fa-bolt text-[9px] mr-1" />
+          Use for assignment
+        </button>
       </div>
     </div>
   );
@@ -571,8 +568,8 @@ interface LocationScoutViewProps {
   onUpdate: (location: ScoutLocation) => void;
   onDelete: (id: string) => void;
   onToggleFavorite: (id: string) => void;
-  /** Optional — stub that can later navigate to Assignment Planner with a pre-filled location */
-  onUseForAssignment?: (location: ScoutLocation) => void;
+  /** Attach a scout location to a session — called with the location and the chosen session id */
+  onUseForAssignment?: (location: ScoutLocation, sessionId: string) => void;
 }
 
 const LocationScoutView: React.FC<LocationScoutViewProps> = ({
@@ -598,6 +595,10 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
   const [filterTime, setFilterTime] = useState<BestTimeOfDay | 'All'>('All');
   const [filterFavorites, setFilterFavorites] = useState(false);
   const [filterSessionId, setFilterSessionId] = useState<string | 'All'>('All');
+
+  // ── "Use for assignment" session picker ───────────────────────────────────
+  const [pendingUseLocation, setPendingUseLocation] = useState<ScoutLocation | null>(null);
+  const [attachSessionId, setAttachSessionId] = useState<string | null>(null);
 
   // ── Session selector helpers ──────────────────────────────────────────────
 
@@ -1031,12 +1032,92 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
               onToggleFavorite={onToggleFavorite}
               onEdit={id => { setEditingId(id); setShowForm(false); }}
               onDelete={onDelete}
-              onUseForAssignment={onUseForAssignment}
+              onOpenAssignmentPicker={loc => { setPendingUseLocation(loc); setAttachSessionId(null); }}
               editingId={editingId}
               onSaveEdit={handleSaveEdit}
               onCancelEdit={() => setEditingId(null)}
             />
           ))}
+        </div>
+      )}
+
+      {/* ── Attach-to-session modal ───────────────────────────────────────── */}
+      {pendingUseLocation && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-start justify-between mb-1">
+              <h3 className="text-sm font-semibold text-brand-black leading-snug">
+                Attach to a session
+              </h3>
+              <button
+                onClick={() => { setPendingUseLocation(null); setAttachSessionId(null); }}
+                className="text-brand-black/20 hover:text-brand-black transition-colors ml-4 flex-shrink-0"
+              >
+                <i className="fa-solid fa-xmark" />
+              </button>
+            </div>
+            <p className="text-[11px] text-brand-gray mb-5">
+              Scout notes for <span className="font-semibold text-brand-black">{pendingUseLocation.name}</span> will be added to the session's notes on the dashboard.
+            </p>
+
+            {sessions.length === 0 ? (
+              <p className="text-xs text-brand-gray/60 italic py-4 text-center">No sessions yet. Add a session on the Dashboard first.</p>
+            ) : (
+              <div className="border border-brand-black/5 rounded-md max-h-60 overflow-y-auto mb-5 custom-scrollbar">
+                <div className="divide-y divide-brand-black/5">
+                  {sessions.map(s => {
+                    const isChosen = s.id === attachSessionId;
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => setAttachSessionId(s.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all hover:bg-brand-black/5 ${isChosen ? 'bg-brand-blue/5' : ''}`}
+                      >
+                        <div className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center transition-all ${isChosen ? 'bg-brand-blue border-brand-blue' : 'border-brand-black/20 bg-white'}`}>
+                          {isChosen && <i className="fa-solid fa-check text-[8px] text-white" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-bold text-brand-black truncate uppercase">
+                            {s.title || s.location}
+                          </p>
+                          <p className="text-[9px] text-brand-gray uppercase tracking-wider font-medium mt-0.5">
+                            {s.date} · {s.genre.join(', ')} · {s.status}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                disabled={!attachSessionId}
+                onClick={() => {
+                  if (attachSessionId && onUseForAssignment) {
+                    onUseForAssignment(pendingUseLocation, attachSessionId);
+                    setPendingUseLocation(null);
+                    setAttachSessionId(null);
+                  }
+                }}
+                className={`flex-1 text-sm font-semibold py-2.5 rounded-md transition-all active:scale-95 ${
+                  attachSessionId
+                    ? 'bg-brand-blue text-white hover:bg-[#7a93a0]'
+                    : 'bg-brand-black/5 text-brand-black/30 cursor-not-allowed'
+                }`}
+              >
+                <i className="fa-solid fa-bolt text-xs mr-1.5" />
+                Add to session
+              </button>
+              <button
+                onClick={() => { setPendingUseLocation(null); setAttachSessionId(null); }}
+                className="px-5 text-sm font-medium text-brand-gray hover:text-brand-black transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
