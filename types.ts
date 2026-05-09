@@ -220,6 +220,7 @@ export interface ScoutLocation {
   backupSpot: string;
   favorite: boolean;
   createdAt: number;       // Date.now() timestamp
+  sessionId?: string;      // optional link to the Session that generated this suggestion
 }
 
 export interface CommunityPost {

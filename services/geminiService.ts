@@ -78,6 +78,34 @@ export async function fetchLocationSuggestions(
   }
 }
 
+/** Shape returned by the suggestScoutLocations Cloud Function (no id/createdAt/favorite). */
+export interface ScoutLocationSuggestion {
+  name: string;
+  area: string;
+  mapLink: string;
+  tags: string[];
+  bestTime: string;
+  lightingNotes: string;
+  accessNotes: string;
+  safetyNotes: string;
+  parkingNotes: string;
+  shotIdeas: string;
+  backupSpot: string;
+}
+
+export async function suggestScoutLocations(
+  sessionContext: string,
+): Promise<ScoutLocationSuggestion[]> {
+  try {
+    const fn     = getFn<{ sessionContext: string }, { locations: ScoutLocationSuggestion[] }>('suggestScoutLocations');
+    const result = await fn({ sessionContext });
+    return result.data.locations ?? [];
+  } catch (error) {
+    console.error('Photovise: Scout location suggestions failed', error);
+    throw error; // re-throw so the UI can show the error
+  }
+}
+
 export async function fetchBulletinEvents(
   genre: string,
   region: string,

@@ -4,17 +4,21 @@
  * Assignment-first location scouting tool. Helps photographers save,
  * review, and choose shooting spots for class or professional assignments.
  *
- * Features (MVP):
+ * Features:
  * - Add / edit / delete saved locations
+ * - Select a saved session → AI suggests 3 tailored shooting locations
+ * - Save any AI suggestion to the scout list (auto-linked to the session)
  * - Assignment-fit tags, best time of day, and full notes suite
  * - Favorite toggle and "Works well for…" helper label
- * - Search + filter by name, tag, time, and favorites
+ * - Search + filter by name, tag, time, favorites, and linked session
  * - "Use for assignment" stub (prop wired up, no-op in v1)
  * - 3 seed locations visible on first open
  */
 
 import React, { useState, useMemo } from 'react';
-import { ScoutLocation, ScoutTag, BestTimeOfDay } from '../types';
+import { ScoutLocation, ScoutTag, BestTimeOfDay, Session } from '../types';
+import { suggestScoutLocations, ScoutLocationSuggestion } from '../services/geminiService';
+import { GENRE_ICONS } from '../constants';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -562,6 +566,7 @@ function LocationCard({
 
 interface LocationScoutViewProps {
   locations: ScoutLocation[];
+  sessions: Session[];
   onAdd: (location: ScoutLocation) => void;
   onUpdate: (location: ScoutLocation) => void;
   onDelete: (id: string) => void;
@@ -572,6 +577,7 @@ interface LocationScoutViewProps {
 
 const LocationScoutView: React.FC<LocationScoutViewProps> = ({
   locations,
+  sessions,
   onAdd,
   onUpdate,
   onDelete,
@@ -580,10 +586,84 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // ── Session-based AI suggestions ────────────────────────────────────────────
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [suggestions, setSuggestions] = useState<ScoutLocationSuggestion[]>([]);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [savedSuggestionIndexes, setSavedSuggestionIndexes] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTag, setFilterTag] = useState<ScoutTag | 'All'>('All');
   const [filterTime, setFilterTime] = useState<BestTimeOfDay | 'All'>('All');
   const [filterFavorites, setFilterFavorites] = useState(false);
+  const [filterSessionId, setFilterSessionId] = useState<string | 'All'>('All');
+
+  // ── Session selector helpers ──────────────────────────────────────────────
+
+  const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null;
+
+  const handleSelectSession = (id: string) => {
+    if (id === selectedSessionId) {
+      // Clicking the same session deselects it
+      setSelectedSessionId(null);
+      setSuggestions([]);
+      setSuggestionError(null);
+      setSavedSuggestionIndexes(new Set());
+    } else {
+      setSelectedSessionId(id);
+      setSuggestions([]);
+      setSuggestionError(null);
+      setSavedSuggestionIndexes(new Set());
+    }
+  };
+
+  const handleSuggest = async () => {
+    if (!selectedSession) return;
+    setIsSuggesting(true);
+    setSuggestions([]);
+    setSuggestionError(null);
+    setSavedSuggestionIndexes(new Set());
+
+    const context =
+      `Date: ${selectedSession.date}\n` +
+      `Location/area: ${selectedSession.location}\n` +
+      `Genre: ${selectedSession.genre.join(', ')}\n` +
+      `Assignment status: ${selectedSession.status}\n` +
+      (selectedSession.title ? `Title: ${selectedSession.title}\n` : '') +
+      (selectedSession.notes ? `Notes: ${selectedSession.notes}\n` : '');
+
+    try {
+      const results = await suggestScoutLocations(context);
+      setSuggestions(results);
+    } catch {
+      setSuggestionError('Photovise could not generate suggestions right now. Please try again.');
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
+  const handleSaveSuggestion = (suggestion: ScoutLocationSuggestion, index: number) => {
+    const location: ScoutLocation = {
+      id:            `scout_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      createdAt:     Date.now(),
+      favorite:      false,
+      sessionId:     selectedSessionId ?? undefined,
+      name:          suggestion.name,
+      area:          suggestion.area,
+      mapLink:       suggestion.mapLink,
+      tags:          suggestion.tags as ScoutTag[],
+      bestTime:      suggestion.bestTime,
+      lightingNotes: suggestion.lightingNotes,
+      accessNotes:   suggestion.accessNotes,
+      safetyNotes:   suggestion.safetyNotes,
+      parkingNotes:  suggestion.parkingNotes,
+      shotIdeas:     suggestion.shotIdeas,
+      backupSpot:    suggestion.backupSpot,
+    };
+    onAdd(location);
+    setSavedSuggestionIndexes(prev => new Set(prev).add(index));
+  };
 
   // ── CRUD handlers ─────────────────────────────────────────────────────────
 
@@ -615,13 +695,14 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
         loc.area.toLowerCase().includes(q) ||
         loc.tags.some(t => t.toLowerCase().includes(q));
 
-      const matchTag = filterTag === 'All' || loc.tags.includes(filterTag);
-      const matchTime = filterTime === 'All' || loc.bestTime === filterTime;
-      const matchFav = !filterFavorites || loc.favorite;
+      const matchTag     = filterTag      === 'All' || loc.tags.includes(filterTag);
+      const matchTime    = filterTime     === 'All' || loc.bestTime === filterTime;
+      const matchFav     = !filterFavorites          || loc.favorite;
+      const matchSession = filterSessionId === 'All' || loc.sessionId === filterSessionId;
 
-      return matchSearch && matchTag && matchTime && matchFav;
+      return matchSearch && matchTag && matchTime && matchFav && matchSession;
     });
-  }, [locations, searchQuery, filterTag, filterTime, filterFavorites]);
+  }, [locations, searchQuery, filterTag, filterTime, filterFavorites, filterSessionId]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -661,6 +742,180 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
             onCancel={() => setShowForm(false)}
             submitLabel="Save location"
           />
+        </section>
+      )}
+
+      {/* ── Session-based location suggestions ─────────────────────────── */}
+      {sessions.length > 0 && (
+        <section className="mb-10">
+          <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-black/40 mb-4">
+            Scout for a session
+          </h3>
+
+          {/* Session list — single-select */}
+          <div className="border border-brand-black/5 rounded-sm bg-white/50 max-h-52 overflow-y-auto custom-scrollbar mb-4">
+            <div className="divide-y divide-brand-black/5">
+              {sessions.map(session => {
+                const isSelected = session.id === selectedSessionId;
+                return (
+                  <button
+                    key={session.id}
+                    onClick={() => handleSelectSession(session.id)}
+                    className={`w-full flex items-center gap-4 px-5 py-3 transition-all hover:bg-brand-black/5 text-left group ${isSelected ? 'bg-brand-blue/5' : ''}`}
+                  >
+                    <div className={`w-4 h-4 rounded-full border transition-all flex items-center justify-center flex-shrink-0 ${
+                      isSelected ? 'bg-brand-blue border-brand-blue' : 'border-brand-black/20 bg-white group-hover:border-brand-blue/50'
+                    }`}>
+                      {isSelected && <i className="fa-solid fa-check text-[8px] text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-brand-black truncate">
+                          {session.title ? session.title.toUpperCase() : session.name.split('_').slice(1).join(' ').toUpperCase() || session.name.toUpperCase()}
+                        </span>
+                        <span className="text-[8px] text-brand-gray font-bold tracking-tighter">{session.date}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-brand-gray/60 text-[9px] font-medium truncate uppercase tracking-widest">
+                        <span>{session.location}</span>
+                        <span className="text-brand-black/10">•</span>
+                        <span>{session.genre.join(', ')}</span>
+                      </div>
+                    </div>
+                    <div className={`text-[10px] transition-colors flex-shrink-0 ${isSelected ? 'text-brand-blue' : 'text-brand-gray/30'}`}>
+                      {GENRE_ICONS[session.genre[0]]}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Suggest button */}
+          {selectedSession && (
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                onClick={handleSuggest}
+                disabled={isSuggesting}
+                className={`flex items-center gap-2 text-sm font-semibold rounded-md py-2.5 px-6 transition-all active:scale-95 shadow-sm ${
+                  isSuggesting
+                    ? 'bg-brand-black/10 text-brand-black/40 cursor-not-allowed'
+                    : 'bg-brand-blue text-white hover:bg-[#7a93a0]'
+                }`}
+              >
+                {isSuggesting ? (
+                  <>
+                    <i className="fa-solid fa-circle-notch fa-spin text-sm" />
+                    Scouting locations…
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-wand-sparkles text-sm" />
+                    Suggest locations for this session
+                  </>
+                )}
+              </button>
+              <p className="text-[11px] text-brand-gray/60 italic">
+                AI will suggest 3 shooting spots based on{' '}
+                <span className="font-semibold text-brand-black/60 not-italic">
+                  {selectedSession.title || selectedSession.location} ({selectedSession.genre.join(', ')})
+                </span>
+              </p>
+            </div>
+          )}
+
+          {/* Error */}
+          {suggestionError && (
+            <p className="mt-3 text-xs text-brand-rose">{suggestionError}</p>
+          )}
+
+          {/* Suggestion cards */}
+          {suggestions.length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px flex-1 bg-brand-blue/10" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-blue/60">
+                  AI suggestions for {selectedSession?.title || selectedSession?.location}
+                </span>
+                <div className="h-px flex-1 bg-brand-blue/10" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {suggestions.map((s, idx) => {
+                  const isSaved = savedSuggestionIndexes.has(idx);
+                  const helper = worksWellFor(s.tags as ScoutTag[]);
+                  return (
+                    <div
+                      key={idx}
+                      className={`rounded-lg border p-5 transition-all ${
+                        isSaved
+                          ? 'bg-emerald-50 border-emerald-200'
+                          : 'bg-brand-blue/3 border-brand-blue/15 hover:border-brand-blue/30'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <h4 className="text-sm font-semibold text-brand-black leading-snug">{s.name}</h4>
+                          {s.area && <p className="text-[11px] text-brand-gray mt-0.5">{s.area}</p>}
+                        </div>
+                        {isSaved && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded flex-shrink-0">
+                            Saved
+                          </span>
+                        )}
+                      </div>
+
+                      {s.mapLink && (
+                        <p className="text-[11px] text-brand-gray/70 flex items-start gap-1 mb-2">
+                          <i className="fa-solid fa-location-dot text-[9px] mt-0.5 flex-shrink-0" />
+                          {s.mapLink}
+                        </p>
+                      )}
+
+                      {s.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {s.tags.map(tag => (
+                            <span key={tag} className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-brand-blue/10 text-brand-blue border border-brand-blue/10">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {s.bestTime && s.bestTime !== 'Any Time' && (
+                        <p className="text-[11px] text-brand-gray flex items-center gap-1 mb-1">
+                          <i className="fa-regular fa-clock text-[9px]" />
+                          {s.bestTime}
+                        </p>
+                      )}
+
+                      {helper && (
+                        <p className="text-[10px] text-brand-gray/60 italic mb-3 leading-snug">Works well for: {helper}</p>
+                      )}
+
+                      {s.shotIdeas && (
+                        <p className="text-[11px] text-brand-black/70 leading-relaxed mb-3 line-clamp-3">{s.shotIdeas}</p>
+                      )}
+
+                      <button
+                        onClick={() => handleSaveSuggestion(s, idx)}
+                        disabled={isSaved}
+                        className={`w-full mt-auto text-xs font-semibold py-2 rounded transition-all ${
+                          isSaved
+                            ? 'bg-emerald-100 text-emerald-600 cursor-default'
+                            : 'bg-brand-blue text-white hover:bg-[#7a93a0] active:scale-95'
+                        }`}
+                      >
+                        {isSaved ? (
+                          <><i className="fa-solid fa-check mr-1.5" />Saved to scout list</>
+                        ) : (
+                          <><i className="fa-solid fa-plus mr-1.5" />Save to scout list</>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -712,8 +967,26 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
             Favorites
           </button>
 
+          {/* Session filter — only shown when there are locations linked to sessions */}
+          {locations.some(l => l.sessionId) && (
+            <select
+              value={filterSessionId}
+              onChange={e => setFilterSessionId(e.target.value)}
+              className="text-xs bg-white border border-brand-black/10 rounded-md px-3 py-2.5 focus:ring-1 focus:ring-brand-blue outline-none text-brand-black"
+            >
+              <option value="All">All sessions</option>
+              {sessions
+                .filter(s => locations.some(l => l.sessionId === s.id))
+                .map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.title || s.location} ({s.date})
+                  </option>
+                ))}
+            </select>
+          )}
+
           {/* Result count */}
-          {(searchQuery || filterTag !== 'All' || filterTime !== 'All' || filterFavorites) && (
+          {(searchQuery || filterTag !== 'All' || filterTime !== 'All' || filterFavorites || filterSessionId !== 'All') && (
             <span className="text-xs text-brand-gray/60 font-medium ml-1">
               {filtered.length} of {locations.length}
             </span>
@@ -743,7 +1016,7 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
         <div className="py-16 text-center border border-dashed border-brand-gray/20 rounded-lg">
           <p className="text-brand-gray text-xs">No locations match your current filters.</p>
           <button
-            onClick={() => { setSearchQuery(''); setFilterTag('All'); setFilterTime('All'); setFilterFavorites(false); }}
+            onClick={() => { setSearchQuery(''); setFilterTag('All'); setFilterTime('All'); setFilterFavorites(false); setFilterSessionId('All'); }}
             className="mt-3 text-xs text-brand-blue hover:underline"
           >
             Clear filters

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupExpiredCommunityPosts = exports.ratePost = exports.validateAndCreateCommunityPost = exports.processGeminiQueue = exports.enqueueGeminiRequest = exports.fetchBulletinEvents = exports.fetchLocationSuggestions = exports.askProQuestion = exports.generateAssignmentGuide = exports.generateWeeklyPlan = void 0;
+exports.cleanupExpiredCommunityPosts = exports.ratePost = exports.validateAndCreateCommunityPost = exports.processGeminiQueue = exports.enqueueGeminiRequest = exports.suggestScoutLocations = exports.fetchBulletinEvents = exports.fetchLocationSuggestions = exports.askProQuestion = exports.generateAssignmentGuide = exports.generateWeeklyPlan = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const params_1 = require("firebase-functions/params");
@@ -360,6 +360,92 @@ async function runGeminiForFunction(functionName, payload) {
     }
     throw new https_1.HttpsError('invalid-argument', `Unknown function name: ${functionName}`);
 }
+// ── suggestScoutLocations ─────────────────────────────────────────────────────
+// Given a session context string, asks Gemini for 2-3 real, specific shooting
+// locations that fit the assignment's genre, area, and status.
+const VALID_SCOUT_TAGS = new Set([
+    'Architecture', 'Landscape', 'Street', 'Photojournalism',
+    'Abstraction', 'People', 'Composition', 'Blue Hour', 'Golden Hour',
+]);
+const VALID_BEST_TIMES = new Set([
+    'Sunrise', 'Early Morning', 'Morning', 'Midday', 'Afternoon',
+    'Golden Hour', 'Blue Hour', 'Night', 'Any Time',
+]);
+function sanitiseScoutSuggestion(raw) {
+    return {
+        name: typeof raw.name === 'string' ? raw.name.trim() : 'Unnamed location',
+        area: typeof raw.area === 'string' ? raw.area.trim() : '',
+        mapLink: typeof raw.mapLink === 'string' ? raw.mapLink.trim() : '',
+        tags: Array.isArray(raw.tags)
+            ? raw.tags.filter(t => typeof t === 'string' && VALID_SCOUT_TAGS.has(t))
+            : [],
+        bestTime: typeof raw.bestTime === 'string' && VALID_BEST_TIMES.has(raw.bestTime) ? raw.bestTime : 'Any Time',
+        lightingNotes: typeof raw.lightingNotes === 'string' ? raw.lightingNotes.trim() : '',
+        accessNotes: typeof raw.accessNotes === 'string' ? raw.accessNotes.trim() : '',
+        safetyNotes: typeof raw.safetyNotes === 'string' ? raw.safetyNotes.trim() : '',
+        parkingNotes: typeof raw.parkingNotes === 'string' ? raw.parkingNotes.trim() : '',
+        shotIdeas: typeof raw.shotIdeas === 'string' ? raw.shotIdeas.trim() : '',
+        backupSpot: typeof raw.backupSpot === 'string' ? raw.backupSpot.trim() : '',
+    };
+}
+exports.suggestScoutLocations = (0, https_1.onCall)({ secrets: [geminiApiKey], timeoutSeconds: 120 }, async (request) => {
+    var _a;
+    requireAuth(request.auth);
+    const { sessionContext } = request.data;
+    if (!(sessionContext === null || sessionContext === void 0 ? void 0 : sessionContext.trim()))
+        throw new https_1.HttpsError('invalid-argument', 'sessionContext is required');
+    const prompt = `You are a photography location scout. Based on the session context below, suggest exactly 3 specific, ` +
+        `real-world shooting locations that fit the assignment's genre, area, and needs.\n\n` +
+        `SESSION CONTEXT:\n${sessionContext}\n\n` +
+        `Return ONLY a valid JSON array — no markdown fences, no explanation. Each object must match this schema exactly:\n` +
+        `[{"name":"","area":"","mapLink":"full street address","tags":[],"bestTime":"","lightingNotes":"","accessNotes":"","safetyNotes":"","parkingNotes":"","shotIdeas":"","backupSpot":""}]\n\n` +
+        `Valid "tags" values (use only these): Architecture, Landscape, Street, Photojournalism, Abstraction, People, Composition, Blue Hour, Golden Hour\n` +
+        `Valid "bestTime" values (use only these): Sunrise, Early Morning, Morning, Midday, Afternoon, Golden Hour, Blue Hour, Night, Any Time\n\n` +
+        `Rules:\n` +
+        `- Suggest real, named places — not generic descriptions.\n` +
+        `- If the session has a city or area, prioritise locations there.\n` +
+        `- Make shotIdeas concrete and specific to the session's genre.\n` +
+        `- Include 3 locations.`;
+    try {
+        const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
+        const response = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: prompt,
+            config: { systemInstruction: SYSTEM_INSTRUCTION },
+        });
+        const raw = (response.text || '').trim();
+        // Strip optional markdown fences
+        const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+        let parsed;
+        try {
+            parsed = JSON.parse(cleaned);
+        }
+        catch (_b) {
+            firebase_functions_1.logger.warn('suggestScoutLocations: JSON parse failed', { raw: raw.slice(0, 200) });
+            throw new https_1.HttpsError('internal', 'Location suggestions could not be parsed.');
+        }
+        if (!Array.isArray(parsed)) {
+            throw new https_1.HttpsError('internal', 'Unexpected response shape from location scout.');
+        }
+        const locations = parsed
+            .slice(0, 3)
+            .filter(item => item && typeof item === 'object')
+            .map(sanitiseScoutSuggestion);
+        return { locations };
+    }
+    catch (e) {
+        if (e instanceof https_1.HttpsError)
+            throw e;
+        firebase_functions_1.logger.error('Gemini API call failed', {
+            functionName: 'suggestScoutLocations',
+            uid: (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid,
+            errorCode: e instanceof Error ? e.constructor.name : 'UnknownError',
+            errorMessage: e instanceof Error ? e.message : String(e),
+            timestamp: new Date().toISOString(),
+        });
+        throw new https_1.HttpsError('internal', 'Photovise is temporarily unreachable.');
+    }
+});
 // ── enqueueGeminiRequest ──────────────────────────────────────────────────────
 // Accepts a functionName + payload from the client, writes a pending job to
 // geminiQueue, and returns the jobId immediately. The queue processor runs

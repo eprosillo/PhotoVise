@@ -3256,6 +3256,7 @@ const App: React.FC = () => {
         <ErrorBoundary>
           <LocationScoutView
             locations={scoutLocations}
+            sessions={sessions}
             onAdd={addScoutLocation}
             onUpdate={updateScoutLocation}
             onDelete={deleteScoutLocation}

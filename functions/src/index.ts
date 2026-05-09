@@ -400,6 +400,115 @@ async function runGeminiForFunction(
   throw new HttpsError('invalid-argument', `Unknown function name: ${functionName}`);
 }
 
+// ── suggestScoutLocations ─────────────────────────────────────────────────────
+// Given a session context string, asks Gemini for 2-3 real, specific shooting
+// locations that fit the assignment's genre, area, and status.
+const VALID_SCOUT_TAGS = new Set([
+  'Architecture', 'Landscape', 'Street', 'Photojournalism',
+  'Abstraction', 'People', 'Composition', 'Blue Hour', 'Golden Hour',
+]);
+const VALID_BEST_TIMES = new Set([
+  'Sunrise', 'Early Morning', 'Morning', 'Midday', 'Afternoon',
+  'Golden Hour', 'Blue Hour', 'Night', 'Any Time',
+]);
+
+interface RawScoutSuggestion {
+  name?: unknown;
+  area?: unknown;
+  mapLink?: unknown;
+  tags?: unknown;
+  bestTime?: unknown;
+  lightingNotes?: unknown;
+  accessNotes?: unknown;
+  safetyNotes?: unknown;
+  parkingNotes?: unknown;
+  shotIdeas?: unknown;
+  backupSpot?: unknown;
+}
+
+function sanitiseScoutSuggestion(raw: RawScoutSuggestion) {
+  return {
+    name:          typeof raw.name         === 'string' ? raw.name.trim()         : 'Unnamed location',
+    area:          typeof raw.area         === 'string' ? raw.area.trim()         : '',
+    mapLink:       typeof raw.mapLink      === 'string' ? raw.mapLink.trim()      : '',
+    tags:          Array.isArray(raw.tags)
+                     ? (raw.tags as unknown[]).filter(t => typeof t === 'string' && VALID_SCOUT_TAGS.has(t as string)) as string[]
+                     : [],
+    bestTime:      typeof raw.bestTime === 'string' && VALID_BEST_TIMES.has(raw.bestTime) ? raw.bestTime : 'Any Time',
+    lightingNotes: typeof raw.lightingNotes === 'string' ? raw.lightingNotes.trim() : '',
+    accessNotes:   typeof raw.accessNotes   === 'string' ? raw.accessNotes.trim()   : '',
+    safetyNotes:   typeof raw.safetyNotes   === 'string' ? raw.safetyNotes.trim()   : '',
+    parkingNotes:  typeof raw.parkingNotes  === 'string' ? raw.parkingNotes.trim()  : '',
+    shotIdeas:     typeof raw.shotIdeas     === 'string' ? raw.shotIdeas.trim()     : '',
+    backupSpot:    typeof raw.backupSpot    === 'string' ? raw.backupSpot.trim()    : '',
+  };
+}
+
+export const suggestScoutLocations = onCall(
+  { secrets: [geminiApiKey], timeoutSeconds: 120 },
+  async (request) => {
+    requireAuth(request.auth);
+    const { sessionContext } = request.data as { sessionContext: string };
+    if (!sessionContext?.trim()) throw new HttpsError('invalid-argument', 'sessionContext is required');
+
+    const prompt =
+      `You are a photography location scout. Based on the session context below, suggest exactly 3 specific, ` +
+      `real-world shooting locations that fit the assignment's genre, area, and needs.\n\n` +
+      `SESSION CONTEXT:\n${sessionContext}\n\n` +
+      `Return ONLY a valid JSON array — no markdown fences, no explanation. Each object must match this schema exactly:\n` +
+      `[{"name":"","area":"","mapLink":"full street address","tags":[],"bestTime":"","lightingNotes":"","accessNotes":"","safetyNotes":"","parkingNotes":"","shotIdeas":"","backupSpot":""}]\n\n` +
+      `Valid "tags" values (use only these): Architecture, Landscape, Street, Photojournalism, Abstraction, People, Composition, Blue Hour, Golden Hour\n` +
+      `Valid "bestTime" values (use only these): Sunrise, Early Morning, Morning, Midday, Afternoon, Golden Hour, Blue Hour, Night, Any Time\n\n` +
+      `Rules:\n` +
+      `- Suggest real, named places — not generic descriptions.\n` +
+      `- If the session has a city or area, prioritise locations there.\n` +
+      `- Make shotIdeas concrete and specific to the session's genre.\n` +
+      `- Include 3 locations.`;
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+      const response = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: prompt,
+        config: { systemInstruction: SYSTEM_INSTRUCTION },
+      });
+
+      const raw = (response.text || '').trim();
+      // Strip optional markdown fences
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch {
+        logger.warn('suggestScoutLocations: JSON parse failed', { raw: raw.slice(0, 200) });
+        throw new HttpsError('internal', 'Location suggestions could not be parsed.');
+      }
+
+      if (!Array.isArray(parsed)) {
+        throw new HttpsError('internal', 'Unexpected response shape from location scout.');
+      }
+
+      const locations = (parsed as RawScoutSuggestion[])
+        .slice(0, 3)
+        .filter(item => item && typeof item === 'object')
+        .map(sanitiseScoutSuggestion);
+
+      return { locations };
+    } catch (e) {
+      if (e instanceof HttpsError) throw e;
+      logger.error('Gemini API call failed', {
+        functionName: 'suggestScoutLocations',
+        uid:          request.auth?.uid,
+        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
+        errorMessage: e instanceof Error ? e.message : String(e),
+        timestamp:    new Date().toISOString(),
+      });
+      throw new HttpsError('internal', 'Photovise is temporarily unreachable.');
+    }
+  }
+);
+
 // ── enqueueGeminiRequest ──────────────────────────────────────────────────────
 // Accepts a functionName + payload from the client, writes a pending job to
 // geminiQueue, and returns the jobId immediately. The queue processor runs
