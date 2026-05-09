@@ -1068,30 +1068,26 @@ const App: React.FC = () => {
   };
 
   const useLocationForAssignment = (location: ScoutLocation, sessionId: string) => {
-    // Build a compact scout-notes block to append to the session's notes field
-    const lines = [
-      `📍 SCOUTED LOCATION: ${location.name}`,
-      location.area                                        && `Area: ${location.area}`,
-      location.mapLink                                     && `Address: ${location.mapLink}`,
-      location.bestTime && location.bestTime !== 'Any Time' && `Best time: ${location.bestTime}`,
-      location.shotIdeas                                   && `Shot ideas: ${location.shotIdeas}`,
-      location.lightingNotes                               && `Lighting: ${location.lightingNotes}`,
-      location.accessNotes                                 && `Access: ${location.accessNotes}`,
-      location.safetyNotes                                 && `Safety: ${location.safetyNotes}`,
-      location.parkingNotes                                && `Parking/transit: ${location.parkingNotes}`,
-      location.backupSpot                                  && `Backup spot: ${location.backupSpot}`,
+    // Build the scout notes block stored in session.scoutNotes (same pattern as strategy/dayPlan)
+    const scoutNotes = [
+      `${location.name}${location.area ? ` — ${location.area}` : ''}`,
+      location.mapLink                                       && `Address: ${location.mapLink}`,
+      location.bestTime && location.bestTime !== 'Any Time'  && `Best time: ${location.bestTime}`,
+      location.tags?.length                                  && `Tags: ${location.tags.join(', ')}`,
+      location.shotIdeas                                     && `Shot ideas: ${location.shotIdeas}`,
+      location.lightingNotes                                 && `Lighting: ${location.lightingNotes}`,
+      location.accessNotes                                   && `Access: ${location.accessNotes}`,
+      location.safetyNotes                                   && `Safety: ${location.safetyNotes}`,
+      location.parkingNotes                                  && `Parking/transit: ${location.parkingNotes}`,
+      location.backupSpot                                    && `Backup spot: ${location.backupSpot}`,
     ].filter(Boolean).join('\n');
 
-    setSessions(prev => prev.map(s => {
-      if (s.id !== sessionId) return s;
-      const existingNotes = s.notes?.trim();
-      return { ...s, notes: existingNotes ? `${existingNotes}\n\n${lines}` : lines };
-    }));
+    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, scoutNotes } : s));
 
     // Link the scout location to this session
     setScoutLocations(prev => prev.map(l => l.id === location.id ? { ...l, sessionId } : l));
 
-    toast.success(`Scout notes for "${location.name}" added to session.`);
+    toast.success(`"${location.name}" attached to session.`);
     setActiveTab('dashboard');
   };
 

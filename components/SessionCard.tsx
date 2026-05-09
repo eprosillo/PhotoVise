@@ -41,6 +41,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
   const [editNotes, setEditNotes] = useState(session.notes);
   const [strategyExpanded, setStrategyExpanded] = useState(false);
   const [dayPlanExpanded, setDayPlanExpanded] = useState(false);
+  const [scoutExpanded, setScoutExpanded] = useState(false);
 
   const getStatusColor = (status: SessionStatus) => {
     switch (status) {
@@ -122,7 +123,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
             placeholder="Notes / creative brief"
             className="w-full border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20 min-h-[70px]"
           />
-          {(session.strategy || session.dayPlan) && (
+          {(session.strategy || session.dayPlan || session.scoutNotes) && (
             <div className="pt-2 space-y-2">
               <p className="text-xs font-medium text-brand-black/30">Attached documents</p>
               {session.strategy && (
@@ -150,6 +151,21 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
                     onClick={() => onUpdate(session.id, { dayPlan: undefined })}
                     className="text-brand-black/20 hover:text-brand-rose transition-colors text-[10px]"
                     title="Remove day plan"
+                  >
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              )}
+              {session.scoutNotes && (
+                <div className="flex items-center justify-between px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-md">
+                  <div className="flex items-center gap-2">
+                    <i className="fa-solid fa-map-pin text-emerald-600 text-[9px]"></i>
+                    <span className="text-xs font-medium text-emerald-600">Scouted Location</span>
+                  </div>
+                  <button
+                    onClick={() => onUpdate(session.id, { scoutNotes: undefined })}
+                    className="text-brand-black/20 hover:text-brand-rose transition-colors text-[10px]"
+                    title="Remove scouted location"
                   >
                     <i className="fa-solid fa-xmark"></i>
                   </button>
@@ -271,7 +287,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
         )}
 
         {session.dayPlan && (
-          <div className="mb-8 border border-brand-rose/20 rounded-lg overflow-hidden">
+          <div className="mb-4 border border-brand-rose/20 rounded-lg overflow-hidden">
             <button
               onClick={() => setDayPlanExpanded(v => !v)}
               className="w-full flex items-center justify-between px-4 py-3 bg-brand-rose/5 hover:bg-brand-rose/10 transition-colors"
@@ -285,6 +301,28 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
             {dayPlanExpanded && (
               <div className="p-4 bg-white border-t border-brand-rose/10 max-h-72 overflow-y-auto custom-scrollbar">
                 {session.dayPlan.split('\n').map((line, i) => (
+                  <p key={i} className="text-sm text-brand-black/80 leading-relaxed mb-2 last:mb-0 whitespace-pre-wrap">{line}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {session.scoutNotes && (
+          <div className="mb-8 border border-emerald-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setScoutExpanded(v => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-emerald-50 hover:bg-emerald-100/60 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <i className="fa-solid fa-map-pin text-emerald-600 text-[10px]"></i>
+                <span className="text-xs font-semibold text-emerald-600">Scouted Location</span>
+              </div>
+              <i className={`fa-solid fa-chevron-${scoutExpanded ? 'up' : 'down'} text-emerald-400 text-[9px]`}></i>
+            </button>
+            {scoutExpanded && (
+              <div className="p-4 bg-white border-t border-emerald-100 max-h-72 overflow-y-auto custom-scrollbar">
+                {session.scoutNotes.split('\n').map((line, i) => (
                   <p key={i} className="text-sm text-brand-black/80 leading-relaxed mb-2 last:mb-0 whitespace-pre-wrap">{line}</p>
                 ))}
               </div>

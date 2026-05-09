@@ -43,6 +43,7 @@ export interface Session {
   notes: string;
   strategy?: string;
   dayPlan?: string;
+  scoutNotes?: string;
 }
 
 export type GearCategory = 'Body' | 'Lens' | 'Flash' | 'Modifier' | 'Support' | 'Accessory';
