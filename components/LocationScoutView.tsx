@@ -585,7 +585,9 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // ── Session-based AI suggestions ────────────────────────────────────────────
+  const OTHER_ID = '__other__';
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [scoutContext, setScoutContext] = useState('');
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestions, setSuggestions] = useState<ScoutLocationSuggestion[]>([]);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
@@ -602,37 +604,42 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
 
   // ── Session selector helpers ──────────────────────────────────────────────
 
-  const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null;
+  const isOtherSelected  = selectedSessionId === OTHER_ID;
+  const selectedSession  = sessions.find(s => s.id === selectedSessionId) ?? null;
+  const anythingSelected = selectedSessionId !== null;
+  const canSuggest       = anythingSelected && (isOtherSelected ? scoutContext.trim().length > 0 : true);
 
   const handleSelectSession = (id: string) => {
     if (id === selectedSessionId) {
-      // Clicking the same session deselects it
       setSelectedSessionId(null);
-      setSuggestions([]);
-      setSuggestionError(null);
-      setSavedSuggestionIndexes(new Set());
     } else {
       setSelectedSessionId(id);
-      setSuggestions([]);
-      setSuggestionError(null);
-      setSavedSuggestionIndexes(new Set());
     }
+    setSuggestions([]);
+    setSuggestionError(null);
+    setSavedSuggestionIndexes(new Set());
   };
 
   const handleSuggest = async () => {
-    if (!selectedSession) return;
+    if (!canSuggest) return;
     setIsSuggesting(true);
     setSuggestions([]);
     setSuggestionError(null);
     setSavedSuggestionIndexes(new Set());
 
-    const context =
-      `Date: ${selectedSession.date}\n` +
-      `Location/area: ${selectedSession.location}\n` +
-      `Genre: ${selectedSession.genre.join(', ')}\n` +
-      `Assignment status: ${selectedSession.status}\n` +
-      (selectedSession.title ? `Title: ${selectedSession.title}\n` : '') +
-      (selectedSession.notes ? `Notes: ${selectedSession.notes}\n` : '');
+    const sessionPart = selectedSession
+      ? `Date: ${selectedSession.date}\n` +
+        `Location/area: ${selectedSession.location}\n` +
+        `Genre: ${selectedSession.genre.join(', ')}\n` +
+        `Assignment status: ${selectedSession.status}\n` +
+        (selectedSession.title ? `Title: ${selectedSession.title}\n` : '') +
+        (selectedSession.notes ? `Notes: ${selectedSession.notes}\n` : '')
+      : '';
+
+    const context = [
+      sessionPart,
+      scoutContext.trim() ? `Photoshoot type / additional context: ${scoutContext.trim()}` : '',
+    ].filter(Boolean).join('\n');
 
     try {
       const results = await suggestScoutLocations(context);
@@ -649,7 +656,7 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
       id:            `scout_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       createdAt:     Date.now(),
       favorite:      false,
-      sessionId:     selectedSessionId ?? undefined,
+      sessionId:     isOtherSelected ? undefined : (selectedSessionId ?? undefined),
       name:          suggestion.name,
       area:          suggestion.area,
       mapLink:       suggestion.mapLink,
@@ -747,59 +754,96 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
       )}
 
       {/* ── Session-based location suggestions ─────────────────────────── */}
-      {sessions.length > 0 && (
-        <section className="mb-10">
+      <section className="mb-10">
           <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-black/40 mb-4">
-            Scout for a session
+            Scout locations
           </h3>
 
-          {/* Session list — single-select */}
-          <div className="border border-brand-black/5 rounded-sm bg-white/50 max-h-52 overflow-y-auto custom-scrollbar mb-4">
-            <div className="divide-y divide-brand-black/5">
-              {sessions.map(session => {
-                const isSelected = session.id === selectedSessionId;
-                return (
-                  <button
-                    key={session.id}
-                    onClick={() => handleSelectSession(session.id)}
-                    className={`w-full flex items-center gap-4 px-5 py-3 transition-all hover:bg-brand-black/5 text-left group ${isSelected ? 'bg-brand-blue/5' : ''}`}
-                  >
-                    <div className={`w-4 h-4 rounded-full border transition-all flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? 'bg-brand-blue border-brand-blue' : 'border-brand-black/20 bg-white group-hover:border-brand-blue/50'
-                    }`}>
-                      {isSelected && <i className="fa-solid fa-check text-[8px] text-white" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-brand-black truncate">
-                          {session.title ? session.title.toUpperCase() : session.name.split('_').slice(1).join(' ').toUpperCase() || session.name.toUpperCase()}
-                        </span>
-                        <span className="text-[8px] text-brand-gray font-bold tracking-tighter">{session.date}</span>
+          {/* Session list — single-select (only shown when sessions exist) */}
+          {sessions.length > 0 && (
+            <div className="border border-brand-black/5 rounded-sm bg-white/50 max-h-52 overflow-y-auto custom-scrollbar mb-4">
+              <div className="divide-y divide-brand-black/5">
+                {sessions.map(session => {
+                  const isSelected = session.id === selectedSessionId;
+                  return (
+                    <button
+                      key={session.id}
+                      onClick={() => handleSelectSession(session.id)}
+                      className={`w-full flex items-center gap-4 px-5 py-3 transition-all hover:bg-brand-black/5 text-left group ${isSelected ? 'bg-brand-blue/5' : ''}`}
+                    >
+                      <div className={`w-4 h-4 rounded-full border transition-all flex items-center justify-center flex-shrink-0 ${
+                        isSelected ? 'bg-brand-blue border-brand-blue' : 'border-brand-black/20 bg-white group-hover:border-brand-blue/50'
+                      }`}>
+                        {isSelected && <i className="fa-solid fa-check text-[8px] text-white" />}
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-brand-gray/60 text-[9px] font-medium truncate uppercase tracking-widest">
-                        <span>{session.location}</span>
-                        <span className="text-brand-black/10">•</span>
-                        <span>{session.genre.join(', ')}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-brand-black truncate">
+                            {session.title ? session.title.toUpperCase() : session.name.split('_').slice(1).join(' ').toUpperCase() || session.name.toUpperCase()}
+                          </span>
+                          <span className="text-[8px] text-brand-gray font-bold tracking-tighter">{session.date}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 text-brand-gray/60 text-[9px] font-medium truncate uppercase tracking-widest">
+                          <span>{session.location}</span>
+                          <span className="text-brand-black/10">•</span>
+                          <span>{session.genre.join(', ')}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className={`text-[10px] transition-colors flex-shrink-0 ${isSelected ? 'text-brand-blue' : 'text-brand-gray/30'}`}>
-                      {GENRE_ICONS[session.genre[0]]}
-                    </div>
-                  </button>
-                );
-              })}
+                      <div className={`text-[10px] transition-colors flex-shrink-0 ${isSelected ? 'text-brand-blue' : 'text-brand-gray/30'}`}>
+                        {GENRE_ICONS[session.genre[0]]}
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {/* Other option */}
+                <button
+                  onClick={() => handleSelectSession(OTHER_ID)}
+                  className={`w-full flex items-center gap-4 px-5 py-3 transition-all hover:bg-brand-black/5 text-left group ${isOtherSelected ? 'bg-brand-blue/5' : ''}`}
+                >
+                  <div className={`w-4 h-4 rounded-full border transition-all flex items-center justify-center flex-shrink-0 ${
+                    isOtherSelected ? 'bg-brand-blue border-brand-blue' : 'border-brand-black/20 bg-white group-hover:border-brand-blue/50'
+                  }`}>
+                    {isOtherSelected && <i className="fa-solid fa-check text-[8px] text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-bold text-brand-black/50 uppercase tracking-wider">Other / Custom</span>
+                    <p className="text-[9px] text-brand-gray/50 mt-0.5">Not tied to a saved session</p>
+                  </div>
+                  <i className={`fa-solid fa-pen text-[9px] flex-shrink-0 ${isOtherSelected ? 'text-brand-blue' : 'text-brand-gray/20'}`} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Photoshoot context text box — shown whenever something is selected, or always when no sessions exist */}
+          {(anythingSelected || sessions.length === 0) && (
+            <div className="mb-4">
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-gray/60 mb-1.5">
+                What type of photoshoot is this location scouting for?
+              </label>
+              <textarea
+                value={scoutContext}
+                onChange={e => { setScoutContext(e.target.value); setSuggestions([]); setSuggestionError(null); }}
+                placeholder="e.g. Blue hour architecture shoot for a class assignment on urban geometry — need dramatic lines and interesting facades…"
+                rows={3}
+                className="w-full bg-brand-black/5 border border-brand-black/10 rounded-md px-4 py-3 text-xs text-brand-black focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-brand-black/25 resize-none"
+              />
+              {isOtherSelected && !scoutContext.trim() && (
+                <p className="text-[10px] text-brand-rose/70 mt-1">Describe the photoshoot to get suggestions.</p>
+              )}
+            </div>
+          )}
 
           {/* Suggest button */}
-          {selectedSession && (
+          {(anythingSelected || sessions.length === 0) && (
             <div className="flex flex-wrap items-center gap-4">
               <button
                 onClick={handleSuggest}
-                disabled={isSuggesting}
+                disabled={isSuggesting || !canSuggest}
                 className={`flex items-center gap-2 text-sm font-semibold rounded-md py-2.5 px-6 transition-all active:scale-95 shadow-sm ${
-                  isSuggesting
-                    ? 'bg-brand-black/10 text-brand-black/40 cursor-not-allowed'
+                  isSuggesting || !canSuggest
+                    ? 'bg-brand-black/10 text-brand-black/30 cursor-not-allowed'
                     : 'bg-brand-blue text-white hover:bg-[#7a93a0]'
                 }`}
               >
@@ -811,16 +855,22 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
                 ) : (
                   <>
                     <i className="fa-solid fa-wand-sparkles text-sm" />
-                    Suggest locations for this session
+                    Suggest locations
                   </>
                 )}
               </button>
-              <p className="text-[11px] text-brand-gray/60 italic">
-                AI will suggest 3 shooting spots based on{' '}
-                <span className="font-semibold text-brand-black/60 not-italic">
-                  {selectedSession.title || selectedSession.location} ({selectedSession.genre.join(', ')})
-                </span>
-              </p>
+              {!isSuggesting && canSuggest && (
+                <p className="text-[11px] text-brand-gray/60 italic">
+                  {isOtherSelected || !selectedSession
+                    ? 'AI will suggest 3 spots based on your description.'
+                    : <>AI will suggest 3 spots for{' '}
+                        <span className="font-semibold text-brand-black/60 not-italic">
+                          {selectedSession.title || selectedSession.location}
+                        </span>
+                        {scoutContext.trim() ? ' + your notes.' : '.'}</>
+                  }
+                </p>
+              )}
             </div>
           )}
 
@@ -835,7 +885,9 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-px flex-1 bg-brand-blue/10" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-blue/60">
-                  AI suggestions for {selectedSession?.title || selectedSession?.location}
+                  {isOtherSelected || !selectedSession
+                    ? 'AI suggestions'
+                    : `AI suggestions for ${selectedSession?.title || selectedSession?.location}`}
                 </span>
                 <div className="h-px flex-1 bg-brand-blue/10" />
               </div>
@@ -918,7 +970,6 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
             </div>
           )}
         </section>
-      )}
 
       {/* Search + filter bar */}
       {locations.length > 0 && (
