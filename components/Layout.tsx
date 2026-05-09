@@ -321,6 +321,15 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
               <i className="fa-solid fa-comments text-xs"></i>
               <span className="text-xs font-medium">Ask Pro</span>
             </button>
+            <button
+              onClick={() => setActiveTab('journal')}
+              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-all ${
+                activeTab === 'journal' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
+              }`}
+            >
+              <i className="fa-solid fa-book-open text-xs"></i>
+              <span className="text-xs font-medium">Journal</span>
+            </button>
           </div>
         </div>
       )}
