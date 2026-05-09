@@ -2,11 +2,12 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Layout from './components/Layout';
 import CalendarView from './components/CalendarView';
 import CommunityView from './components/CommunityView';
+import LocationScoutView from './components/LocationScoutView';
 import ErrorBoundary from './components/ErrorBoundary';
 import SessionCard from './components/SessionCard';
 import SessionSelector from './components/SessionSelector';
 import LocationAutocomplete from './components/LocationAutocomplete';
-import { Session, SessionStatus, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, JournalEntry, JournalImage, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan } from './types';
+import { Session, SessionStatus, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, JournalEntry, JournalImage, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan, ScoutLocation } from './types';
 import { generateWeeklyPlan, generateAssignmentGuide, askProQuestion, fetchBulletinEvents } from './services/geminiService';
 import { createCalendarEventForSession } from './services/calendarService';
 import { GENRE_ICONS } from './constants';
@@ -588,6 +589,59 @@ function buildAskProPrompt(args: {
   return pieces.join('\n\n');
 }
 
+// ── Location Scout seed data ──────────────────────────────────────────────────
+// Shown on first open when the user has no saved locations.
+const SCOUT_SEED_LOCATIONS: ScoutLocation[] = [
+  {
+    id: 'seed_scout_1',
+    name: 'City Hall Plaza',
+    area: 'Downtown Civic Center',
+    mapLink: 'City Hall, 1 Dr Carlton B Goodlett Pl',
+    tags: ['Architecture', 'Composition', 'Blue Hour'],
+    bestTime: 'Blue Hour',
+    lightingNotes: 'Facade gets golden side-light at late afternoon. After sunset the building lights up nicely against a deep-blue sky.',
+    accessNotes: 'Public plaza — no permit needed for student work. Security may ask about commercial shoots.',
+    safetyNotes: 'Well-lit and busy in the evening. Avoid leaving gear unattended.',
+    parkingNotes: 'Civic Center BART is 2 blocks away. Metered street parking on McAllister St.',
+    shotIdeas: 'Wide symmetrical facade shot, tight detail on the dome columns, reflection puddles on the plaza after rain.',
+    backupSpot: 'SF City Library steps, directly across the plaza',
+    favorite: true,
+    createdAt: Date.now() - 7 * 24 * 60 * 60 * 1000,
+  },
+  {
+    id: 'seed_scout_2',
+    name: 'Riverside Esplanade',
+    area: 'Embarcadero Waterfront',
+    mapLink: 'Embarcadero, between Ferry Building and Bay Bridge',
+    tags: ['Landscape', 'Golden Hour', 'Composition'],
+    bestTime: 'Golden Hour',
+    lightingNotes: 'Sun sets behind the Bay Bridge — creates strong backlight and silhouettes. East light in the morning is softer for detail work.',
+    accessNotes: 'Public space, always open.',
+    safetyNotes: 'Busy with joggers and tourists, very safe.',
+    parkingNotes: 'Limited metered parking on the Embarcadero. BART Embarcadero station is a 5-min walk.',
+    shotIdeas: 'Silhouette of bridge at golden hour, pier leading lines, Ferry Building clock tower with warm light.',
+    backupSpot: 'Rincon Park (Bay Bridge anchor)',
+    favorite: false,
+    createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
+  },
+  {
+    id: 'seed_scout_3',
+    name: 'Mission District Alley Murals',
+    area: 'Mission District — 24th St corridor',
+    mapLink: 'Clarion Alley, between 17th and 18th St, Mission District',
+    tags: ['Street', 'People', 'Photojournalism', 'Abstraction'],
+    bestTime: 'Morning',
+    lightingNotes: 'Alley runs east–west — shaded most of the day which gives flat, even light. Direct sun hits briefly around 10–11 am in summer.',
+    accessNotes: 'Public alley. Some murals are updated regularly — revisit often.',
+    safetyNotes: 'Generally safe during daylight. Go with a partner if shooting late.',
+    parkingNotes: 'Street parking on Valencia or Mission St. BART 24th St station is 4 blocks.',
+    shotIdeas: 'Full-wall murals as backdrop for environmental portraits, abstract color compression, candid street life at the mouth of the alley.',
+    backupSpot: 'Balmy Alley, 2 blocks south (also has murals)',
+    favorite: false,
+    createdAt: Date.now() - 1 * 24 * 60 * 60 * 1000,
+  },
+];
+
 function loadFromStorage<T>(key: string, fallback: T): T {
   const saved = localStorage.getItem(key);
   if (saved) {
@@ -804,6 +858,10 @@ const App: React.FC = () => {
     loadFromStorage<WeekPlan[]>('pingstudio_week_plans', [])
   );
 
+  const [scoutLocations, setScoutLocations] = useState<ScoutLocation[]>(() =>
+    loadFromStorage<ScoutLocation[]>('pingstudio_scout', SCOUT_SEED_LOCATIONS)
+  );
+
   const [plannerInput, setPlannerInput] = useState('');
   const [plannerOutput, setPlannerOutput] = useState('');
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
@@ -916,6 +974,7 @@ const App: React.FC = () => {
       if (data.bulletinFetchedAt !== undefined) setBulletinFetchedAt(data.bulletinFetchedAt);
       if (data.feedback)         setFeedbackLog(data.feedback);
       if (data.weekPlans)        setWeekPlans(data.weekPlans);
+      if (data.scoutLocations)   setScoutLocations(data.scoutLocations);
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -983,6 +1042,29 @@ const App: React.FC = () => {
     const trimmed = weekPlans.slice(-20).map(p => ({ ...p, result: p.result.slice(0, 3000) }));
     saveUserData({ weekPlans: trimmed });
   }, [weekPlans]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist scout locations (localStorage + Firestore)
+  useEffect(() => {
+    localStorage.setItem('pingstudio_scout', JSON.stringify(scoutLocations));
+    saveUserData({ scoutLocations });
+  }, [scoutLocations]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Scout location CRUD ───────────────────────────────────────────────────
+  const addScoutLocation = (location: ScoutLocation) => {
+    setScoutLocations(prev => [location, ...prev]);
+  };
+
+  const updateScoutLocation = (updated: ScoutLocation) => {
+    setScoutLocations(prev => prev.map(l => l.id === updated.id ? updated : l));
+  };
+
+  const deleteScoutLocation = (id: string) => {
+    setScoutLocations(prev => prev.filter(l => l.id !== id));
+  };
+
+  const toggleScoutFavorite = (id: string) => {
+    setScoutLocations(prev => prev.map(l => l.id === id ? { ...l, favorite: !l.favorite } : l));
+  };
 
   const addSession = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -3168,6 +3250,22 @@ const App: React.FC = () => {
             )}
           </div>
         </div>
+      )}
+
+      {activeTab === 'scout' && (
+        <ErrorBoundary>
+          <LocationScoutView
+            locations={scoutLocations}
+            onAdd={addScoutLocation}
+            onUpdate={updateScoutLocation}
+            onDelete={deleteScoutLocation}
+            onToggleFavorite={toggleScoutFavorite}
+            onUseForAssignment={loc => {
+              // v2: pre-fill Assignment Mode with this location
+              console.info('Photovise: "Use for assignment" stub — location:', loc.name);
+            }}
+          />
+        </ErrorBoundary>
       )}
     </Layout>
   );

@@ -181,6 +181,47 @@ export type CommunityTag =
   | 'Abstract'
   | 'Other';
 
+// ── Location Scout ────────────────────────────────────────────────────────────
+
+export type ScoutTag =
+  | 'Architecture'
+  | 'Landscape'
+  | 'Street'
+  | 'Photojournalism'
+  | 'Abstraction'
+  | 'People'
+  | 'Composition'
+  | 'Blue Hour'
+  | 'Golden Hour';
+
+export type BestTimeOfDay =
+  | 'Sunrise'
+  | 'Early Morning'
+  | 'Morning'
+  | 'Midday'
+  | 'Afternoon'
+  | 'Golden Hour'
+  | 'Blue Hour'
+  | 'Night'
+  | 'Any Time';
+
+export interface ScoutLocation {
+  id: string;
+  name: string;
+  area: string;            // neighborhood or city area
+  mapLink: string;         // plain address or Google Maps URL
+  tags: ScoutTag[];
+  bestTime: BestTimeOfDay | string;
+  lightingNotes: string;
+  accessNotes: string;
+  safetyNotes: string;
+  parkingNotes: string;
+  shotIdeas: string;
+  backupSpot: string;
+  favorite: boolean;
+  createdAt: number;       // Date.now() timestamp
+}
+
 export interface CommunityPost {
   id: string;
   userId: string;

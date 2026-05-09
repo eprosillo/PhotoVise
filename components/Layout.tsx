@@ -35,6 +35,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
     { id: 'gear', label: 'Gear Locker', icon: 'fa-toolbox' },
     { id: 'cfe', label: 'Bulletin Board', icon: 'fa-trophy' },
     { id: 'community', label: 'Community', icon: 'fa-users' },
+    { id: 'scout', label: 'Location Scout', icon: 'fa-map-pin' },
     { id: 'archive', label: 'Archive', icon: 'fa-box-archive' },
   ];
 
@@ -64,6 +65,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
     'Gear Locker',
     'Bulletin Board',
     'Community',
+    'Location Scout',
     'Archive',
   ];
 

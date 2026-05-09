@@ -36,6 +36,7 @@ import {
   PhotographerProfile,
   FeedbackEntry,
   WeekPlan,
+  ScoutLocation,
 } from '../types';
 
 export interface FirestoreUserData {
@@ -48,6 +49,7 @@ export interface FirestoreUserData {
   bulletinFetchedAt?: number;
   feedback?: FeedbackEntry[];
   weekPlans?: WeekPlan[];
+  scoutLocations?: ScoutLocation[];
 }
 
 // ── Retry helper ──────────────────────────────────────────────────────────────
