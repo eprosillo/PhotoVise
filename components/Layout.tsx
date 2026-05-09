@@ -49,7 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
     setIsMenuOpen(false);
   };
 
-  const isCoreFieldItem = (label: string) => ['Assignment Mode', 'Processing Guides', 'Ask a Pro'].includes(label);
+  const isCoreFieldItem = (label: string) => ['Assignment Mode', 'Processing Guides', 'Ask a Pro', 'Journal'].includes(label);
   const isDashboard = (label: string) => label === 'Dashboard';
 
   // Navigation items to show in the mobile dropdown based on mode
@@ -74,6 +74,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
     'Assignment Mode',
     'Processing Guides',
     'Ask a Pro',
+    'Journal',
   ];
 
   const mobileNavItems = navItems.filter((item) =>
