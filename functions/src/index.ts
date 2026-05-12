@@ -461,6 +461,7 @@ export const suggestScoutLocations = onCall(
       `Valid "bestTime" values (use only these): Sunrise, Early Morning, Morning, Midday, Afternoon, Golden Hour, Blue Hour, Night, Any Time\n\n` +
       `Rules:\n` +
       `- Read ALL fields in the session context — assignment notes, strategy, and day plan contain the most important intent signals. Let them drive your suggestions.\n` +
+      `- Strictly honour the "Search radius" field: only suggest locations within that distance of the assignment location. If the radius is "No limit", suggest the best-fit locations anywhere.\n` +
       `- Suggest real, named places — not generic descriptions.\n` +
       `- If the session has a city or area, prioritise locations there.\n` +
       `- Make shotIdeas concrete and directly tied to the genre, strategy, and any specific goals mentioned in the notes.\n` +

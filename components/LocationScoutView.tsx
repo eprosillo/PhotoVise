@@ -592,6 +592,7 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
   const [suggestions, setSuggestions] = useState<ScoutLocationSuggestion[]>([]);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [savedSuggestionIndexes, setSavedSuggestionIndexes] = useState<Set<number>>(new Set());
+  const [searchRadius, setSearchRadius] = useState<'5' | '10' | '25' | '50' | 'any'>('25');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTag, setFilterTag] = useState<ScoutTag | 'All'>('All');
   const [filterTime, setFilterTime] = useState<BestTimeOfDay | 'All'>('All');
@@ -640,8 +641,13 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
         ].filter(Boolean).join('\n')
       : '';
 
+    const radiusPart = searchRadius === 'any'
+      ? 'Search radius: No limit — suggest anywhere relevant.'
+      : `Search radius: within ${searchRadius} miles of the assignment location.`;
+
     const context = [
       sessionPart,
+      radiusPart,
       scoutContext.trim() ? `Photoshoot type / additional context: ${scoutContext.trim()}` : '',
     ].filter(Boolean).join('\n');
 
@@ -841,7 +847,22 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
 
           {/* Suggest button */}
           {(anythingSelected || sessions.length === 0) && (
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Radius picker */}
+              <div className="flex items-center gap-2">
+                <i className="fa-solid fa-location-crosshairs text-[11px] text-brand-gray/50" />
+                <select
+                  value={searchRadius}
+                  onChange={e => setSearchRadius(e.target.value as typeof searchRadius)}
+                  className="text-xs bg-white border border-brand-black/10 rounded-md px-3 py-2.5 focus:ring-1 focus:ring-brand-blue outline-none text-brand-black"
+                >
+                  <option value="5">Within 5 mi</option>
+                  <option value="10">Within 10 mi</option>
+                  <option value="25">Within 25 mi</option>
+                  <option value="50">Within 50 mi</option>
+                  <option value="any">No limit</option>
+                </select>
+              </div>
               <button
                 onClick={handleSuggest}
                 disabled={isSuggesting || !canSuggest}
