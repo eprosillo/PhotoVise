@@ -453,16 +453,17 @@ export const suggestScoutLocations = onCall(
 
     const prompt =
       `You are a photography location scout. Based on the session context below, suggest exactly 3 specific, ` +
-      `real-world shooting locations that fit the assignment's genre, area, and needs.\n\n` +
+      `real-world shooting locations that fit the assignment.\n\n` +
       `SESSION CONTEXT:\n${sessionContext}\n\n` +
       `Return ONLY a valid JSON array — no markdown fences, no explanation. Each object must match this schema exactly:\n` +
       `[{"name":"","area":"","mapLink":"full street address","tags":[],"bestTime":"","lightingNotes":"","accessNotes":"","safetyNotes":"","parkingNotes":"","shotIdeas":"","backupSpot":""}]\n\n` +
       `Valid "tags" values (use only these): Architecture, Landscape, Street, Photojournalism, Abstraction, People, Composition, Blue Hour, Golden Hour\n` +
       `Valid "bestTime" values (use only these): Sunrise, Early Morning, Morning, Midday, Afternoon, Golden Hour, Blue Hour, Night, Any Time\n\n` +
       `Rules:\n` +
+      `- Read ALL fields in the session context — assignment notes, strategy, and day plan contain the most important intent signals. Let them drive your suggestions.\n` +
       `- Suggest real, named places — not generic descriptions.\n` +
       `- If the session has a city or area, prioritise locations there.\n` +
-      `- Make shotIdeas concrete and specific to the session's genre.\n` +
+      `- Make shotIdeas concrete and directly tied to the genre, strategy, and any specific goals mentioned in the notes.\n` +
       `- Include 3 locations.`;
 
     try {

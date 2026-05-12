@@ -628,12 +628,16 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
     setSavedSuggestionIndexes(new Set());
 
     const sessionPart = selectedSession
-      ? `Date: ${selectedSession.date}\n` +
-        `Location/area: ${selectedSession.location}\n` +
-        `Genre: ${selectedSession.genre.join(', ')}\n` +
-        `Assignment status: ${selectedSession.status}\n` +
-        (selectedSession.title ? `Title: ${selectedSession.title}\n` : '') +
-        (selectedSession.notes ? `Notes: ${selectedSession.notes}\n` : '')
+      ? [
+          `Date: ${selectedSession.date}`,
+          `Location/area: ${selectedSession.location}`,
+          `Genre: ${selectedSession.genre.join(', ')}`,
+          `Assignment status: ${selectedSession.status}`,
+          selectedSession.title    && `Title: ${selectedSession.title}`,
+          selectedSession.notes    && `Assignment notes: ${selectedSession.notes}`,
+          selectedSession.strategy && `Assignment strategy: ${selectedSession.strategy}`,
+          selectedSession.dayPlan  && `Assignment day plan: ${selectedSession.dayPlan}`,
+        ].filter(Boolean).join('\n')
       : '';
 
     const context = [
