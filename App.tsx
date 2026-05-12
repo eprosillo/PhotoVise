@@ -1209,10 +1209,24 @@ const App: React.FC = () => {
   const formatSessionsForContext = (ids: string[]) => {
     const selected = sessions.filter(s => ids.includes(s.id));
     if (selected.length === 0) return "";
-    
-    return "ATTACHED SESSION CONTEXT:\n" + selected.map(s => 
-      `- ${s.date} | ${s.location} | ${s.genre.join(', ')} | Status: ${s.status}${s.notes ? ` | Notes: ${s.notes}` : ''}`
-    ).join('\n');
+
+    const blocks = selected.map((s, i) => {
+      const lines = [
+        `SESSION ${i + 1}:`,
+        `  Date: ${s.date}`,
+        `  Location: ${s.location}`,
+        `  Genre: ${s.genre.join(', ')}`,
+        `  Status: ${s.status}`,
+        s.title     && `  Title: ${s.title}`,
+        s.notes     && `  Notes: ${s.notes}`,
+        s.strategy  && `  Assignment strategy: ${s.strategy}`,
+        s.dayPlan   && `  Assignment day plan: ${s.dayPlan}`,
+        s.scoutNotes && `  Scouted location:\n${s.scoutNotes.split('\n').map(l => `    ${l}`).join('\n')}`,
+      ].filter(Boolean);
+      return lines.join('\n');
+    });
+
+    return "ATTACHED SESSION CONTEXT:\n" + blocks.join('\n\n');
   };
 
   const formatGearForContext = () => {
@@ -1313,8 +1327,10 @@ const App: React.FC = () => {
       "- [Secondary lens / specialty lens]\n" +
       "- [Support (tripod/monopod) if needed]\n" +
       "- [Key accessory (flash/remote/etc.)]\n\n" +
+      "**Location**\n" +
+      "[If a scouted location is attached: name, address/area, and 1 key access or parking note. Omit this section if no scouted location is provided.]\n\n" +
       "**Timing**\n" +
-      "[Best time window for this assignment (light, crowd, or event timing).]\n\n" +
+      "[Best time window for this assignment (light, crowd, or event timing). If a scouted location has a best time, use it.]\n\n" +
       "**Settings**\n" +
       "- Aperture: [Starting range] for [depth/sharpness goal].\n" +
       "- ISO: [Baseline ISO] for [noise/quality goal].\n" +
@@ -1326,7 +1342,8 @@ const App: React.FC = () => {
       "- Stay under 300 words total.\n" +
       "- Be direct, practical, and specific.\n" +
       "- No filler, no motivational language, no abstract strategy language.\n" +
-      "- Use only the provided assignment details, photographer profile, strengths, constraints, and available gear.\n" +
+      "- Use only the provided assignment details, photographer profile, strengths, constraints, available gear, and scouted location data.\n" +
+      "- If a scouted location is attached to a session, use its name, shot ideas, best time, lighting notes, and access notes to make the plan concrete and location-specific.\n" +
       "- Do not invent missing details.\n" +
       "- If key information is missing, omit that detail rather than guessing.\n" +
       "- Skip any section that is not relevant.\n\n" +
