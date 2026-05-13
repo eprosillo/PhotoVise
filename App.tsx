@@ -1211,17 +1211,38 @@ const App: React.FC = () => {
     if (selected.length === 0) return "";
 
     const blocks = selected.map((s, i) => {
+      // Prefer the rich ScoutLocation linked to this session over the legacy scoutNotes text field.
+      const scout = scoutLocations.find(sl => sl.sessionId === s.id);
+
+      const scoutBlock = scout
+        ? [
+            `  Scouted location:`,
+            `    Name: ${scout.name}`,
+            scout.area          && `    Area: ${scout.area}`,
+            scout.mapLink       && `    Map/Address: ${scout.mapLink}`,
+            scout.bestTime      && `    Best time: ${scout.bestTime}`,
+            scout.lightingNotes && `    Lighting: ${scout.lightingNotes}`,
+            scout.accessNotes   && `    Access: ${scout.accessNotes}`,
+            scout.parkingNotes  && `    Parking: ${scout.parkingNotes}`,
+            scout.shotIdeas     && `    Shot ideas: ${scout.shotIdeas}`,
+            scout.safetyNotes   && `    Safety: ${scout.safetyNotes}`,
+            scout.backupSpot    && `    Backup spot: ${scout.backupSpot}`,
+          ].filter(Boolean).join('\n')
+        : s.scoutNotes
+          ? `  Scouted location:\n${s.scoutNotes.split('\n').map(l => `    ${l}`).join('\n')}`
+          : null;
+
       const lines = [
         `SESSION ${i + 1}:`,
         `  Date: ${s.date}`,
         `  Location: ${s.location}`,
         `  Genre: ${s.genre.join(', ')}`,
         `  Status: ${s.status}`,
-        s.title     && `  Title: ${s.title}`,
-        s.notes     && `  Notes: ${s.notes}`,
-        s.strategy  && `  Assignment strategy: ${s.strategy}`,
-        s.dayPlan   && `  Assignment day plan: ${s.dayPlan}`,
-        s.scoutNotes && `  Scouted location:\n${s.scoutNotes.split('\n').map(l => `    ${l}`).join('\n')}`,
+        s.title    && `  Title: ${s.title}`,
+        s.notes    && `  Notes: ${s.notes}`,
+        s.strategy && `  Assignment strategy: ${s.strategy}`,
+        s.dayPlan  && `  Assignment day plan: ${s.dayPlan}`,
+        scoutBlock,
       ].filter(Boolean);
       return lines.join('\n');
     });
