@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Session, SessionStatus, JournalEntry, WeekPlan } from '../types';
+import { Session, SessionStatus, JournalEntry, WeekPlan, ScoutLocation } from '../types';
 import { generateWeeklyPlan } from '../services/geminiService';
 
 interface CalendarViewProps {
   sessions: Session[];
   journalEntries: JournalEntry[];
   weekPlans: WeekPlan[];
+  scoutLocations: ScoutLocation[];
   onSaveWeekPlan: (plan: WeekPlan) => void;
   onDeleteWeekPlan: (id: string) => void;
   onGoToSession: (sessionId: string) => void;
@@ -118,7 +119,7 @@ const defaultAvailability = (): Record<string, DayAvailability> =>
 
 // ── Main component ────────────────────────────────────────────────────────────
 const CalendarView: React.FC<CalendarViewProps> = ({
-  sessions, journalEntries, weekPlans, onSaveWeekPlan, onDeleteWeekPlan,
+  sessions, journalEntries, weekPlans, scoutLocations, onSaveWeekPlan, onDeleteWeekPlan,
   onGoToSession, onGoToJournal,
 }) => {
   const today = new Date();
@@ -251,6 +252,26 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         ];
         if (s.strategy) lines.push(`  Existing strategy notes: ${s.strategy.slice(0, 400)}`);
         if (s.dayPlan)  lines.push(`  Existing day plan notes: ${s.dayPlan.slice(0, 400)}`);
+
+        // Include rich scout location data if one is linked to this session
+        const scout = scoutLocations.find(sl => sl.sessionId === s.id);
+        if (scout) {
+          lines.push(`  Scouted location:`);
+          lines.push(`    Name: ${scout.name}`);
+          if (scout.area)          lines.push(`    Area: ${scout.area}`);
+          if (scout.mapLink)       lines.push(`    Map/Address: ${scout.mapLink}`);
+          if (scout.bestTime)      lines.push(`    Best time: ${scout.bestTime}`);
+          if (scout.lightingNotes) lines.push(`    Lighting: ${scout.lightingNotes}`);
+          if (scout.accessNotes)   lines.push(`    Access: ${scout.accessNotes}`);
+          if (scout.parkingNotes)  lines.push(`    Parking: ${scout.parkingNotes}`);
+          if (scout.shotIdeas)     lines.push(`    Shot ideas: ${scout.shotIdeas}`);
+          if (scout.safetyNotes)   lines.push(`    Safety: ${scout.safetyNotes}`);
+          if (scout.backupSpot)    lines.push(`    Backup spot: ${scout.backupSpot}`);
+        } else if (s.scoutNotes) {
+          // Fall back to legacy plain-text scout notes
+          lines.push(`  Scouted location:\n${s.scoutNotes.split('\n').map(l => `    ${l}`).join('\n')}`);
+        }
+
         return lines.join('\n');
       }).join('\n\n');
 
@@ -415,24 +436,46 @@ INSTRUCTIONS:
             <div>
               <p className="text-xs font-medium text-brand-black/40 mb-3">Sessions</p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {selectedSessions.map(s => (
-                  <div key={s.id} className="bg-white border border-brand-black/5 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
-                    <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
-                      <p className="text-base font-semibold text-white leading-snug truncate">{s.title || s.location || 'Untitled'}</p>
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${STATUS_DOT[s.status]}`}></span>
-                    </div>
-                    <div className="px-5 py-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs font-medium px-2 py-1 rounded border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
-                        {s.genre && s.genre.length > 0 && <span className="text-xs text-brand-gray/70">{s.genre.join(' · ')}</span>}
+                {selectedSessions.map(s => {
+                  const cardScout = scoutLocations.find(sl => sl.sessionId === s.id);
+                  return (
+                    <div key={s.id} className="bg-white border border-brand-black/5 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
+                      <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
+                        <p className="text-base font-semibold text-white leading-snug truncate">{s.title || s.location || 'Untitled'}</p>
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${STATUS_DOT[s.status]}`}></span>
                       </div>
-                      {s.notes && <p className="text-xs text-brand-gray leading-relaxed line-clamp-2">{s.notes}</p>}
-                      <button onClick={() => onGoToSession(s.id)} className="w-full text-xs font-medium py-2.5 bg-brand-black/5 hover:bg-brand-blue hover:text-white text-brand-black rounded-md transition-all">
-                        Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
-                      </button>
+                      <div className="px-5 py-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs font-medium px-2 py-1 rounded border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
+                          {s.genre && s.genre.length > 0 && <span className="text-xs text-brand-gray/70">{s.genre.join(' · ')}</span>}
+                        </div>
+                        {s.notes && <p className="text-xs text-brand-gray leading-relaxed line-clamp-2">{s.notes}</p>}
+                        {/* Scout location — mirrors the Strategy display pattern */}
+                        {(cardScout || s.scoutNotes) && (
+                          <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-100 rounded-md px-3 py-2">
+                            <i className="fa-solid fa-location-dot text-emerald-500 text-xs mt-0.5 flex-shrink-0"></i>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-emerald-700 truncate">
+                                {cardScout ? cardScout.name : 'Scouted location'}
+                              </p>
+                              {cardScout?.area && (
+                                <p className="text-[10px] text-emerald-600/70 truncate">{cardScout.area}</p>
+                              )}
+                              {cardScout?.bestTime && cardScout.bestTime !== 'Any Time' && (
+                                <p className="text-[10px] text-emerald-600/70 truncate">
+                                  <i className="fa-regular fa-clock mr-0.5"></i>{cardScout.bestTime}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        <button onClick={() => onGoToSession(s.id)} className="w-full text-xs font-medium py-2.5 bg-brand-black/5 hover:bg-brand-blue hover:text-white text-brand-black rounded-md transition-all">
+                          Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -589,6 +632,7 @@ INSTRUCTIONS:
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {activeSessions.map(s => {
                 const selected = plannerSessions.has(s.id);
+                const linkedScout = scoutLocations.find(sl => sl.sessionId === s.id);
                 return (
                   <button key={s.id} onClick={() => togglePlannerSession(s.id)}
                     className={`flex items-center gap-4 p-4 rounded-md border text-left transition-all ${selected ? 'border-brand-blue bg-brand-blue/5' : 'border-brand-black/5 hover:border-brand-black/15'}`}>
@@ -601,6 +645,12 @@ INSTRUCTIONS:
                         <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
                         <span className="text-xs text-brand-gray/60">{s.date}</span>
                         {s.strategy && <span className="text-xs text-brand-blue font-medium"><i className="fa-solid fa-bolt mr-0.5"></i>Strategy</span>}
+                        {(linkedScout || s.scoutNotes) && (
+                          <span className="text-xs text-emerald-600 font-medium">
+                            <i className="fa-solid fa-location-dot mr-0.5"></i>
+                            {linkedScout ? linkedScout.name : 'Scout'}
+                          </span>
+                        )}
                       </div>
                       {s.genre && s.genre.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1.5">

@@ -3159,6 +3159,7 @@ const App: React.FC = () => {
           sessions={sessions}
           journalEntries={journalEntries}
           weekPlans={weekPlans}
+          scoutLocations={scoutLocations}
           onSaveWeekPlan={(plan) => setWeekPlans(prev => [plan, ...prev])}
           onDeleteWeekPlan={(id) => setWeekPlans(prev => prev.filter(p => p.id !== id))}
           onGoToSession={(id) => {
