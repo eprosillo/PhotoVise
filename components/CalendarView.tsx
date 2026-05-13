@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Session, SessionStatus, JournalEntry, WeekPlan, ScoutLocation } from '../types';
+import { Session, SessionStatus, JournalEntry, WeekPlan, ScoutLocation, PhotographerProfile, GearItem } from '../types';
 import { generateWeeklyPlan } from '../services/geminiService';
 
 interface CalendarViewProps {
@@ -7,6 +7,8 @@ interface CalendarViewProps {
   journalEntries: JournalEntry[];
   weekPlans: WeekPlan[];
   scoutLocations: ScoutLocation[];
+  profile: PhotographerProfile;
+  gear: GearItem[];
   onSaveWeekPlan: (plan: WeekPlan) => void;
   onDeleteWeekPlan: (id: string) => void;
   onGoToSession: (sessionId: string) => void;
@@ -119,8 +121,8 @@ const defaultAvailability = (): Record<string, DayAvailability> =>
 
 // ── Main component ────────────────────────────────────────────────────────────
 const CalendarView: React.FC<CalendarViewProps> = ({
-  sessions, journalEntries, weekPlans, scoutLocations, onSaveWeekPlan, onDeleteWeekPlan,
-  onGoToSession, onGoToJournal,
+  sessions, journalEntries, weekPlans, scoutLocations, profile, gear,
+  onSaveWeekPlan, onDeleteWeekPlan, onGoToSession, onGoToJournal,
 }) => {
   const today = new Date();
   const [view, setView] = useState<'calendar' | 'planner' | 'search'>('calendar');
@@ -233,6 +235,44 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     archived:    'NEXT: Complete — no remaining tasks.',
   };
 
+  // ── Context formatters (mirrors App.tsx) ─────────────────────────────────
+  const formatProfileForContext = (): string => {
+    const genres    = profile.primaryGenres.join(', ') || 'None specified';
+    const style     = profile.styleKeywords.join(', ') || 'None specified';
+    const editing   = profile.editingApps.join(', ')   || 'None specified';
+    const tethering = profile.tetheringApps.join(', ') || 'None specified';
+    return [
+      'PHOTOGRAPHER PROFILE:',
+      profile.name          ? `Name: ${profile.name}`                               : null,
+      profile.yearsShooting ? `Years Shooting: ${profile.yearsShooting}`             : null,
+      `Primary Genres: ${genres}`,
+      `Typical Work: ${profile.typicalWork || 'Not specified'}`,
+      `Style Keywords: ${style}`,
+      `Software Workflow: ${editing}`,
+      `Tethering Apps: ${tethering}`,
+      profile.otherEditingAppNote   ? `Note on Editing: ${profile.otherEditingAppNote}`   : null,
+      profile.otherTetheringAppNote ? `Note on Tethering: ${profile.otherTetheringAppNote}` : null,
+      `Risk Profile: ${profile.riskProfile}`,
+      profile.strengths          ? `Strengths: ${profile.strengths}`                   : null,
+      profile.struggles          ? `Struggles: ${profile.struggles}`                   : null,
+      profile.physicalConstraints? `Physical Constraints: ${profile.physicalConstraints}` : null,
+      profile.accessReality      ? `Access Reality: ${profile.accessReality}`           : null,
+      profile.timeBudget         ? `Time Budget: ${profile.timeBudget}`                 : null,
+      profile.growthGoals        ? `Growth Goals: ${profile.growthGoals}`               : null,
+    ].filter(Boolean).join('\n');
+  };
+
+  const formatGearForContext = (): string => {
+    const available = gear.filter(g => g.available);
+    if (available.length === 0) return '';
+    const lines = available.map(g =>
+      `- ${g.name} | ${g.category}` +
+      (g.details             ? ` | Details: ${g.details}`       : '') +
+      (g.tags?.length        ? ` | Tags: ${g.tags.join(', ')}`  : '')
+    );
+    return 'AVAILABLE GEAR LOCKER:\n' + lines.join('\n');
+  };
+
   const handleGenerate = async () => {
     if (!canGenerate) return;
     setIsGenerating(true);
@@ -286,9 +326,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       })
       .join('\n');
 
+    const profileContext = formatProfileForContext();
+    const gearContext    = formatGearForContext();
+
     const prompt = `You are a professional photography scheduling assistant. Create a practical, forward-looking work schedule for the photographer for the week of ${currentWeekLabel}.
 
-SESSIONS TO PLAN:
+${profileContext}
+
+${gearContext ? gearContext + '\n' : ''}SESSIONS TO PLAN:
 ${selectedSessionData}
 
 PHOTOGRAPHER'S AVAILABLE DAYS & TIMES (use these exact dates):
