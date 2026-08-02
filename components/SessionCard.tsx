@@ -16,8 +16,6 @@ interface SessionCardProps {
   onUpdateStatus: (id: string, status: SessionStatus) => void;
   onUpdate: (id: string, updates: Partial<Session>) => void;
   onDelete: (id: string) => void;
-  hasJournal?: boolean;
-  onGoToJournal?: () => void;
 }
 
 const STATUS_STAGE_LABELS: Record<SessionStatus, string> = {
@@ -30,7 +28,7 @@ const STATUS_STAGE_LABELS: Record<SessionStatus, string> = {
   'archived': 'Archived',
 };
 
-const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUpdate, onDelete, hasJournal, onGoToJournal }) => {
+const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUpdate, onDelete }) => {
   const statuses: SessionStatus[] = ['capturing', 'shot', 'culled', 'edited', 'backed up', 'posted'];
 
   const [editing, setEditing] = useState(false);
@@ -202,15 +200,6 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
               <span className={`text-xs font-medium px-2.5 py-1 rounded ${getStatusColor(session.status)}`}>
                 {STATUS_STAGE_LABELS[session.status]}
               </span>
-              {hasJournal && (
-                <button
-                  onClick={onGoToJournal}
-                  className="bg-brand-black text-white px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 hover:bg-brand-blue transition-colors"
-                  title="Has journal entry"
-                >
-                  <i className="fa-solid fa-book-open"></i> Journal
-                </button>
-              )}
             </div>
             <h3 className="text-2xl font-display text-brand-black mt-4 leading-none tracking-wider">
               {session.title ? session.title.toUpperCase() : session.name.toUpperCase()}

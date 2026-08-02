@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Layout from './components/Layout';
 import CalendarView from './components/CalendarView';
-import CommunityView from './components/CommunityView';
 import LocationScoutView from './components/LocationScoutView';
 import ErrorBoundary from './components/ErrorBoundary';
 import SessionCard from './components/SessionCard';
 import SessionSelector from './components/SessionSelector';
 import LocationAutocomplete from './components/LocationAutocomplete';
-import { Session, SessionStatus, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, JournalEntry, JournalImage, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan, ScoutLocation } from './types';
+import { Session, SessionStatus, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan, ScoutLocation } from './types';
 import { generateWeeklyPlan, generateAssignmentGuide, askProQuestion, fetchBulletinEvents } from './services/geminiService';
 import { createCalendarEventForSession } from './services/calendarService';
 import { GENRE_ICONS } from './constants';
@@ -20,139 +19,7 @@ import { storage } from './firebase';
 import { ref as storageRef, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 
 // Helper to determine which genres are currently active for the guidance system
-function getActiveGenres(profile: PhotographerProfile, assignmentGenre: Genre | 'All'): Genre[] {
-  if (assignmentGenre !== 'All') {
-    // If user explicitly picked a genre for this assignment, use only that
-    return [assignmentGenre];
-  }
 
-  // Otherwise, use only what the user selected in their applied Profile
-  if (profile.primaryGenres && profile.primaryGenres.length > 0) {
-    return profile.primaryGenres;
-  }
-
-  // No genres selected anywhere
-  return [];
-}
-
-interface ProcessingContext {
-  profile: PhotographerProfile;
-  assignmentGenre: Genre | 'All';
-  assignmentTimeframe: AssignmentTimeframe;
-  assignmentInput: string;
-}
-
-interface ProcessingGuideBox {
-  genre: Genre;
-  title: string;
-  bullets: string[];
-}
-
-function buildProcessingGuideBoxes(ctx: ProcessingContext): ProcessingGuideBox[] {
-  const { profile, assignmentGenre, assignmentTimeframe, assignmentInput } = ctx;
-  const activeGenres = getActiveGenres(profile, assignmentGenre);
-
-  const boxes: ProcessingGuideBox[] = [];
-
-  const lower = assignmentInput.toLowerCase();
-  const isTight = assignmentTimeframe === '30min' || assignmentTimeframe === '1hr';
-  const isLong = assignmentTimeframe === '4hr' || assignmentTimeframe === 'fullday';
-
-  const addCommonOverlays = (bullets: string[]) => {
-    if (isTight) {
-      bullets.unshift(
-        'On a tight deadline, do a ruthless first pass: remove only obvious technical misses and get to a usable edit quickly.'
-      );
-    } else if (isLong) {
-      bullets.push(
-        'With more time, plan a second pass focused on consistency, sequence order, and a tight final story.'
-      );
-    }
-    if (lower.includes('client') || lower.includes('editor') || lower.includes('deadline')) {
-      bullets.push(
-        'Cull toward a concise, high-impact selection; send fewer, stronger images your client can review quickly instead of a huge dump.'
-      );
-    }
-    if (lower.includes('social') || lower.includes('reel') || lower.includes('stories')) {
-      bullets.push(
-        'Tag frames that crop well to vertical and think in sequences of 3–5 images that can run as a story or reel.'
-      );
-    }
-  };
-
-  for (const genre of activeGenres) {
-    const bullets: string[] = [];
-
-    // SPORTS / PJ / EVENT
-    if (genre === 'Sports' || genre === 'Photojournalism' || genre === 'Event') {
-      bullets.push(
-        'When shooting, ride higher shutter speeds and continuous AF; shoot short controlled bursts around peak action instead of spraying entire plays.',
-        'Prioritize peak action and clean faces; reject frames with soft focus, blocked players, or confusing overlaps first.',
-        'From each burst, keep only the single frame that best tells the story; delete near-duplicates with weaker body language.',
-        'In processing, add contrast and clarity to emphasize impact, keeping skin tones and whites under control so uniforms and highlights don’t clip.'
-      );
-    }
-    // STREET / DOCUMENTARY / TRAVEL
-    else if (genre === 'Street' || genre === 'Documentary' || genre === 'Travel') {
-      bullets.push(
-        'On the street, work promising scenes in layers and give yourself multiple passes at a background rather than chasing random one-offs.',
-        'Cull for gesture, layering, and tension in the frame; drop images where the moment has not fully "landed."',
-        'Group similar scenes and keep only the strongest read from each variation to avoid repetitive sequences.',
-        'In processing, use subtle contrast and local dodging/burning to guide the eye, keeping color and grain realistic so the scene still feels honest.'
-      );
-    }
-    // LANDSCAPE / ARCHITECTURE / ASTRO
-    else if (genre === 'Landscape' || genre === 'Architecture' || genre === 'Astro') {
-      bullets.push(
-        'On location, lock in a strong composition on a tripod and wait for micro-changes in light, clouds, or traffic rather than constantly reframing.',
-        'Zoom in to check micro-sharpness and fine detail; reject tripod-induced near-duplicates that are even slightly soft.',
-        'Compare similar compositions side by side and keep the frame with the best light and cleanest edges.',
-        'In processing, focus on clean tonal separations and edge contrast; avoid heavy halos or overcooked HDR that breaks realism.'
-      );
-    }
-    // PORTRAIT / WEDDING / FASHION
-    else if (genre === 'Portrait' || genre === 'Wedding' || genre === 'Fashion') {
-      bullets.push(
-        'While shooting, direct clearly and shoot short bursts through expressions so you can later pick the most flattering micro-moment.',
-        'Cull first for expression and connection; reject blinks, awkward mouth shapes, and bad posture even if the light is good.',
-        'In group frames, only keep images where all key subjects look good; one person blinking is enough to reject.',
-        'In processing, keep skin tones natural; use gentle dodging/burning and cleanup instead of heavy blurring so the subject still feels real.'
-      );
-    } else {
-      // Generic for other genres
-      bullets.push(
-        'On every shoot, aim to alternate wide, medium, and tight frames so your edit has built-in variety.',
-        'Cull in two passes: first for obvious technical rejects, then for story and variety so the final set feels intentional.',
-        'In processing, build a consistent baseline look (contrast, color, white balance) before doing heavier local adjustments.'
-      );
-    }
-
-    addCommonOverlays(bullets);
-
-    boxes.push({
-      genre,
-      title: `${genre} Processing Guide`,
-      bullets: bullets.slice(0, 10),
-    });
-  }
-
-  // Fallback when no genres are selected
-  if (boxes.length === 0) {
-    const bullets: string[] = [
-      'On every shoot, alternate wide, medium, and tight frames so your edit has built-in variety.',
-      'Cull in two passes: first technical rejects, then story and variety for an intentional final set.',
-      'Build a consistent baseline look across the set before moving to hero-frame adjustments.'
-    ];
-    addCommonOverlays(bullets);
-    boxes.push({
-      genre: 'Other',
-      title: 'General Processing Guide',
-      bullets,
-    });
-  }
-
-  return boxes;
-}
 
 function FeedbackFlag(props: {
   section: FeedbackEntry['section'];
@@ -761,11 +628,6 @@ const App: React.FC = () => {
     ])
   );
 
-  // Journal Entries State
-  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(() =>
-    loadFromStorage<JournalEntry[]>('pingstudio_journal', [])
-  );
-
   // Photographer Profile State (Applied state)
   const [profile, setProfile] = useState<PhotographerProfile>(() => {
     const saved = localStorage.getItem('pingstudio_profile');
@@ -896,30 +758,6 @@ const App: React.FC = () => {
     return 'All';
   }, [selectedAssignmentSessionIds, sessions]);
 
-  // Journal Search State
-  const [journalSearch, setJournalSearch] = useState('');
-
-  // Journal Form State
-  const [journalForm, setJournalForm] = useState<{
-    date: string;
-    sessionIds: string[];
-    title: string;
-    notes: string;
-    tags: string;
-    resultRating: string;
-    processRating: string;
-    images: JournalImage[];
-  }>({
-    date: new Date().toISOString().split('T')[0],
-    sessionIds: [],
-    title: '',
-    notes: '',
-    tags: '',
-    resultRating: '5',
-    processRating: '5',
-    images: []
-  });
-
   // Copy Helper
   const handleCopy = async (text: string, setter: (v: boolean) => void) => {
     try {
@@ -966,9 +804,6 @@ const App: React.FC = () => {
       if (cancelled || !data) return;
       if (data.sessions)         setSessions(data.sessions);
       if (data.gear)             setGear(data.gear);
-      if (data.journal) {
-        setJournalEntries(data.journal);
-      }
       if (data.profile)          setProfile(data.profile);
       if (data.bulletinState)    setBulletinState(data.bulletinState);
       if (data.bulletinItems)    setAiBulletinItems(data.bulletinItems);
@@ -992,13 +827,6 @@ const App: React.FC = () => {
     localStorage.setItem('pingstudio_gear', JSON.stringify(gear));
     saveUserData({ gear });
   }, [gear]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Persist journal entries (localStorage + Firestore)
-  // Images are now Firebase Storage URLs (not base64), so they're safe to store in Firestore.
-  useEffect(() => {
-    localStorage.setItem('pingstudio_journal', JSON.stringify(journalEntries));
-    saveUserData({ journal: journalEntries });
-  }, [journalEntries]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist profile (localStorage + Firestore — only when applied)
   useEffect(() => {
@@ -1501,123 +1329,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handleCreateJournalEntry = (e: React.FormEvent) => {
-    e.preventDefault();
-    const tagsArr = journalForm.tags.split(',').map(t => t.trim()).filter(t => t !== '');
-    
-    const newEntry: JournalEntry = {
-      id: Date.now().toString(),
-      date: journalForm.date,
-      sessionIds: journalForm.sessionIds,
-      title: journalForm.title,
-      notes: journalForm.notes,
-      tags: tagsArr,
-      resultRating: parseInt(journalForm.resultRating, 10) || 5,
-      processRating: parseInt(journalForm.processRating, 10) || 5,
-      images: journalForm.images
-    };
-
-    setJournalEntries(prev => [newEntry, ...prev]);
-    
-    setJournalForm({
-      date: new Date().toISOString().split('T')[0],
-      sessionIds: [],
-      title: '',
-      notes: '',
-      tags: '',
-      resultRating: '5',
-      processRating: '5',
-      images: []
-    });
-  };
-
-  // Compress an image file to a max dimension of 800px at 70% JPEG quality
-  const compressImage = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = reject;
-      reader.onloadend = () => {
-        const img = new Image();
-        img.onerror = reject;
-        img.onload = () => {
-          const MAX = 800;
-          let { width, height } = img;
-          if (width > MAX || height > MAX) {
-            if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
-            else { width = Math.round((width * MAX) / height); height = MAX; }
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.7));
-        };
-        img.src = reader.result as string;
-      };
-      reader.readAsDataURL(file);
-    });
-
-  const handleJournalImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    const fileArray = Array.from(files) as File[];
-    e.target.value = '';
-    fileArray.forEach((file: File) => {
-      const imageId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
-      compressImage(file)
-        .catch(() => new Promise<string>((resolve, reject) => {
-          const r = new FileReader();
-          r.onerror = reject;
-          r.onloadend = () => resolve(r.result as string);
-          r.readAsDataURL(file);
-        }))
-        .then(async (dataUrl) => {
-          // If user is signed in, upload to Firebase Storage and use the URL
-          if (user?.uid) {
-            const path = `journal/${user.uid}/${imageId}`;
-            const imgRef = storageRef(storage, path);
-            await uploadString(imgRef, dataUrl, 'data_url');
-            const url = await getDownloadURL(imgRef);
-            setJournalForm(prev => ({
-              ...prev,
-              images: [...prev.images, { id: imageId, name: file.name, dataUrl: url }]
-            }));
-          } else {
-            // Fallback: store base64 locally when not signed in
-            setJournalForm(prev => ({
-              ...prev,
-              images: [...prev.images, { id: imageId, name: file.name, dataUrl }]
-            }));
-          }
-        })
-        .catch(err => console.error('Journal image upload failed:', err));
-    });
-  };
-
-  const deleteJournalEntry = (id: string) => {
-    if (confirm("Permanently delete this journal entry?")) {
-      const entry = journalEntries.find(e => e.id === id);
-      if (entry && user?.uid) {
-        entry.images.forEach(img => {
-          const path = `journal/${user.uid}/${img.id}`;
-          deleteObject(storageRef(storage, path)).catch(() => {});
-        });
-      }
-      setJournalEntries(prev => prev.filter(e => e.id !== id));
-    }
-  };
-
-  const filteredJournalEntries = useMemo(() => {
-    const query = journalSearch.trim().toLowerCase();
-    if (!query) return journalEntries;
-
-    return journalEntries.filter(entry => {
-      const inTitle = entry.title.toLowerCase().includes(query);
-      const inTags = entry.tags.some(tag => tag.toLowerCase().includes(query));
-      return inTitle || inTags;
-    });
-  }, [journalEntries, journalSearch]);
-
   const GearSummary = () => (
     <div className="bg-brand-white border border-brand-black/5 rounded-lg p-5 shadow-sm">
       <h4 className="text-xs font-medium text-brand-black/50 mb-3 flex items-center gap-2">
@@ -1926,8 +1637,6 @@ const App: React.FC = () => {
                           onUpdateStatus={updateStatus}
                           onUpdate={updateSession}
                           onDelete={deleteSession}
-                          hasJournal={journalEntries.some(e => e.sessionIds.includes(session.id))}
-                          onGoToJournal={() => setActiveTab('journal')}
                         />
                       </div>
                     ))
@@ -2579,339 +2288,7 @@ const App: React.FC = () => {
         </ErrorBoundary>
       )}
 
-      {activeTab === 'processing' && (
-        <ErrorBoundary>
-        <div className="animate-in fade-in duration-700 space-y-12">
-          <header className="mb-10">
-            <h2 className="text-4xl font-display text-brand-black tracking-wide">PROCESSING GUIDES</h2>
-            {!isFieldMode && (
-              <p className="text-brand-gray mt-2 text-sm font-medium">Expert technical guidance based on your profile and active assignment.</p>
-            )}
-          </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2">
-              <div className="grid grid-cols-1 gap-6">
-                {buildProcessingGuideBoxes({
-                  profile,
-                  assignmentGenre: derivedAssignmentGenre,
-                  assignmentTimeframe,
-                  assignmentInput,
-                }).map((box) => {
-                  const visibleBullets = isFieldMode ? box.bullets.slice(0, 3) : box.bullets;
-                  return (
-                    <div key={box.genre} className="bg-white rounded-lg border border-brand-black/5 p-8 shadow-sm">
-                      <h4 className="text-xs font-semibold text-brand-gray mb-1 flex items-center gap-2">
-                        <i className="fa-solid fa-wand-sparkles text-brand-rose"></i> {box.title}
-                      </h4>
-                      {!isFieldMode && (
-                        <p className="text-xs font-semibold text-brand-rose mb-6">
-                          Processing · Culling · Shooting
-                        </p>
-                      )}
-                      <ul className="space-y-4">
-                        {visibleBullets.map((item, idx) => (
-                          <li key={idx} className="flex gap-3 text-xs text-brand-gray leading-relaxed items-start">
-                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-brand-rose flex-shrink-0" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <FeedbackFlag 
-                        section="Processing Guides" 
-                        onSubmit={(note) => {
-                          setFeedbackLog(prev => [...prev, { id: crypto.randomUUID(), section: 'Processing Guides', note, createdAt: new Date().toISOString() }]);
-                        }} 
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            {!isFieldMode && (
-              <div className="space-y-6">
-                <div className="bg-brand-black rounded-lg p-6 text-white shadow-xl">
-                  <h4 className="text-xs font-medium text-brand-rose/80 mb-4 border-b border-white/10 pb-2">Active context</h4>
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-xs text-white/40 mb-1">Active genre(s)</p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {getActiveGenres(profile, derivedAssignmentGenre).map(g => (
-                          <span key={g} className="text-xs px-2 py-0.5 bg-white/10 rounded font-medium">{g}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs text-white/40 mb-1">Software stack</p>
-                      <SystemStatusApps profile={profile} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-white/40 mb-1">Delivery timeframe</p>
-                      <p className="text-sm font-semibold text-brand-rose">{assignmentTimeframe}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('profile')}
-                    className="mt-8 w-full py-3 bg-white/5 border border-white/10 rounded-md text-xs font-medium hover:bg-brand-blue hover:border-brand-blue transition-all"
-                  >
-                    Edit profile
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        </ErrorBoundary>
-      )}
-
-      {activeTab === 'journal' && (
-        <div className="animate-in fade-in duration-700 space-y-12">
-          <header className="mb-10">
-            <h2 className="text-4xl font-display text-brand-black tracking-wide">PHOTO JOURNAL</h2>
-            <p className="text-brand-gray mt-2 text-sm font-medium">Reflective entries linked to assignments and sessions.</p>
-          </header>
-
-          <section className="bg-brand-black rounded-lg p-8 text-brand-white mb-12 shadow-xl border border-white/5">
-            <h3 className="text-xs font-semibold text-brand-rose mb-6">New journal entry</h3>
-            <form onSubmit={handleCreateJournalEntry} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-xs font-medium text-white/50 block mb-2">Date</label>
-                  <input
-                    type="date"
-                    value={journalForm.date}
-                    onChange={e => setJournalForm(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-white/50 block mb-2">Entry title</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Morning fog at Mount Rainier"
-                    value={journalForm.title}
-                    onChange={e => setJournalForm(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <SessionSelector
-                  sessions={sessions.filter(s => s.status !== 'archived')}
-                  selectedIds={journalForm.sessionIds}
-                  onToggle={id => setJournalForm(prev => ({
-                    ...prev,
-                    sessionIds: prev.sessionIds.includes(id)
-                      ? prev.sessionIds.filter(sid => sid !== id)
-                      : [...prev.sessionIds, id]
-                  }))}
-                  label="LINK TO SESSIONS"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-white/50 block mb-2">Reflection / notes</label>
-                <textarea
-                  placeholder="What worked? What didn't? What did you learn?"
-                  value={journalForm.notes}
-                  onChange={e => setJournalForm(prev => ({ ...prev, notes: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-4 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[120px] leading-relaxed"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="text-xs font-medium text-white/50 block mb-2">Tags (comma separated)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. lighting win, gear issue"
-                    value={journalForm.tags}
-                    onChange={e => setJournalForm(prev => ({ ...prev, tags: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-white/50 block mb-2">Result quality (1–5)</label>
-                  <select
-                    value={journalForm.resultRating}
-                    onChange={e => setJournalForm(prev => ({ ...prev, resultRating: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                  >
-                    {[1,2,3,4,5].map(v => <option key={v} value={v} className="text-brand-black">{v}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-white/50 block mb-2">Process flow (1–5)</label>
-                  <select
-                    value={journalForm.processRating}
-                    onChange={e => setJournalForm(prev => ({ ...prev, processRating: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                  >
-                    {[1,2,3,4,5].map(v => <option key={v} value={v} className="text-brand-black">{v}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-white/50 block mb-2">Attach images</label>
-                <div className="flex flex-wrap gap-4 items-center">
-                   <label className="cursor-pointer bg-white/5 border border-white/10 rounded-md px-8 py-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3">
-                      <i className="fa-solid fa-camera-retro text-2xl text-brand-rose"></i>
-                      <span className="text-xs font-medium text-white/40">Select files</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleJournalImageUpload}
-                        className="hidden"
-                      />
-                   </label>
-                   <div className="flex flex-wrap gap-3">
-                     {journalForm.images.map(img => (
-                       <div key={img.id} className="relative w-20 h-20 border border-white/10 rounded-md overflow-hidden group">
-                         <img src={img.dataUrl} className="w-full h-full object-cover" alt="preview" />
-                         <button 
-                            type="button"
-                            onClick={() => setJournalForm(prev => ({ ...prev, images: prev.images.filter(i => i.id !== img.id) }))}
-                            className="absolute inset-0 bg-brand-rose/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
-                         >
-                           <i className="fa-solid fa-trash-can"></i>
-                         </button>
-                       </div>
-                     ))}
-                   </div>
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <button 
-                  type="submit"
-                  className="w-full bg-brand-blue hover:bg-[#7a93a0] text-white text-sm font-semibold rounded-md py-5 transition-all active:scale-[0.99] shadow-lg flex items-center justify-center gap-3"
-                >
-                  <i className="fa-solid fa-pen-nib"></i> Commit entry to logbook
-                </button>
-              </div>
-            </form>
-          </section>
-
-          <section className="space-y-8">
-            <div className="bg-brand-white border border-brand-black/5 rounded-lg p-8 shadow-sm">
-              <label className="text-xs font-medium text-brand-black/40 block mb-4">Find reflections</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search by title or tags..."
-                  value={journalSearch}
-                  onChange={(e) => setJournalSearch(e.target.value)}
-                  className="w-full bg-white border border-brand-black/5 rounded-md px-12 py-4 text-sm focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-brand-gray/30"
-                />
-                <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-brand-rose/40"></i>
-                {journalSearch && (
-                  <button 
-                    onClick={() => setJournalSearch('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-gray/30 hover:text-brand-rose transition-colors"
-                  >
-                    <i className="fa-solid fa-circle-xmark"></i>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {filteredJournalEntries.length === 0 ? (
-              <div className="py-24 text-center border border-dashed border-brand-gray/20 rounded-lg">
-                <p className="text-sm text-brand-gray/50">
-                  {journalSearch ? "No journal entries match this search" : "No journal entries yet"}
-                </p>
-              </div>
-            ) : (
-              filteredJournalEntries.map(entry => (
-                <div key={entry.id} className="bg-white rounded-lg border border-brand-black/5 shadow-sm overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  <div className="bg-brand-black p-6 text-brand-white flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-4 mb-2">
-                        <span className="text-xs font-medium text-brand-rose">{entry.date}</span>
-                        {entry.resultRating && (
-                          <div className="flex gap-0.5 text-brand-blue text-xs">
-                            {[...Array(5)].map((_, i) => (
-                              <i key={i} className={`fa-solid fa-star ${i < entry.resultRating! ? '' : 'opacity-20'}`}></i>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <h3 className="text-xl font-bold leading-snug">{entry.title}</h3>
-                    </div>
-                    <button 
-                      onClick={() => deleteJournalEntry(entry.id)}
-                      className="text-white/10 hover:text-brand-rose transition-colors p-2"
-                    >
-                      <i className="fa-solid fa-trash-can text-sm"></i>
-                    </button>
-                  </div>
-                  
-                  <div className="p-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                      <div className="lg:col-span-2 space-y-6">
-                        <div className="flex flex-wrap gap-2">
-                          {entry.sessionIds.map(sid => {
-                            const s = sessions.find(sess => sess.id === sid);
-                            return s ? (
-                              <span key={sid} className="text-xs font-medium px-2 py-1 bg-brand-blue/5 text-brand-blue border border-brand-blue/10 rounded">
-                                Session: {s.name.split('_').slice(1).join(' ')}
-                              </span>
-                            ) : null;
-                          })}
-                        </div>
-                        
-                        <p className="text-sm text-brand-black leading-relaxed whitespace-pre-wrap italic">
-                          "{entry.notes}"
-                        </p>
-
-                        <div className="flex flex-wrap gap-1.5">
-                          {entry.tags.map(tag => (
-                            <span key={tag} className="text-xs font-medium text-brand-gray bg-brand-black/5 px-2 py-1 rounded">
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="lg:col-span-1 border-l border-brand-black/5 pl-8 space-y-6">
-                         <div className="grid grid-cols-2 gap-2">
-                           {entry.images.map(img => (
-                             <a
-                                key={img.id}
-                                href={img.dataUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="block aspect-square rounded-md overflow-hidden border border-brand-black/5 hover:border-brand-rose transition-all group"
-                             >
-                               <img src={img.dataUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="journal" />
-                             </a>
-                           ))}
-                         </div>
-                         {entry.processRating && (
-                           <div className="bg-brand-white p-4 rounded-md border border-brand-black/5">
-                             <p className="text-xs font-medium text-brand-gray/70 mb-2">Process flow</p>
-                             <div className="flex gap-1 text-brand-rose text-[9px]">
-                                {[...Array(5)].map((_, i) => (
-                                  <i key={i} className={`fa-solid fa-bolt ${i < entry.processRating! ? '' : 'opacity-20'}`}></i>
-                                ))}
-                             </div>
-                           </div>
-                         )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </section>
-        </div>
-      )}
 
       {activeTab === 'cfe' && (
         <div className="animate-in fade-in duration-700 space-y-12">
@@ -3136,7 +2513,6 @@ const App: React.FC = () => {
       {activeTab === 'calendar' && (
         <CalendarView
           sessions={sessions}
-          journalEntries={journalEntries}
           weekPlans={weekPlans}
           onSaveWeekPlan={(plan) => setWeekPlans(prev => [plan, ...prev])}
           onDeleteWeekPlan={(id) => setWeekPlans(prev => prev.filter(p => p.id !== id))}
@@ -3148,7 +2524,6 @@ const App: React.FC = () => {
             }, 150);
             setTimeout(() => setHighlightedSessionId(null), 2500);
           }}
-          onGoToJournal={() => setActiveTab('journal')}
         />
       )}
 
@@ -3172,19 +2547,11 @@ const App: React.FC = () => {
                   onUpdateStatus={updateStatus}
                   onUpdate={updateSession}
                   onDelete={deleteSession}
-                  hasJournal={journalEntries.some(e => e.sessionIds.includes(session.id))}
-                  onGoToJournal={() => setActiveTab('journal')}
                 />
               ))
             )}
           </div>
         </div>
-      )}
-
-      {activeTab === 'community' && (
-        <ErrorBoundary>
-          <CommunityView user={user} profileGenres={profile.primaryGenres} profileName={profile.name} />
-        </ErrorBoundary>
       )}
 
       {activeTab === 'gear' && (

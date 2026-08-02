@@ -1,15 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { Session, SessionStatus, JournalEntry, WeekPlan } from '../types';
+import { Session, SessionStatus, WeekPlan } from '../types';
 import { generateWeeklyPlan } from '../services/geminiService';
 
 interface CalendarViewProps {
   sessions: Session[];
-  journalEntries: JournalEntry[];
   weekPlans: WeekPlan[];
   onSaveWeekPlan: (plan: WeekPlan) => void;
   onDeleteWeekPlan: (id: string) => void;
   onGoToSession: (sessionId: string) => void;
-  onGoToJournal: () => void;
 }
 
 // ── Shared constants ──────────────────────────────────────────────────────────
@@ -118,8 +116,7 @@ const defaultAvailability = (): Record<string, DayAvailability> =>
 
 // ── Main component ────────────────────────────────────────────────────────────
 const CalendarView: React.FC<CalendarViewProps> = ({
-  sessions, journalEntries, weekPlans, onSaveWeekPlan, onDeleteWeekPlan,
-  onGoToSession, onGoToJournal,
+  sessions, weekPlans, onSaveWeekPlan, onDeleteWeekPlan, onGoToSession,
 }) => {
   const today = new Date();
   const [view, setView] = useState<'calendar' | 'planner' | 'search'>('calendar');
@@ -127,7 +124,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   // Calendar state
   const [current, setCurrent]           = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [showJournal, setShowJournal]   = useState(true);
 
   // Planner state
   const [plannerSessions, setPlannerSessions]   = useState<Set<string>>(new Set());
@@ -180,30 +176,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return map;
   }, [sessions]);
 
-  const journalByDate = useMemo(() => {
-    const map: Record<string, JournalEntry[]> = {};
-    journalEntries.forEach(e => { if (!e.date) return; const k = e.date.slice(0,10); (map[k] ??= []).push(e); });
-    return map;
-  }, [journalEntries]);
-
   const todayStr         = toYMD(today);
   const selectedSessions = selectedDate ? (sessionsByDate[selectedDate] ?? []) : [];
-  const selectedJournal  = selectedDate ? (journalByDate[selectedDate] ?? []) : [];
   const activeSessions   = sessions.filter(s => s.status !== 'archived');
 
   // Search
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return { sessions: [], journal: [] };
+    if (!q) return { sessions: [] };
     return {
       sessions: sessions.filter(s =>
         [s.title, s.location, s.name, s.notes, s.strategy, s.dayPlan, ...(s.genre ?? [])].some(f => f?.toLowerCase().includes(q))
       ),
-      journal: journalEntries.filter(e =>
-        [e.title, e.notes, ...(e.tags ?? [])].some(f => f?.toLowerCase().includes(q))
-      ),
     };
-  }, [searchQuery, sessions, journalEntries]);
+  }, [searchQuery, sessions]);
 
   // Planner helpers
   const togglePlannerSession = (id: string) =>
@@ -316,13 +302,9 @@ INSTRUCTIONS:
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <h2 className="text-4xl font-display text-brand-black tracking-wide">CALENDAR</h2>
-          <p className="text-brand-gray mt-2 text-sm font-medium">Sessions and journal entries mapped by date.</p>
+          <p className="text-brand-gray mt-2 text-sm font-medium">Sessions mapped by date.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <button onClick={() => setShowJournal(p => !p)}
-            className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-md border transition-all ${showJournal ? 'bg-brand-black text-white border-brand-black' : 'border-brand-black/10 text-brand-gray hover:border-brand-black/30'}`}>
-            <i className="fa-solid fa-book-open text-xs"></i> Journal
-          </button>
           <button onClick={goToday} className="text-xs font-medium px-4 py-2 border border-brand-black/10 rounded-md hover:border-brand-rose hover:text-brand-rose transition-all">Today</button>
           <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-md hover:border-brand-rose hover:text-brand-rose transition-all">
             <i className="fa-solid fa-chevron-left text-[10px]"></i>
@@ -343,7 +325,6 @@ INSTRUCTIONS:
         <div className="grid grid-cols-7">
           {cells.map(({ date, inMonth }) => {
             const daySessions = sessionsByDate[date] ?? [];
-            const dayJournal  = showJournal ? (journalByDate[date] ?? []) : [];
             const isToday     = date === todayStr;
             const isSelected  = date === selectedDate;
             return (
@@ -362,19 +343,13 @@ INSTRUCTIONS:
                       {s.title || s.location || 'Untitled'}
                     </div>
                   ))}
-                  {dayJournal.slice(0, 2).map(e => (
-                    <div key={e.id} className="text-[9px] font-medium px-1.5 py-0.5 rounded border truncate leading-tight bg-brand-rose/5 text-brand-rose/80 border-brand-rose/20">
-                      <i className="fa-solid fa-book-open mr-1 text-[8px]"></i>{e.title || 'Journal'}
-                    </div>
-                  ))}
-                  {(daySessions.length + dayJournal.length) > 4 && (
-                    <div className="text-[8px] font-bold text-brand-gray/50 pl-1">+{(daySessions.length + dayJournal.length) - 4} more</div>
+                  {daySessions.length > 4 && (
+                    <div className="text-[8px] font-bold text-brand-gray/50 pl-1">+{daySessions.length - 4} more</div>
                   )}
                 </div>
-                {(daySessions.length > 0 || dayJournal.length > 0) && (
+                {daySessions.length > 0 && (
                   <div className="flex gap-0.5 flex-wrap mt-1 md:hidden">
                     {daySessions.slice(0, 3).map(s => <span key={s.id} className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status]}`}></span>)}
-                    {dayJournal.slice(0, 2).map(e => <span key={e.id} className="w-1.5 h-1.5 rounded-full bg-brand-rose/50"></span>)}
                   </div>
                 )}
               </button>
@@ -406,7 +381,7 @@ INSTRUCTIONS:
               <i className="fa-solid fa-xmark text-sm"></i>
             </button>
           </div>
-          {selectedSessions.length === 0 && selectedJournal.length === 0 && (
+          {selectedSessions.length === 0 && (
             <div className="py-12 text-center border border-dashed border-brand-black/10 rounded-lg">
               <p className="text-sm text-brand-gray/40">Nothing logged on this day</p>
             </div>
@@ -436,32 +411,6 @@ INSTRUCTIONS:
               </div>
             </div>
           )}
-          {selectedJournal.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-brand-black/40 mb-3">Journal Entries</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {selectedJournal.map(e => (
-                  <div key={e.id} className="bg-white border border-brand-rose/10 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
-                    <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
-                      <p className="text-base font-semibold text-white leading-snug truncate">{e.title || 'Journal Entry'}</p>
-                      <i className="fa-solid fa-book-open text-brand-rose/50 flex-shrink-0 ml-2"></i>
-                    </div>
-                    <div className="px-5 py-4 space-y-3">
-                      {e.notes && <p className="text-xs text-brand-gray leading-relaxed line-clamp-3 italic">{e.notes}</p>}
-                      {e.tags && e.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {e.tags.map(t => <span key={t} className="text-xs px-2 py-0.5 bg-brand-rose/5 text-brand-rose/70 border border-brand-rose/15 rounded font-medium">{t}</span>)}
-                        </div>
-                      )}
-                      <button onClick={onGoToJournal} className="w-full text-xs font-medium py-2.5 bg-brand-rose/5 hover:bg-brand-blue hover:text-white text-brand-rose/80 rounded-md transition-all">
-                        Open Journal <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -472,7 +421,7 @@ INSTRUCTIONS:
     <div className="space-y-8">
       <header>
         <h2 className="text-4xl font-display text-brand-black tracking-wide">SEARCH</h2>
-        <p className="text-brand-gray mt-2 text-sm font-medium">Find sessions and journal entries by keyword.</p>
+        <p className="text-brand-gray mt-2 text-sm font-medium">Find sessions by keyword.</p>
       </header>
       <div className="relative">
         <i className="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-brand-gray/40 text-sm"></i>
@@ -520,40 +469,6 @@ INSTRUCTIONS:
                       {s.notes && <p className="text-xs text-brand-gray leading-relaxed line-clamp-2"><Highlight text={s.notes} query={searchQuery} /></p>}
                       <button onClick={() => onGoToSession(s.id)} className="w-full text-xs font-medium py-2.5 bg-brand-black/5 hover:bg-brand-blue hover:text-white text-brand-black rounded-md transition-all mt-2">
                         Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-          {searchResults.journal.length > 0 && (
-            <section>
-              <p className="text-xs font-medium text-brand-black/40 mb-4 flex items-center gap-2">
-                <i className="fa-solid fa-book-open"></i> Journal Entries
-                <span className="bg-brand-rose/10 text-brand-rose/70 px-2 py-0.5 rounded">{searchResults.journal.length}</span>
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {searchResults.journal.map(e => (
-                  <div key={e.id} className="bg-white border border-brand-rose/10 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
-                    <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
-                      <div>
-                        <p className="text-base font-semibold text-white leading-snug"><Highlight text={e.title || 'Journal Entry'} query={searchQuery} /></p>
-                        <p className="text-xs text-brand-gray/60 mt-1">{e.date}</p>
-                      </div>
-                      <i className="fa-solid fa-book-open text-brand-rose/50 ml-2"></i>
-                    </div>
-                    <div className="px-5 py-4 space-y-2">
-                      {e.notes && <p className="text-xs text-brand-gray leading-relaxed line-clamp-3 italic"><Highlight text={e.notes} query={searchQuery} /></p>}
-                      {e.tags && e.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {e.tags.map(t => (
-                            <span key={t} className={`text-xs px-2 py-0.5 rounded font-medium border ${t.toLowerCase().includes(searchQuery.toLowerCase()) ? 'bg-brand-rose/10 text-brand-rose border-brand-rose/20' : 'bg-brand-rose/5 text-brand-rose/70 border-brand-rose/15'}`}>{t}</span>
-                          ))}
-                        </div>
-                      )}
-                      <button onClick={onGoToJournal} className="w-full text-xs font-medium py-2.5 bg-brand-rose/5 hover:bg-brand-blue hover:text-white text-brand-rose/80 rounded-md transition-all mt-2">
-                        Open Journal <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
                       </button>
                     </div>
                   </div>

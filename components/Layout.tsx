@@ -28,13 +28,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
     { id: 'profile', label: 'Profile', icon: 'fa-user-gear' },
     { id: 'planner', label: 'Assignment Planner', icon: 'fa-calendar-days' },
     { id: 'assignment', label: 'Assignment Mode', icon: 'fa-bolt' },
-    { id: 'processing', label: 'Processing Guides', icon: 'fa-wand-sparkles' },
     { id: 'askpro', label: 'Ask a Pro', icon: 'fa-comments' },
     { id: 'calendar', label: 'Calendar', icon: 'fa-calendar' },
-    { id: 'journal', label: 'Journal', icon: 'fa-book-open' },
     { id: 'gear', label: 'Gear Locker', icon: 'fa-toolbox' },
     { id: 'cfe', label: 'Bulletin Board', icon: 'fa-trophy' },
-    { id: 'community', label: 'Community', icon: 'fa-users' },
     { id: 'scout', label: 'Location Scout', icon: 'fa-map-pin' },
     { id: 'archive', label: 'Archive', icon: 'fa-box-archive' },
   ];
@@ -49,7 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
     setIsMenuOpen(false);
   };
 
-  const isCoreFieldItem = (label: string) => ['Assignment Mode', 'Processing Guides', 'Ask a Pro', 'Journal'].includes(label);
+  const isCoreFieldItem = (label: string) => ['Assignment Mode', 'Ask a Pro'].includes(label);
   const isDashboard = (label: string) => label === 'Dashboard';
 
   // Navigation items to show in the mobile dropdown based on mode
@@ -58,13 +55,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
     'Profile',
     'Assignment Planner',
     'Assignment Mode',
-    'Processing Guides',
     'Ask a Pro',
     'Calendar',
-    'Journal',
     'Gear Locker',
     'Bulletin Board',
-    'Community',
     'Location Scout',
     'Archive',
   ];
@@ -72,9 +66,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
   const fieldMobileLabels = [
     'Dashboard',
     'Assignment Mode',
-    'Processing Guides',
     'Ask a Pro',
-    'Journal',
   ];
 
   const mobileNavItems = navItems.filter((item) =>
@@ -304,15 +296,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
               <span className="text-xs font-medium">Assignment</span>
             </button>
             <button
-              onClick={() => setActiveTab('processing')}
-              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-all ${
-                activeTab === 'processing' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
-              }`}
-            >
-              <i className="fa-solid fa-wand-sparkles text-xs"></i>
-              <span className="text-xs font-medium">Guides</span>
-            </button>
-            <button
               onClick={() => setActiveTab('askpro')}
               className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-all ${
                 activeTab === 'askpro' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
@@ -320,15 +303,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
             >
               <i className="fa-solid fa-comments text-xs"></i>
               <span className="text-xs font-medium">Ask Pro</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('journal')}
-              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-all ${
-                activeTab === 'journal' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
-              }`}
-            >
-              <i className="fa-solid fa-book-open text-xs"></i>
-              <span className="text-xs font-medium">Journal</span>
             </button>
           </div>
         </div>

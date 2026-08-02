@@ -9,6 +9,8 @@ import {
 import { auth } from './firebase';
 import { toast } from './utils/toast';
 
+const ALLOWED_EMAIL = 'eprosillo@gmail.com';
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -51,7 +53,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      setUser(firebaseUser);
+      if (firebaseUser && firebaseUser.email !== ALLOWED_EMAIL) {
+        await firebaseSignOut(auth);
+        toast.error('This app is private. Access denied.');
+        setUser(null);
+      } else {
+        setUser(firebaseUser);
+      }
       setLoading(false);
     });
     return unsubscribe;
