@@ -37,6 +37,8 @@ import {
   FeedbackEntry,
   WeekPlan,
   ScoutLocation,
+  Submission,
+  SkillNodeProgress,
 } from '../types';
 
 export interface FirestoreUserData {
@@ -50,6 +52,8 @@ export interface FirestoreUserData {
   feedback?: FeedbackEntry[];
   weekPlans?: WeekPlan[];
   scoutLocations?: ScoutLocation[];
+  submissions?: Submission[];
+  skillProgress?: SkillNodeProgress[];
 }
 
 // ── Retry helper ──────────────────────────────────────────────────────────────

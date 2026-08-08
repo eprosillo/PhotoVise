@@ -6,7 +6,11 @@ import ErrorBoundary from './components/ErrorBoundary';
 import SessionCard from './components/SessionCard';
 import SessionSelector from './components/SessionSelector';
 import LocationAutocomplete from './components/LocationAutocomplete';
-import { Session, SessionStatus, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan, ScoutLocation } from './types';
+import { Session, SessionStatus, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan, ScoutLocation, Submission, SkillNodeProgress, SkillNodeType } from './types';
+import TodayView from './components/TodayView';
+import SkillTreeView from './components/SkillTreeView';
+import MissionHistoryView from './components/MissionHistoryView';
+import { getEncouragement } from './data/missions';
 import { generateWeeklyPlan, generateAssignmentGuide, askProQuestion, fetchBulletinEvents } from './services/geminiService';
 import { createCalendarEventForSession } from './services/calendarService';
 import { GENRE_ICONS } from './constants';
@@ -528,7 +532,7 @@ const App: React.FC = () => {
   const { loadUserData, saveUserData } = useFirestore(user?.uid ?? null);
 
   // ── Local state ─────────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('today');
   const [isFieldMode, setIsFieldMode] = useState<boolean>(false);
   const [feedbackLog, setFeedbackLog] = useState<FeedbackEntry[]>(() =>
     loadFromStorage<FeedbackEntry[]>('pingstudio_feedback', [])
@@ -725,6 +729,13 @@ const App: React.FC = () => {
     loadFromStorage<ScoutLocation[]>('pingstudio_scout', SCOUT_SEED_LOCATIONS)
   );
 
+  const [submissions, setSubmissions] = useState<Submission[]>(() =>
+    loadFromStorage<Submission[]>('pv_submissions', [])
+  );
+  const [skillProgress, setSkillProgress] = useState<SkillNodeProgress[]>(() =>
+    loadFromStorage<SkillNodeProgress[]>('pv_skill_progress', [])
+  );
+
   const [plannerInput, setPlannerInput] = useState('');
   const [plannerOutput, setPlannerOutput] = useState('');
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
@@ -811,6 +822,8 @@ const App: React.FC = () => {
       if (data.feedback)         setFeedbackLog(data.feedback);
       if (data.weekPlans)        setWeekPlans(data.weekPlans);
       if (data.scoutLocations)   setScoutLocations(data.scoutLocations);
+      if (data.submissions)      setSubmissions(data.submissions);
+      if (data.skillProgress)    setSkillProgress(data.skillProgress);
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -878,6 +891,18 @@ const App: React.FC = () => {
     saveUserData({ scoutLocations });
   }, [scoutLocations]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Persist mission submissions (localStorage + Firestore)
+  useEffect(() => {
+    localStorage.setItem('pv_submissions', JSON.stringify(submissions));
+    saveUserData({ submissions });
+  }, [submissions]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist skill progress (localStorage + Firestore)
+  useEffect(() => {
+    localStorage.setItem('pv_skill_progress', JSON.stringify(skillProgress));
+    saveUserData({ skillProgress });
+  }, [skillProgress]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Scout location CRUD ───────────────────────────────────────────────────
   const addScoutLocation = (location: ScoutLocation) => {
     setScoutLocations(prev => [location, ...prev]);
@@ -917,6 +942,56 @@ const App: React.FC = () => {
 
     toast.success(`"${location.name}" attached to session.`);
     setActiveTab('dashboard');
+  };
+
+  // ── Mission submission handler ─────────────────────────────────────────────
+  const handleMissionSubmit = async (
+    missionId: string,
+    missionTitle: string,
+    skillNode: SkillNodeType,
+    photoFile: File
+  ): Promise<Submission> => {
+    if (!user) throw new Error('Not signed in');
+
+    const submissionId = `sub_${Date.now()}`;
+    const path = `missions/${user.uid}/${submissionId}`;
+    const fileRef = storageRef(storage, path);
+
+    // Read file as data URL then upload
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(photoFile);
+    });
+
+    const base64 = dataUrl.split(',')[1];
+    const contentType = photoFile.type || 'image/jpeg';
+    await uploadString(fileRef, base64, 'base64', { contentType });
+    const photoUrl = await getDownloadURL(fileRef);
+
+    const submission: Submission = {
+      id: submissionId,
+      missionId,
+      missionTitle,
+      photoUrl,
+      skillNode,
+      feedbackText: getEncouragement(),
+      createdAt: Date.now(),
+    };
+
+    setSubmissions(prev => [submission, ...prev]);
+
+    // Update skill progress for this node
+    setSkillProgress(prev => {
+      const existing = prev.find(p => p.node === skillNode);
+      if (existing) {
+        return prev.map(p => p.node === skillNode ? { ...p, completions: p.completions + 1 } : p);
+      }
+      return [...prev, { node: skillNode, completions: 1 }];
+    });
+
+    return submission;
   };
 
   const addSession = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -2696,6 +2771,31 @@ const App: React.FC = () => {
             onToggleFavorite={toggleScoutFavorite}
             onUseForAssignment={useLocationForAssignment}
           />
+        </ErrorBoundary>
+      )}
+
+      {activeTab === 'today' && (
+        <ErrorBoundary>
+          <TodayView
+            submissions={submissions}
+            skillProgress={skillProgress}
+            onSubmit={handleMissionSubmit}
+          />
+        </ErrorBoundary>
+      )}
+
+      {activeTab === 'skills' && (
+        <ErrorBoundary>
+          <SkillTreeView
+            skillProgress={skillProgress}
+            totalSubmissions={submissions.length}
+          />
+        </ErrorBoundary>
+      )}
+
+      {activeTab === 'history' && (
+        <ErrorBoundary>
+          <MissionHistoryView submissions={submissions} />
         </ErrorBoundary>
       )}
     </Layout>

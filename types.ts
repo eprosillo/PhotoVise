@@ -240,3 +240,35 @@ export interface CommunityPost {
   ratingSum?: number;
   ratingCount?: number;
 }
+
+// ── Training / Mission System ─────────────────────────────────────────────────
+
+export type SkillNodeType = 'Composition' | 'Light' | 'Timing' | 'Moment';
+
+export type MissionGenre = 'Street' | 'Sports' | 'Photojournalism' | 'Any';
+
+export interface Mission {
+  id: string;
+  title: string;
+  promptDetail: string;  // 1–2 sentence description
+  tip: string;           // single technique tip shown on the card
+  genre: MissionGenre;
+  skillNode: SkillNodeType;
+  timeBoxMinutes: number;
+  difficulty: 1 | 2 | 3;
+}
+
+export interface Submission {
+  id: string;
+  missionId: string;
+  missionTitle: string;
+  photoUrl: string;
+  skillNode: SkillNodeType;
+  feedbackText: string;
+  createdAt: number;
+}
+
+export interface SkillNodeProgress {
+  node: SkillNodeType;
+  completions: number;
+}
