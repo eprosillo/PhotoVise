@@ -6,7 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import SessionCard from './components/SessionCard';
 import SessionSelector from './components/SessionSelector';
 import LocationAutocomplete from './components/LocationAutocomplete';
-import { Session, SessionStatus, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan, ScoutLocation, Submission, SkillNodeProgress, SkillNodeType } from './types';
+import { Session, SessionStatus, SessionType, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan, ScoutLocation, Submission, SkillNodeProgress, SkillNodeType } from './types';
 import TodayView from './components/TodayView';
 import SkillTreeView from './components/SkillTreeView';
 import MissionHistoryView from './components/MissionHistoryView';
@@ -576,7 +576,8 @@ const App: React.FC = () => {
   // Dashboard session filters
   const [dashboardGenreFilter, setDashboardGenreFilter] = useState<Genre | 'All'>('All');
   const [dashboardStatusFilter, setDashboardStatusFilter] = useState<SessionStatus | 'All'>('All');
-  const [dashboardDateSort, setDashboardDateSort] = useState<'newest' | 'oldest'>('newest');
+  const [dashboardTypeFilter, setDashboardTypeFilter] = useState<SessionType | 'All'>('All');
+  const [dashboardDateSort, setDashboardDateSort] = useState<'deadline' | 'newest' | 'oldest'>('deadline');
 
   // Persistence for sessions
   const [sessions, setSessions] = useState<Session[]>(() => {
@@ -1002,6 +1003,9 @@ const App: React.FC = () => {
     const genre = formData.get('genre') as Genre;
     const notes = formData.get('notes') as string;
     const title = (formData.get('title') as string).trim();
+    const type = (formData.get('type') as string) || undefined;
+    const deadline = (formData.get('deadline') as string) || undefined;
+    const brief = ((formData.get('brief') as string) || '').trim() || undefined;
 
     const name = `${date}_${location.replace(/\s+/g, '_')}_${genre}`;
 
@@ -1013,7 +1017,10 @@ const App: React.FC = () => {
       location,
       genre: [genre],
       status: 'capturing',
-      notes: notes || ''
+      notes: notes || '',
+      type: type as SessionType | undefined,
+      deadline,
+      brief,
     };
     
     setSessions(prev => [newSession, ...prev]);
@@ -1141,7 +1148,10 @@ const App: React.FC = () => {
         `  Location: ${s.location}`,
         `  Genre: ${s.genre.join(', ')}`,
         `  Status: ${s.status}`,
+        s.type     && `  Type: ${s.type}`,
+        s.deadline && `  Deadline: ${s.deadline}`,
         s.title    && `  Title: ${s.title}`,
+        s.brief    && `  Brief: ${s.brief}`,
         s.notes    && `  Notes: ${s.notes}`,
         s.strategy && `  Assignment strategy: ${s.strategy}`,
         s.dayPlan  && `  Assignment day plan: ${s.dayPlan}`,
@@ -1552,8 +1562,8 @@ const App: React.FC = () => {
         <div className="animate-in fade-in duration-700">
           <header className="mb-10 flex justify-between items-start">
             <div>
-              <h2 className="text-4xl font-display text-brand-black tracking-wide">PRODUCTION LOGBOOK</h2>
-              <p className="text-brand-gray mt-2 text-sm font-medium">Tracking professional workflow status and backup integrity.</p>
+              <h2 className="text-4xl font-display text-brand-black tracking-wide">SESSIONS</h2>
+              <p className="text-brand-gray mt-2 text-sm font-medium">Class assignments, internship work, and personal shoots.</p>
             </div>
             {/* Field Mode Toggle - Dashboard Only */}
             <div className="flex flex-col items-end gap-1">
@@ -1588,7 +1598,7 @@ const App: React.FC = () => {
 
           <section className="bg-brand-black rounded-lg p-8 text-brand-white mb-12 shadow-xl border border-white/5">
             <h3 className="text-xs font-semibold text-brand-rose/80 mb-5">Log new session</h3>
-            <form onSubmit={addSession} className="space-y-4">
+            <form onSubmit={addSession} className="space-y-3">
               <input
                 name="title"
                 type="text"
@@ -1621,13 +1631,36 @@ const App: React.FC = () => {
                   type="submit"
                   className="bg-brand-blue hover:bg-[#7a93a0] text-white text-sm font-semibold rounded-md py-3 transition-all active:scale-95 shadow-lg"
                 >
-                  Index session
+                  Add session
                 </button>
               </div>
+              {/* Type + Deadline */}
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  name="type"
+                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all text-white/70"
+                >
+                  <option value="" className="text-brand-black">Type (optional)</option>
+                  <option value="Class" className="text-brand-black">Class</option>
+                  <option value="Internship" className="text-brand-black">Internship</option>
+                  <option value="Personal" className="text-brand-black">Personal</option>
+                </select>
+                <input
+                  name="deadline"
+                  type="date"
+                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all text-white/70"
+                  title="Submission deadline (optional)"
+                />
+              </div>
+              <textarea
+                name="brief"
+                placeholder="Assignment brief / requirements (optional)"
+                className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[60px]"
+              />
               <textarea
                 name="notes"
-                placeholder="Notes / creative brief"
-                className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[80px]"
+                placeholder="Notes"
+                className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[60px]"
               />
             </form>
           </section>
@@ -1639,20 +1672,48 @@ const App: React.FC = () => {
             const filtered = activeSessions
               .filter(s =>
                 (dashboardGenreFilter === 'All' || (s.genre ?? []).includes(dashboardGenreFilter)) &&
-                (dashboardStatusFilter === 'All' || s.status === dashboardStatusFilter)
+                (dashboardStatusFilter === 'All' || s.status === dashboardStatusFilter) &&
+                (dashboardTypeFilter === 'All' || s.type === dashboardTypeFilter)
               )
               .sort((a, b) => {
+                if (dashboardDateSort === 'deadline') {
+                  // Sessions with deadlines first, sorted ascending; no-deadline sessions go last
+                  if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
+                  if (a.deadline) return -1;
+                  if (b.deadline) return 1;
+                  return (b.date || '').localeCompare(a.date || '');
+                }
                 const da = a.date || '', db = b.date || '';
                 return dashboardDateSort === 'newest' ? db.localeCompare(da) : da.localeCompare(db);
               });
 
-            const hasFilters = dashboardGenreFilter !== 'All' || dashboardStatusFilter !== 'All';
+            const hasFilters = dashboardGenreFilter !== 'All' || dashboardStatusFilter !== 'All' || dashboardTypeFilter !== 'All';
 
             return (
               <>
                 {activeSessions.length > 0 && (
                   <div className="mb-8 space-y-4">
                     <div className="flex flex-col md:flex-row md:items-center gap-4 flex-wrap">
+                      {/* Type filter */}
+                      <div className="flex-shrink-0">
+                        <p className="text-xs text-brand-gray/50 font-medium mb-2">Type</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(['All', 'Class', 'Internship', 'Personal'] as const).map(t => (
+                            <button key={t}
+                              onClick={() => setDashboardTypeFilter(t)}
+                              className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${
+                                dashboardTypeFilter === t
+                                  ? t === 'Class'      ? 'bg-brand-blue text-white border-brand-blue'
+                                  : t === 'Internship' ? 'bg-amber-500 text-white border-amber-500'
+                                  : t === 'Personal'   ? 'bg-emerald-500 text-white border-emerald-500'
+                                  : 'bg-brand-black text-white border-brand-black'
+                                  : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'
+                              }`}
+                            >{t}</button>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* Genre filter */}
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-brand-gray/50 font-medium mb-2">Genre</p>
@@ -1683,15 +1744,15 @@ const App: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Date sort */}
+                      {/* Sort */}
                       <div className="flex-shrink-0">
-                        <p className="text-xs text-brand-gray/50 font-medium mb-2">Date</p>
+                        <p className="text-xs text-brand-gray/50 font-medium mb-2">Sort</p>
                         <button
-                          onClick={() => setDashboardDateSort(p => p === 'newest' ? 'oldest' : 'newest')}
+                          onClick={() => setDashboardDateSort(p => p === 'deadline' ? 'newest' : p === 'newest' ? 'oldest' : 'deadline')}
                           className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-md border border-brand-black/10 bg-white text-brand-gray hover:border-brand-black/30 transition-all"
                         >
-                          <i className={`fa-solid fa-arrow-${dashboardDateSort === 'newest' ? 'down' : 'up'}-short-wide text-[9px]`}></i>
-                          {dashboardDateSort === 'newest' ? 'Newest first' : 'Oldest first'}
+                          <i className={`fa-solid ${dashboardDateSort === 'deadline' ? 'fa-clock' : dashboardDateSort === 'newest' ? 'fa-arrow-down-short-wide' : 'fa-arrow-up-short-wide'} text-[9px]`}></i>
+                          {dashboardDateSort === 'deadline' ? 'Deadline first' : dashboardDateSort === 'newest' ? 'Newest first' : 'Oldest first'}
                         </button>
                       </div>
                     </div>
@@ -1703,7 +1764,7 @@ const App: React.FC = () => {
                       </p>
                       {hasFilters && (
                         <button
-                          onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); }}
+                          onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); setDashboardTypeFilter('All'); }}
                           className="text-xs text-brand-gray/50 hover:text-brand-black hover:underline"
                         >
                           <i className="fa-solid fa-xmark mr-1"></i>Clear filters
@@ -1721,7 +1782,7 @@ const App: React.FC = () => {
                   ) : filtered.length === 0 ? (
                     <div className="col-span-full py-16 text-center border border-dashed border-brand-gray/20 rounded-lg">
                       <p className="text-sm font-medium text-brand-gray/50 mb-2">No sessions match these filters</p>
-                      <button onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); }} className="text-xs text-brand-rose font-medium hover:underline">
+                      <button onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); setDashboardTypeFilter('All'); }} className="text-xs text-brand-rose font-medium hover:underline">
                         Clear filters
                       </button>
                     </div>

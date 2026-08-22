@@ -23,6 +23,8 @@ export type Genre =
 
 export type SessionStatus = 'capturing' | 'shot' | 'culled' | 'edited' | 'backed up' | 'posted' | 'archived';
 
+export type SessionType = 'Class' | 'Internship' | 'Personal';
+
 export interface WeekPlan {
   id: string;
   weekOf: string;          // YYYY-MM-DD of Monday of the planned week
@@ -44,6 +46,9 @@ export interface Session {
   strategy?: string;
   dayPlan?: string;
   scoutNotes?: string;
+  type?: SessionType;
+  deadline?: string;   // ISO date YYYY-MM-DD
+  brief?: string;      // assignment brief / requirements
 }
 
 export type GearCategory = 'Body' | 'Lens' | 'Flash' | 'Modifier' | 'Support' | 'Accessory';
