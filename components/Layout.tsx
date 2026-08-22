@@ -24,19 +24,17 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   const navItems = [
-    { id: 'today',      label: 'Today',              icon: 'fa-crosshairs' },
-    { id: 'skills',     label: 'Skill Tree',         icon: 'fa-diagram-project' },
-    { id: 'history',    label: 'History',            icon: 'fa-images' },
-    { id: 'dashboard',  label: 'Sessions',           icon: 'fa-gauge' },
-    { id: 'profile',    label: 'Profile',            icon: 'fa-user-gear' },
-    { id: 'planner',    label: 'Assignment Planner', icon: 'fa-calendar-days' },
-    { id: 'assignment', label: 'Assignment Mode',    icon: 'fa-bolt' },
-    { id: 'askpro',     label: 'Ask a Pro',          icon: 'fa-comments' },
-    { id: 'calendar',   label: 'Calendar',           icon: 'fa-calendar' },
-    { id: 'gear',       label: 'Gear Locker',        icon: 'fa-toolbox' },
-    { id: 'cfe',        label: 'Bulletin Board',     icon: 'fa-trophy' },
-    { id: 'scout',      label: 'Location Scout',     icon: 'fa-map-pin' },
-    { id: 'archive',    label: 'Archive',            icon: 'fa-box-archive' },
+    { id: 'today',     label: 'Today',          icon: 'fa-crosshairs' },
+    { id: 'skills',    label: 'Skill Tree',     icon: 'fa-diagram-project' },
+    { id: 'history',   label: 'History',        icon: 'fa-images' },
+    { id: 'dashboard', label: 'Sessions',       icon: 'fa-gauge' },
+    { id: 'askpro',    label: 'Ask a Pro',      icon: 'fa-comments' },
+    { id: 'calendar',  label: 'Calendar',       icon: 'fa-calendar' },
+    { id: 'scout',     label: 'Location Scout', icon: 'fa-map-pin' },
+    { id: 'gear',      label: 'Gear Locker',    icon: 'fa-toolbox' },
+    { id: 'cfe',       label: 'Bulletin Board', icon: 'fa-trophy' },
+    { id: 'archive',   label: 'Archive',        icon: 'fa-box-archive' },
+    { id: 'profile',   label: 'Profile',        icon: 'fa-user-gear' },
   ];
 
   const handleTabChange = (id: string) => {
@@ -49,31 +47,16 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
     setIsMenuOpen(false);
   };
 
-  const isCoreFieldItem = (label: string) => ['Assignment Mode', 'Ask a Pro', 'Today'].includes(label);
+  const isCoreFieldItem = (label: string) => ['Ask a Pro', 'Today'].includes(label);
   const isDashboard = (label: string) => label === 'Sessions';
 
-  // Navigation items to show in the mobile dropdown based on mode
   const normalMobileLabels = [
-    'Today',
-    'Skill Tree',
-    'History',
-    'Sessions',
-    'Profile',
-    'Assignment Planner',
-    'Assignment Mode',
-    'Ask a Pro',
-    'Calendar',
-    'Gear Locker',
-    'Bulletin Board',
-    'Location Scout',
-    'Archive',
+    'Today', 'Skill Tree', 'History', 'Sessions', 'Ask a Pro',
+    'Calendar', 'Location Scout', 'Gear Locker', 'Bulletin Board',
+    'Archive', 'Profile',
   ];
 
-  const fieldMobileLabels = [
-    'Today',
-    'Assignment Mode',
-    'Ask a Pro',
-  ];
+  const fieldMobileLabels = ['Today', 'Ask a Pro'];
 
   const mobileNavItems = navItems.filter((item) =>
     isFieldMode
@@ -300,15 +283,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
             >
               <i className="fa-solid fa-crosshairs text-xs"></i>
               <span className="text-xs font-medium">Today</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('assignment')}
-              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-all ${
-                activeTab === 'assignment' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
-              }`}
-            >
-              <i className="fa-solid fa-bolt text-xs"></i>
-              <span className="text-xs font-medium">Assignment</span>
             </button>
             <button
               onClick={() => setActiveTab('askpro')}

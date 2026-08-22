@@ -395,16 +395,18 @@ exports.suggestScoutLocations = (0, https_1.onCall)({ secrets: [geminiApiKey], t
     if (!(sessionContext === null || sessionContext === void 0 ? void 0 : sessionContext.trim()))
         throw new https_1.HttpsError('invalid-argument', 'sessionContext is required');
     const prompt = `You are a photography location scout. Based on the session context below, suggest exactly 3 specific, ` +
-        `real-world shooting locations that fit the assignment's genre, area, and needs.\n\n` +
+        `real-world shooting locations that fit the assignment.\n\n` +
         `SESSION CONTEXT:\n${sessionContext}\n\n` +
         `Return ONLY a valid JSON array — no markdown fences, no explanation. Each object must match this schema exactly:\n` +
         `[{"name":"","area":"","mapLink":"full street address","tags":[],"bestTime":"","lightingNotes":"","accessNotes":"","safetyNotes":"","parkingNotes":"","shotIdeas":"","backupSpot":""}]\n\n` +
         `Valid "tags" values (use only these): Architecture, Landscape, Street, Photojournalism, Abstraction, People, Composition, Blue Hour, Golden Hour\n` +
         `Valid "bestTime" values (use only these): Sunrise, Early Morning, Morning, Midday, Afternoon, Golden Hour, Blue Hour, Night, Any Time\n\n` +
         `Rules:\n` +
+        `- Read ALL fields in the session context — assignment notes, strategy, and day plan contain the most important intent signals. Let them drive your suggestions.\n` +
+        `- Strictly honour the "Search radius" field: only suggest locations within that distance of the assignment location. If the radius is "No limit", suggest the best-fit locations anywhere.\n` +
         `- Suggest real, named places — not generic descriptions.\n` +
         `- If the session has a city or area, prioritise locations there.\n` +
-        `- Make shotIdeas concrete and specific to the session's genre.\n` +
+        `- Make shotIdeas concrete and directly tied to the genre, strategy, and any specific goals mentioned in the notes.\n` +
         `- Include 3 locations.`;
     try {
         const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });

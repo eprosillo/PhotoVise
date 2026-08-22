@@ -537,18 +537,6 @@ const App: React.FC = () => {
   const [feedbackLog, setFeedbackLog] = useState<FeedbackEntry[]>(() =>
     loadFromStorage<FeedbackEntry[]>('pingstudio_feedback', [])
   );
-  const [lastAssignmentInput, setLastAssignmentInput] = useState<string>('');
-  const [showFullAssignmentOutput, setShowFullAssignmentOutput] = useState(false);
-  
-  const assignmentInputRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (isFieldMode && activeTab === 'assignment') {
-      assignmentInputRef.current?.focus();
-      assignmentInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [isFieldMode, activeTab]);
-
   const editingAppsList: EditingApp[] = [
     'Lightroom Classic', 'Lightroom (Cloud)', 'Photoshop', 'Capture One Pro',
     'Affinity Photo', 'DxO PhotoLab', 'ON1 Photo RAW', 'Luminar Neo',
@@ -737,38 +725,11 @@ const App: React.FC = () => {
     loadFromStorage<SkillNodeProgress[]>('pv_skill_progress', [])
   );
 
-  const [plannerInput, setPlannerInput] = useState('');
-  const [plannerOutput, setPlannerOutput] = useState('');
-  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
-  const [selectedPlannerSessionIds, setSelectedPlannerSessionIds] = useState<string[]>([]);
-  const [plannerCopied, setPlannerCopied] = useState(false);
-  const [plannerAttachId, setPlannerAttachId] = useState('');
-  const [plannerAttached, setPlannerAttached] = useState(false);
-
-  const [assignmentInput, setAssignmentInput] = useState('');
-  const [assignmentOutput, setAssignmentOutput] = useState('');
-  const [isGeneratingAssignment, setIsGeneratingAssignment] = useState(false);
-  const [selectedAssignmentSessionIds, setSelectedAssignmentSessionIds] = useState<string[]>([]);
-  const [assignmentCopied, setAssignmentCopied] = useState(false);
-  const [assignmentAttachId, setAssignmentAttachId] = useState('');
-  const [assignmentAttached, setAssignmentAttached] = useState(false);
-  const [includeAttachedStrategy, setIncludeAttachedStrategy] = useState(false);
-  const [assignmentTimeframe, setAssignmentTimeframe] = useState<AssignmentTimeframe>('2hr');
-
-  // Derived Genre Focus based on selected sessions
-  const derivedAssignmentGenre = useMemo((): Genre | 'All' => {
-    const selected = sessions.filter((s) => selectedAssignmentSessionIds.includes(s.id));
-    const genres = new Set<Genre>();
-    for (const s of selected) {
-      if (s.genre) {
-        s.genre.forEach(g => genres.add(g));
-      }
-    }
-    if (genres.size === 1) {
-      return Array.from(genres)[0];
-    }
+  // Derived primary genre from profile (used by Ask a Pro)
+  const derivedPrimaryGenre = useMemo((): Genre | 'All' => {
+    if (profile.primaryGenres && profile.primaryGenres.length > 0) return profile.primaryGenres[0];
     return 'All';
-  }, [selectedAssignmentSessionIds, sessions]);
+  }, [profile.primaryGenres]);
 
   // Copy Helper
   const handleCopy = async (text: string, setter: (v: boolean) => void) => {
@@ -1205,216 +1166,53 @@ const App: React.FC = () => {
       .join('\n');
   };
 
-  const toggleSessionInPlanner = (id: string) => {
-    setSelectedPlannerSessionIds(prev => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
-  };
+  // ── Strategy generation (called from SessionCard inline form) ────────────────
+  const handleGenerateStrategy = async (
+    sessionId: string,
+    input: string,
+    timeframe: AssignmentTimeframe
+  ): Promise<void> => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
 
-  const toggleSessionInAssignment = (id: string) => {
-    setSelectedAssignmentSessionIds(prev => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
-  };
-
-  const handleGeneratePlan = async () => {
-    if (!plannerInput.trim() && selectedPlannerSessionIds.length === 0) return;
-    setIsGeneratingPlan(true);
-    
+    const timeframeLabel: Record<AssignmentTimeframe, string> = {
+      '30min': '30 minutes', '1hr': '1 hour', '2hr': '2 hours',
+      '4hr': '4 hours', 'fullday': 'a full day (8+ hours)',
+    };
+    const genre = session.genre[0] || 'General';
     const profileContext = formatProfileForContext(profile);
     const gearContext = formatGearForContext();
-    const sessionContext = formatSessionsForContext(selectedPlannerSessionIds);
+    const sessionContext = formatSessionsForContext([sessionId]);
 
     const pieces: string[] = [];
     if (profileContext.trim()) pieces.push(profileContext);
     if (gearContext.trim()) pieces.push(gearContext);
     if (sessionContext.trim()) pieces.push(sessionContext);
-    if (plannerInput.trim()) {
-      pieces.push("PLANNER INSTRUCTIONS:\n" + plannerInput.trim());
-    }
+    if (input.trim()) pieces.push('ASSIGNMENT DETAILS:\n' + input.trim());
+    pieces.push(`ASSIGNMENT GENRE FOCUS: ${genre.toUpperCase()}`);
+    pieces.push(`TIME WINDOW FOR THIS ASSIGNMENT: ${timeframeLabel[timeframe].toUpperCase()}`);
 
-    const combinedPrompt = pieces.join("\n\n");
-    
-    const finalPrompt = combinedPrompt + "\n\n" +
+    const finalPrompt = pieces.join('\n\n') + "\n\n" +
       "ROLE: Expert photographer and assignment editor.\n\n" +
-      "AUDIENCE: A working photographer who needs a field-ready shooting plan they can scan quickly on mobile during an assignment.\n\n" +
-      "CORE DIRECTIVE: Write a concise assignment plan the photographer can follow in the field.\n\n" +
-      "OUTPUT GOAL: Create a practical, scannable shooting plan that helps the user prepare before the assignment and make fast decisions on location.\n\n" +
+      "AUDIENCE: A working photographer on assignment who needs a fast, realistic plan.\n\n" +
+      "CORE DIRECTIVE: Write a concise Assignment Strategy the photographer can follow.\n\n" +
       "TEMPLATE AND STRUCTURE:\n" +
-      "- Always use the template below for the final answer.\n" +
-      "- Do NOT change the section headings or their order.\n" +
-      "- Do NOT add new sections.\n" +
-      "- Fill each bracketed area with concrete, assignment-specific content.\n" +
-      "- Remove all bracket text in the final output.\n\n" +
+      "- Use the template below. Do NOT change headings or order. Remove bracket text in final output.\n\n" +
       "TEMPLATE TO FILL:\n\n" +
-      "**Objective**\n" +
-      "[One sentence on what success looks like for this assignment.]\n\n" +
-      "**Shot List**\n" +
-      "- [Key shot 1 tailored to the assignment.]\n" +
-      "- [Key shot 2.]\n" +
-      "- [Key shot 3.]\n" +
-      "- [Optional shot 4.]\n" +
-      "- [Optional shot 5.]\n\n" +
-      "**Gear**\n" +
-      "- [Camera body]\n" +
-      "- [Primary lens]\n" +
-      "- [Secondary lens / specialty lens]\n" +
-      "- [Support (tripod/monopod) if needed]\n" +
-      "- [Key accessory (flash/remote/etc.)]\n\n" +
-      "**Location**\n" +
-      "[If a scouted location is attached: name, address/area, and 1 key access or parking note. Omit this section if no scouted location is provided.]\n\n" +
-      "**Timing**\n" +
-      "[Best time window for this assignment (light, crowd, or event timing). If a scouted location has a best time, use it.]\n\n" +
-      "**Settings**\n" +
-      "- Aperture: [Starting range] for [depth/sharpness goal].\n" +
-      "- ISO: [Baseline ISO] for [noise/quality goal].\n" +
-      "- Shutter speed: [Starting point] for [motion/static subject].\n\n" +
-      "**Workflow**\n" +
-      "[Software name] — [1–2 steps for culling and first-pass edit that match the user's workflow].\n\n" +
+      "**Objective**\n[One sentence on what success looks like.]\n\n" +
+      "**Shot List**\n- [Key shot 1]\n- [Key shot 2]\n- [Key shot 3]\n- [Optional 4]\n- [Optional 5]\n\n" +
+      "**Gear**\n- [Camera body]\n- [Primary lens]\n- [Secondary lens]\n- [Support if needed]\n- [Key accessory]\n\n" +
+      "**Location**\n[If scouted location attached: name, area, key access note. Omit if none.]\n\n" +
+      "**Timing**\n[Best time window for light, crowd, or event.]\n\n" +
+      "**Settings**\n- Aperture: [range] for [goal].\n- ISO: [baseline] for [goal].\n- Shutter: [start] for [subject].\n\n" +
+      "**Workflow**\n[Software] — [1–2 steps for culling and first-pass edit].\n\n" +
       "HARD RULES:\n" +
-      "- Never use 'week' or 'weekly' — use 'assignment plan' or 'shooting plan' only.\n" +
-      "- Stay under 300 words total.\n" +
-      "- Be direct, practical, and specific.\n" +
-      "- No filler, no motivational language, no abstract strategy language.\n" +
-      "- Use only the provided assignment details, photographer profile, strengths, constraints, available gear, and scouted location data.\n" +
-      "- If a scouted location is attached to a session, use its name, shot ideas, best time, lighting notes, and access notes to make the plan concrete and location-specific.\n" +
-      "- Do not invent missing details.\n" +
-      "- If key information is missing, omit that detail rather than guessing.\n" +
-      "- Skip any section that is not relevant.\n\n" +
-      "FORMAT RULES:\n" +
-      "- No intro paragraph — start directly with **Objective**.\n" +
-      "- Use the exact section headings from the template.\n" +
-      "- Keep each section compact.\n" +
-      "- Use bold labels for section titles.\n" +
-      "- Use 1–3 bullets per section when helpful.\n" +
-      "- Keep each bullet 1–2 lines max.\n" +
-      "- Make the plan easy to scan on mobile and desktop.\n\n" +
-      "WRITING STYLE: Plainspoken, field-ready, specific, compact, helpful, confident — not verbose.\n\n" +
-      "AVOID:\n" +
-      "- Long explanations.\n" +
-      "- Repeating the assignment brief.\n" +
-      "- Generic photography advice.\n" +
-      "- Vague phrasing like 'capture the essence' unless followed by something concrete.\n" +
-      "- Gear or settings not supported by the user's actual profile or assignment.";
-
-    const result = await generateWeeklyPlan(finalPrompt);
-    setPlannerOutput(result);
-    setIsGeneratingPlan(false);
-  };
-
-  const handleGenerateAssignment = async () => {
-    if (!assignmentInput.trim() && selectedAssignmentSessionIds.length === 0) return;
-    setIsGeneratingAssignment(true);
-    setLastAssignmentInput(assignmentInput);
-    setShowFullAssignmentOutput(false);
-
-    const timeframeLabel = {
-      '30min': '30 minutes',
-      '1hr': '1 hour',
-      '2hr': '2 hours',
-      '4hr': '4 hours',
-      'fullday': 'a full day (8+ hours)',
-    }[assignmentTimeframe];
-
-    const genreLabel = derivedAssignmentGenre === 'All' ? 'General / All Genres' : derivedAssignmentGenre;
-    const context = formatSessionsForContext(selectedAssignmentSessionIds);
-    const profileContext = formatProfileForContext(profile);
-    
-    const pieces: string[] = [];
-    if (profileContext.trim()) pieces.push(profileContext);
-    if (context.trim()) pieces.push(context);
-    if (assignmentInput.trim()) {
-      pieces.push('ASSIGNMENT DETAILS:\n' + assignmentInput.trim());
-    }
-    if (includeAttachedStrategy) {
-      const strategies = sessions
-        .filter(s => selectedAssignmentSessionIds.includes(s.id) && s.strategy)
-        .map(s => {
-          const label = s.title || s.location;
-          return `--- Strategy for ${label} ---\n${s.strategy}`;
-        });
-      if (strategies.length > 0) {
-        pieces.push('ATTACHED ASSIGNMENT STRATEGY (use this as the foundation and adapt it into an execution-ready day-of plan):\n\n' + strategies.join('\n\n'));
-      }
-    }
-    pieces.push(`ASSIGNMENT GENRE FOCUS: ${genreLabel.toUpperCase()}`);
-    pieces.push(`TIME WINDOW FOR THIS ASSIGNMENT: ${timeframeLabel.toUpperCase()}`);
-
-    const combinedPrompt = pieces.join('\n\n');
-
-    const finalPrompt = combinedPrompt + "\n\n" +
-      "ROLE: Expert photographer and assignment editor.\n\n" +
-      "AUDIENCE: A working photographer currently on an assignment who needs a fast, realistic plan they can execute within the available time.\n\n" +
-      "CORE DIRECTIVE: Write a concise Accelerated Delivery Plan the photographer can execute inside the specified time window.\n\n" +
-      "TIME WINDOW:\n" +
-      "- Always use the provided time window to prioritize and cut.\n" +
-      "- If time is short, focus on fewer, higher-impact shots and a lean workflow.\n" +
-      "- Never assume extra time beyond what is given.\n\n" +
-      "TEMPLATE AND STRUCTURE:\n" +
-      "- Always use the template below for the final answer.\n" +
-      "- Do NOT change the section headings or their order.\n" +
-      "- Do NOT add new sections.\n" +
-      "- Fill each bracketed area with concrete, assignment-specific content.\n" +
-      "- Remove all bracket text in the final output.\n\n" +
-      "TEMPLATE TO FILL:\n\n" +
-      "**Objective**\n" +
-      "[One sentence on what success looks like for this assignment.]\n\n" +
-      "**Shot List**\n" +
-      "- [Essential frame 1 for this genre and time window.]\n" +
-      "- [Essential frame 2.]\n" +
-      "- [Essential frame 3.]\n" +
-      "- [Optional frame 4 if time allows.]\n" +
-      "- [Optional frame 5 if time allows.]\n\n" +
-      "**Gear**\n" +
-      "- [Camera body from gear list.]\n" +
-      "- [Primary lens from gear list.]\n" +
-      "- [Secondary or specialty lens if relevant.]\n" +
-      "- [Key accessory (flash, card, battery) if relevant.]\n\n" +
-      "**Timing**\n" +
-      "[Best lighting or timing window for this assignment in 1 line.]\n\n" +
-      "**Settings**\n" +
-      "- Aperture: [Starting range] for [depth/sharpness goal].\n" +
-      "- ISO: [Baseline ISO] for [noise/quality goal].\n" +
-      "- Shutter speed: [Starting point] for [motion/static subject].\n\n" +
-      "**Workflow**\n" +
-      "- [Step 1: backup or card management.]\n" +
-      "- [Step 2: culling approach.]\n" +
-      "- [Step 3: first-pass edit using the user’s software.]\n\n" +
-      "**Milestones**\n" +
-      "- [Pacing target 1, e.g. ‘First keepers locked by 20 min’.]\n" +
-      "- [Pacing target 2.]\n" +
-      "- [Pacing target 3 if time window allows.]\n\n" +
-      "**Red Zone**\n" +
-      "- [Critical check 1: battery / card / gear before shoot.]\n" +
-      "- [Critical check 2.]\n" +
-      "- [Critical check 3.]\n" +
-      "- [Critical check 4 if relevant.]\n\n" +
-      "HARD RULES:\n" +
-      "- Stay under 300 words total.\n" +
-      "- Be direct, practical, and specific.\n" +
-      "- No filler, no motivational language, no abstract strategy talk.\n" +
-      "- Tailor the plan to the Assignment Genre Focus and the user’s software workflow from their profile.\n" +
-      "- Use only the information given about the photographer, their gear, and the assignment.\n" +
-      "- Use only gear from the provided gear list — do not invent camera bodies, lenses, or accessories.\n" +
-      "- Do not invent settings or technical details not supported by the user’s profile or assignment.\n" +
-      "- Do not invent missing details; omit them instead of guessing.\n" +
-      "- Skip any section that is not relevant — no padding.\n\n" +
-      "FORMAT RULES:\n" +
-      "- No introductory paragraph — start directly with **Objective**.\n" +
-      "- Use the exact section headings from the template.\n" +
-      "- Each bullet is 1–2 lines max.\n" +
-      "- Use bold labels for section titles.\n" +
-      "- Keep any paragraph to 2–3 sentences at most.\n" +
-      "- Make the plan scannable at a glance on a phone in the field.\n\n" +
-      "WRITING STYLE:\n" +
-      "- Plainspoken and field-ready.\n" +
-      "- Priority-driven: focus on what to do first, then next.\n" +
-      "- Calm, confident, and concise.\n" +
-      "- Avoid repeating the brief or explaining basic photography concepts.";
+      "- Stay under 300 words.\n- Be direct, practical, specific.\n- No filler or motivational language.\n" +
+      "- Use only provided data. Do not invent details.\n- Skip sections that aren't relevant.\n\n" +
+      "FORMAT: No intro paragraph. Start directly with **Objective**. Easy to scan on mobile.";
 
     const result = await generateAssignmentGuide(finalPrompt);
-    setAssignmentOutput(result);
-    setIsGeneratingAssignment(false);
+    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, strategy: result } : s));
   };
 
   const handleAskProSubmit = async () => {
@@ -1423,9 +1221,9 @@ const App: React.FC = () => {
     try {
       const prompt = buildAskProPrompt({
         profile,
-        assignmentGenre: derivedAssignmentGenre,
-        assignmentTimeframe,
-        assignmentInput,
+        assignmentGenre: derivedPrimaryGenre,
+        assignmentTimeframe: '2hr',
+        assignmentInput: '',
         question: askProInput,
       });
       const answer = await askProQuestion(prompt);
@@ -1528,16 +1326,6 @@ const App: React.FC = () => {
   }, [enrichedBulletin]);
 
   const conciseWorkflowLabel = useMemo(() => <SystemStatusApps profile={profile} />, [profile]);
-
-  const maxCharsOutput = 800;
-  const isLongOutput = assignmentOutput.length > maxCharsOutput;
-  const visibleAssignmentOutput = isFieldMode && isLongOutput && !showFullAssignmentOutput
-    ? assignmentOutput.slice(0, maxCharsOutput) + '…'
-    : assignmentOutput;
-
-  const assignmentPlaceholder = isFieldMode
-    ? 'Describe the assignment in 1–2 lines…'
-    : 'Describe the assignment scope for accelerated delivery...';
 
   // ── Auth gate ────────────────────────────────────────────────────────────────
   if (authLoading) {
@@ -1794,6 +1582,7 @@ const App: React.FC = () => {
                           onUpdateStatus={updateStatus}
                           onUpdate={updateSession}
                           onDelete={deleteSession}
+                          onGenerateStrategy={handleGenerateStrategy}
                         />
                       </div>
                     ))
@@ -2120,316 +1909,15 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'planner' && (
-        <ErrorBoundary>
-        <div className="animate-in slide-in-from-bottom-4 duration-700">
-          <header className="mb-10">
-            <h2 className="text-4xl font-display text-brand-black tracking-wide">ASSIGNMENT PLANNER</h2>
-            <p className="text-brand-gray mt-2 text-sm font-medium">Detailed strategies for upcoming assignments.</p>
-          </header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-10">
-            <div className="lg:col-span-3 bg-white rounded-lg border border-brand-black/5 p-8 shadow-sm">
-              <SessionSelector
-                sessions={sessions.filter(s => s.status !== 'archived')}
-                selectedIds={selectedPlannerSessionIds}
-                onToggle={toggleSessionInPlanner}
-                label="Attach sessions to planning context"
-              />
-
-              <textarea
-                className="w-full h-40 p-5 bg-brand-white border border-brand-black/5 rounded-md focus:ring-1 focus:ring-brand-blue outline-none transition-all text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40"
-                placeholder="Outline your upcoming week, availability, and specific shoot goals..."
-                value={plannerInput}
-                onChange={(e) => setPlannerInput(e.target.value)}
-              />
-              <div className="mt-6 flex justify-end">
-                <button
-                  disabled={isGeneratingPlan || (!plannerInput.trim() && selectedPlannerSessionIds.length === 0)}
-                  onClick={handleGeneratePlan}
-                  className={`flex items-center gap-3 px-10 py-4 rounded-md text-sm font-semibold transition-all ${
-                    isGeneratingPlan || (!plannerInput.trim() && selectedPlannerSessionIds.length === 0)
-                      ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed'
-                      : 'bg-brand-blue text-white hover:bg-[#7a93a0] hover:shadow-md active:scale-95 shadow-sm'
-                  }`}
-                >
-                  {isGeneratingPlan ? (
-                    <><i className="fa-solid fa-circle-notch animate-spin"></i> Processing</>
-                  ) : (
-                    <><i className="fa-solid fa-wand-magic-sparkles"></i> Compile strategy</>
-                  )}
-                </button>
-              </div>
-            </div>
-            
-            <div className="lg:col-span-1 space-y-4">
-              <GearSummary />
-              <BulletinSummary />
-            </div>
-          </div>
-
-          {plannerOutput && (
-            <div className="bg-brand-black rounded-lg shadow-2xl overflow-hidden border border-white/10">
-              <div className="px-8 py-5 border-b border-white/10 flex items-center justify-between flex-wrap gap-3">
-                <span className="text-xs font-semibold text-brand-rose">Assignment strategy</span>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <button
-                    onClick={() => {
-                      setPlannerInput('');
-                      setPlannerOutput('');
-                      setSelectedPlannerSessionIds([]);
-                      setPlannerAttachId('');
-                      setPlannerAttached(false);
-                    }}
-                    className="text-xs font-medium text-white/70 hover:text-brand-rose transition-colors border border-white/20 hover:border-brand-rose/30 px-3 py-1 rounded-md"
-                  >
-                    <i className="fa-solid fa-rotate-left mr-1.5"></i>Reset
-                  </button>
-                  <button
-                    onClick={() => handleCopy(plannerOutput, setPlannerCopied)}
-                    className="text-xs font-medium text-brand-blue hover:text-white transition-colors border border-brand-blue/30 px-3 py-1 rounded-md bg-brand-blue/5"
-                  >
-                    {plannerCopied ? 'Copied' : 'Copy text'}
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={plannerAttachId}
-                      onChange={e => { setPlannerAttachId(e.target.value); setPlannerAttached(false); }}
-                      className="bg-white/5 border border-white/10 text-white text-xs font-medium px-3 py-1 rounded-md outline-none focus:ring-1 focus:ring-brand-blue"
-                    >
-                      <option value="" className="text-brand-black">Attach to session...</option>
-                      {sessions.filter(s => s.status !== 'archived').map(s => (
-                        <option key={s.id} value={s.id} className="text-brand-black">
-                          {s.title || `${s.location} — ${s.date}`}
-                        </option>
-                      ))}
-                    </select>
-                    {plannerAttachId && (
-                      <button
-                        onClick={() => attachStrategyToSession(plannerAttachId, plannerOutput, 'strategy', () => setPlannerAttached(true))}
-                        className="text-xs font-medium text-brand-rose hover:text-white transition-colors border border-brand-rose/40 px-3 py-1 rounded-md bg-brand-rose/5"
-                      >
-                        {plannerAttached ? '✓ Attached' : 'Attach'}
-                      </button>
-                    )}
-                  </div>
-                  <i className="fa-solid fa-file-contract text-brand-blue"></i>
-                </div>
-              </div>
-              <div className="p-1 text-brand-black">
-                <div className="bg-brand-white p-10 font-medium leading-relaxed shadow-inner">
-                  {String(plannerOutput || '').split('\n').map((line, i) => (
-                    <p key={i} className="mb-4 last:mb-0 whitespace-pre-wrap">{line}</p>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        </ErrorBoundary>
-      )}
-
-      {activeTab === 'assignment' && (
-        <ErrorBoundary>
-        <div className="animate-in slide-in-from-bottom-4 duration-700">
-          <header className="mb-10">
-            <h2 className="text-4xl font-display text-brand-black tracking-wide">ASSIGNMENT MODE</h2>
-            {!isFieldMode && (
-              <p className="text-brand-gray mt-2 text-sm font-medium">Critical fast-track workflow.</p>
-            )}
-          </header>
-
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-10">
-            <div className="lg:col-span-3 bg-brand-black rounded-lg p-10 text-white shadow-2xl relative overflow-hidden border border-white/5">
-              <div className="relative z-10">
-                {!isFieldMode && <h3 className="text-xl font-bold mb-6 text-brand-rose">Assignment brief</h3>}
-                <div className="flex flex-col gap-6">
-                  <div className="bg-white/5 p-6 rounded-lg border border-white/10 mb-2">
-                    <SessionSelector
-                      sessions={sessions.filter(s => s.status !== 'archived')}
-                      selectedIds={selectedAssignmentSessionIds}
-                      onToggle={toggleSessionInAssignment}
-                      label="Attach relevant assignment sessions"
-                    />
-                    {sessions.some(s => selectedAssignmentSessionIds.includes(s.id) && s.strategy) && (
-                      <button
-                        type="button"
-                        onClick={() => setIncludeAttachedStrategy(v => !v)}
-                        className={`mt-3 flex items-center gap-3 w-full px-4 py-3 rounded-md border transition-all ${
-                          includeAttachedStrategy
-                            ? 'bg-brand-blue/10 border-brand-blue/40 text-brand-blue'
-                            : 'bg-white/5 border-white/10 text-white/40 hover:border-white/30 hover:text-white/60'
-                        }`}
-                      >
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
-                          includeAttachedStrategy ? 'bg-brand-blue border-brand-blue' : 'border-white/20'
-                        }`}>
-                          {includeAttachedStrategy && <i className="fa-solid fa-check text-[9px] text-white"></i>}
-                        </div>
-                        <span className="text-xs font-medium text-white/80">
-                          Include attached strategy as foundation
-                        </span>
-                        <i className="fa-solid fa-file-contract ml-auto text-[10px] opacity-50"></i>
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-3 mb-2">
-                    <label className="text-xs font-medium text-white/50">Timeframe</label>
-                    <div className="flex flex-wrap gap-2">
-                      {(['30min', '1hr', '2hr', '4hr', 'fullday'] as AssignmentTimeframe[]).map((tf) => (
-                        <button
-                          key={tf}
-                          type="button"
-                          onClick={() => setAssignmentTimeframe(tf)}
-                          className={`text-xs font-medium px-4 py-2 rounded-md border transition-all ${
-                            assignmentTimeframe === tf
-                              ? 'bg-brand-blue text-white border-brand-blue shadow-md scale-105'
-                              : 'bg-white/5 text-white/40 border-white/10 hover:border-brand-blue/50 hover:text-white'
-                          }`}
-                        >
-                          {tf === '30min' ? '30 min' :
-                           tf === '1hr' ? '1 hour' :
-                           tf === '2hr' ? '2 hours' :
-                           tf === '4hr' ? '4 hours' : 'Full day'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col">
-                    <textarea
-                      ref={assignmentInputRef}
-                      className="w-full h-32 p-5 bg-white/5 border border-white/10 rounded-md focus:ring-1 focus:ring-brand-blue outline-none transition-all text-sm leading-relaxed text-zinc-100 placeholder:text-white/20"
-                      placeholder={assignmentPlaceholder}
-                      value={assignmentInput}
-                      onChange={(e) => setAssignmentInput(e.target.value)}
-                    />
-                    {isFieldMode && lastAssignmentInput && (
-                      <button
-                        type="button"
-                        className="mt-2 self-start text-xs font-medium text-brand-rose/60 hover:text-brand-rose underline underline-offset-4 decoration-brand-rose/20"
-                        onClick={() => setAssignmentInput(lastAssignmentInput)}
-                      >
-                        Use last assignment brief
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    disabled={isGeneratingAssignment || (!assignmentInput.trim() && selectedAssignmentSessionIds.length === 0)}
-                    onClick={handleGenerateAssignment}
-                    className={`bg-brand-blue hover:bg-[#7a93a0] text-white text-sm font-semibold rounded-md py-4 px-12 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg ${isGeneratingAssignment || (!assignmentInput.trim() && selectedAssignmentSessionIds.length === 0) ? 'opacity-40 cursor-not-allowed' : ''}`}
-                  >
-                    {isGeneratingAssignment ? (
-                      <><i className="fa-solid fa-circle-notch animate-spin"></i> Generating strategy</>
-                    ) : (
-                      <><i className="fa-solid fa-bolt"></i> Start assignment plan</>
-                    )}
-                  </button>
-                </div>
-              </div>
-              {!isFieldMode && <div className="absolute top-0 right-0 -mr-24 -mt-24 w-96 h-96 bg-brand-rose/5 blur-[120px] rounded-full"></div>}
-            </div>
-
-            {!isFieldMode && (
-              <div className="lg:col-span-1 space-y-4">
-                <GearSummary />
-                <div className="bg-white border border-brand-black/5 rounded-lg p-5 shadow-sm space-y-3">
-                  <h4 className="text-xs font-medium text-brand-black/50 flex items-center gap-2">
-                    <i className="fa-solid fa-wand-sparkles text-brand-rose"></i> Expert guidance
-                  </h4>
-                  <button
-                    onClick={() => setActiveTab('processing')}
-                    className="w-full text-left px-3 py-3 bg-brand-rose/5 border border-brand-rose/10 rounded-md text-xs font-medium text-brand-rose hover:bg-brand-rose hover:text-white transition-all flex items-center justify-between group"
-                  >
-                    <span>Open processing guides</span>
-                    <i className="fa-solid fa-chevron-right text-[8px] group-hover:translate-x-1 transition-transform"></i>
-                  </button>
-                </div>
-                <BulletinSummary />
-              </div>
-            )}
-          </div>
-
-          {assignmentOutput && (
-            <div className="bg-brand-black rounded-lg shadow-2xl overflow-hidden border border-white/10">
-              <div className="px-8 py-5 border-b border-white/10 flex items-center justify-between flex-wrap gap-3">
-                <span className="text-xs font-semibold text-brand-blue">Accelerated delivery plan</span>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <button
-                    onClick={() => {
-                      setAssignmentInput('');
-                      setAssignmentOutput('');
-                      setSelectedAssignmentSessionIds([]);
-                      setAssignmentAttachId('');
-                      setAssignmentAttached(false);
-                      setLastAssignmentInput('');
-                      setShowFullAssignmentOutput(false);
-                    }}
-                    className="text-xs font-medium text-white/70 hover:text-brand-rose transition-colors border border-white/20 hover:border-brand-rose/30 px-3 py-1 rounded-md"
-                  >
-                    <i className="fa-solid fa-rotate-left mr-1.5"></i>Reset
-                  </button>
-                  <button
-                    onClick={() => handleCopy(assignmentOutput, setAssignmentCopied)}
-                    className="text-xs font-medium text-brand-rose hover:text-white transition-colors border border-brand-rose/30 px-3 py-1 rounded-md bg-brand-rose/5"
-                  >
-                    {assignmentCopied ? 'Copied' : 'Copy text'}
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={assignmentAttachId}
-                      onChange={e => { setAssignmentAttachId(e.target.value); setAssignmentAttached(false); }}
-                      className="bg-white/5 border border-white/10 text-white text-xs font-medium px-3 py-1 rounded-md outline-none focus:ring-1 focus:ring-brand-blue"
-                    >
-                      <option value="" className="text-brand-black">Attach to session...</option>
-                      {sessions.filter(s => s.status !== 'archived').map(s => (
-                        <option key={s.id} value={s.id} className="text-brand-black">
-                          {s.title || `${s.location} — ${s.date}`}
-                        </option>
-                      ))}
-                    </select>
-                    {assignmentAttachId && (
-                      <button
-                        onClick={() => attachStrategyToSession(assignmentAttachId, assignmentOutput, 'dayPlan', () => setAssignmentAttached(true))}
-                        className="text-xs font-medium text-brand-blue hover:text-white transition-colors border border-brand-blue/40 px-3 py-1 rounded-md bg-brand-blue/5"
-                      >
-                        {assignmentAttached ? '✓ Attached' : 'Attach'}
-                      </button>
-                    )}
-                  </div>
-                  <i className="fa-solid fa-stopwatch text-brand-rose"></i>
-                </div>
-              </div>
-              <div className="p-1 text-brand-black">
-                <div className="bg-brand-white p-10 font-medium leading-relaxed">
-                  <div className="whitespace-pre-wrap">
-                    {visibleAssignmentOutput}
-                  </div>
-                  {isFieldMode && isLongOutput && (
-                    <button
-                      type="button"
-                      className="mt-6 block text-xs font-medium text-brand-rose underline underline-offset-4 decoration-brand-rose/20"
-                      onClick={() => setShowFullAssignmentOutput(v => !v)}
-                    >
-                      {showFullAssignmentOutput ? 'Show less' : 'Show full plan'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        </ErrorBoundary>
-      )}
 
       {activeTab === 'askpro' && (
         <ErrorBoundary>
         <AskProPage
           profile={profile}
-          assignmentGenre={derivedAssignmentGenre}
-          assignmentTimeframe={assignmentTimeframe}
-          assignmentInput={assignmentInput}
+          assignmentGenre={derivedPrimaryGenre}
+          assignmentTimeframe={'2hr'}
+          assignmentInput={''}
           askProInput={askProInput}
           setAskProInput={setAskProInput}
           askProAnswer={askProAnswer}

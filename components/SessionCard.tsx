@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Session, SessionStatus, Genre, SessionType } from '../types';
+import { Session, SessionStatus, Genre, SessionType, AssignmentTimeframe } from '../types';
 import { GENRE_ICONS } from '../constants';
 import LocationAutocomplete from './LocationAutocomplete';
 
@@ -18,6 +18,7 @@ interface SessionCardProps {
   onUpdateStatus: (id: string, status: SessionStatus) => void;
   onUpdate: (id: string, updates: Partial<Session>) => void;
   onDelete: (id: string) => void;
+  onGenerateStrategy?: (sessionId: string, input: string, timeframe: AssignmentTimeframe) => Promise<void>;
 }
 
 const STATUS_STAGE_LABELS: Record<SessionStatus, string> = {
@@ -74,7 +75,11 @@ function DeadlineChip({ deadline }: { deadline: string }) {
   );
 }
 
-const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUpdate, onDelete }) => {
+const TIMEFRAME_LABELS: Record<AssignmentTimeframe, string> = {
+  '30min': '30 min', '1hr': '1 hr', '2hr': '2 hr', '4hr': '4 hr', 'fullday': 'Full day',
+};
+
+const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUpdate, onDelete, onGenerateStrategy }) => {
   const statuses: SessionStatus[] = ['capturing', 'shot', 'culled', 'edited', 'backed up', 'posted'];
 
   const [editing, setEditing] = useState(false);
@@ -91,6 +96,12 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
   const [dayPlanExpanded, setDayPlanExpanded] = useState(false);
   const [scoutExpanded, setScoutExpanded] = useState(false);
   const [briefExpanded, setBriefExpanded] = useState(false);
+
+  // Inline strategy generation form
+  const [showStrategyForm, setShowStrategyForm] = useState(false);
+  const [strategyInput, setStrategyInput] = useState(session.brief || '');
+  const [strategyTimeframe, setStrategyTimeframe] = useState<AssignmentTimeframe>('2hr');
+  const [isGeneratingStrategy, setIsGeneratingStrategy] = useState(false);
 
   const getStatusColor = (status: SessionStatus) => {
     switch (status) {
@@ -416,6 +427,78 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
                 {session.scoutNotes.split('\n').map((line, i) => (
                   <p key={i} className="text-sm text-brand-black/80 leading-relaxed mb-2 last:mb-0 whitespace-pre-wrap">{line}</p>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Generate Strategy inline panel */}
+        {!isArchived && onGenerateStrategy && (
+          <div className="mb-4">
+            {!showStrategyForm ? (
+              <button
+                onClick={() => { setStrategyInput(session.brief || ''); setShowStrategyForm(true); }}
+                className="flex items-center gap-2 text-xs font-semibold text-brand-black/40 hover:text-brand-blue transition-colors border border-dashed border-brand-black/10 hover:border-brand-blue/30 rounded-lg px-4 py-3 w-full justify-center"
+              >
+                <i className="fa-solid fa-wand-magic-sparkles text-[10px]" />
+                {session.strategy ? 'Regenerate strategy' : 'Generate strategy'}
+              </button>
+            ) : (
+              <div className="border border-brand-blue/20 rounded-lg overflow-hidden bg-brand-blue/3">
+                <div className="flex items-center justify-between px-4 py-3 bg-brand-blue/5 border-b border-brand-blue/10">
+                  <div className="flex items-center gap-2">
+                    <i className="fa-solid fa-wand-magic-sparkles text-brand-blue text-[10px]" />
+                    <span className="text-xs font-semibold text-brand-blue">Generate Strategy</span>
+                  </div>
+                  <button onClick={() => setShowStrategyForm(false)} className="text-brand-black/20 hover:text-brand-rose transition-colors text-[10px]">
+                    <i className="fa-solid fa-xmark" />
+                  </button>
+                </div>
+                <div className="p-4 space-y-3">
+                  <textarea
+                    value={strategyInput}
+                    onChange={e => setStrategyInput(e.target.value)}
+                    placeholder="Describe the assignment brief or requirements…"
+                    className="w-full border border-brand-black/10 rounded-md px-3 py-2.5 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20 min-h-[70px] resize-none"
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {(Object.keys(TIMEFRAME_LABELS) as AssignmentTimeframe[]).map(tf => (
+                      <button
+                        key={tf}
+                        onClick={() => setStrategyTimeframe(tf)}
+                        className={`text-[10px] font-semibold px-3 py-1.5 rounded-md border transition-all ${
+                          strategyTimeframe === tf
+                            ? 'bg-brand-blue text-white border-brand-blue'
+                            : 'bg-white text-brand-black/50 border-brand-black/10 hover:border-brand-blue/30'
+                        }`}
+                      >
+                        {TIMEFRAME_LABELS[tf]}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    disabled={isGeneratingStrategy}
+                    onClick={async () => {
+                      setIsGeneratingStrategy(true);
+                      try {
+                        await onGenerateStrategy(session.id, strategyInput, strategyTimeframe);
+                        setShowStrategyForm(false);
+                        setStrategyExpanded(true);
+                      } finally {
+                        setIsGeneratingStrategy(false);
+                      }
+                    }}
+                    className={`w-full flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-md transition-all ${
+                      isGeneratingStrategy
+                        ? 'bg-brand-black/10 text-brand-black/30 cursor-not-allowed'
+                        : 'bg-brand-blue text-white hover:bg-[#7a93a0] active:scale-95'
+                    }`}
+                  >
+                    {isGeneratingStrategy
+                      ? <><i className="fa-solid fa-circle-notch fa-spin" /> Generating…</>
+                      : <><i className="fa-solid fa-bolt" /> Build strategy</>}
+                  </button>
+                </div>
               </div>
             )}
           </div>
