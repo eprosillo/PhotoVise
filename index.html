@@ -4,55 +4,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Photovise | Photography Workflow Assistant</title>
+    <title>Photovise | Photography Workflow Instrument</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
-        
         :root {
-            --slate-black: #14120F;
-            --bone-white: #F7F4EF;
-            --cool-gray: #746C60;
-            --coastal-blue: #3E8E97;
-            --dusty-rose: #E8A33D;
+            --brand-canvas:      #ecebe6;
+            --brand-panel:       #f8f7f4;
+            --brand-panel2:      #f4f3ef;
+            --brand-surface:     #fdfcfa;
+            --brand-ink:         #17191a;
+            --brand-accent:      #c9a227;
+            --brand-accent-hi:   #dab538;
+            --brand-accent-ink:  #8a6b0f;
+            --border-std:   rgba(23,25,26,0.12);
+            --border-panel: rgba(23,25,26,0.14);
+            --border-row:   rgba(23,25,26,0.10);
+            --border-nav:   rgba(23,25,26,0.05);
         }
-        
+
         body {
-            font-family: 'Inter', Arial, sans-serif;
-            background-color: var(--bone-white);
+            font-family: 'Space Grotesk', Arial, sans-serif;
+            background-color: var(--brand-canvas);
+            color: var(--brand-ink);
         }
-        
-        .font-display { 
-            font-family: 'Bebas Neue', cursive; 
-            letter-spacing: 0.05em;
+
+        .font-mono-instrument {
+            font-family: 'IBM Plex Mono', monospace;
         }
-        
-        /* Utility to hide scrollbars while keeping functionality */
-        
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        
-        .no-scrollbar {
-            -ms-overflow-style: none; /* IE and Edge */
-            scrollbar-width: none; /* Firefox */
-        }
-        
-        /* Custom scrollbar for main content area */
-        
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: var(--bone-white);
-        }
-        
+
+        /* Hide scrollbars while keeping scroll */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Thin scrollbar for rail */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: var(--coastal-blue);
-            border-radius: 10px;
+            background: rgba(23,25,26,0.12);
+            border-radius: 0;
         }
+
+        /* Pulsing brass dot */
+        @keyframes brass-pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.25; }
+        }
+        .pulse-brass { animation: brass-pulse 2.4s ease-in-out infinite; }
+
+        /* Progress / pip animations */
+        .progress-fill { transition: width 700ms ease-out, background-color 700ms ease-out; }
+        .pip-fill      { transition: background-color 700ms ease-out; }
     </style>
     <script>
         tailwind.config = {
@@ -60,23 +65,53 @@
                 extend: {
                     colors: {
                         brand: {
-                            black: '#14120F',
-                            white: '#F7F4EF',
-                            gray:  '#746C60',
-                            blue:  '#3E8E97',
-                            rose:  '#E8A33D',
-                            gold:  '#C9A227',
-                            warm:  '#8C5A3C',
+                            canvas:       '#ecebe6',
+                            panel:        '#f8f7f4',
+                            panel2:       '#f4f3ef',
+                            surface:      '#fdfcfa',
+                            ink:          '#17191a',
+                            accent:       '#c9a227',
+                            'accent-hi':  '#dab538',
+                            'accent-ink': '#8a6b0f',
+                            // legacy aliases kept for backward compat during migration
+                            black:  '#17191a',
+                            white:  '#ecebe6',
+                            gray:   '#746c60',
+                            blue:   '#4a6b7c',
+                            rose:   '#c9a227',
+                            gold:   '#c9a227',
+                            warm:   '#a35a4a',
+                        },
+                        node: {
+                            composition:       '#4a6b7c',
+                            'composition-ink': '#3f5d6d',
+                            light:             '#c9a227',
+                            'light-ink':       '#8a6b0f',
+                            timing:            '#a35a4a',
+                            'timing-ink':      '#8f4a3b',
+                            moment:            '#4b6b52',
+                            'moment-ink':      '#3d5a44',
                         }
+                    },
+                    fontFamily: {
+                        sans:  ['"Space Grotesk"', 'Arial', 'sans-serif'],
+                        mono:  ['"IBM Plex Mono"', 'monospace'],
+                    },
+                    letterSpacing: {
+                        'eyebrow': '0.24em',
+                        'label':   '0.18em',
+                        'tag':     '0.14em',
+                        'button':  '0.20em',
+                        'word':    '0.04em',
                     }
                 }
             }
         }
     </script>
 <link rel="stylesheet" href="/index.css">
-  <script type="module" crossorigin src="/PhotoVise/assets/index-CJNcQ8UJ.js"></script>
+  <script type="module" crossorigin src="/PhotoVise/assets/index-mrXoM3SW.js"></script>
 </head>
-<body class="bg-brand-white text-brand-black">
+<body class="bg-brand-canvas text-brand-ink">
     <div id="root"></div>
 </body>
 </html>
