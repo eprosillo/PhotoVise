@@ -1322,7 +1322,7 @@ const App: React.FC = () => {
   ];
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} statusReadouts={statusReadouts} isFieldMode={isFieldMode} user={user} onSignOut={signOut}>
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab} statusReadouts={statusReadouts} isFieldMode={isFieldMode} user={user} onSignOut={signOut} dailyQuote={dailyQuote}>
       {activeTab === 'dashboard' && (
         <div className="animate-in fade-in duration-700">
           {/* Screen header */}
@@ -2083,7 +2083,6 @@ const App: React.FC = () => {
             submissions={submissions}
             skillProgress={skillProgress}
             onSubmit={handleMissionSubmit}
-            dailyQuote={dailyQuote}
           />
         </ErrorBoundary>
       )}

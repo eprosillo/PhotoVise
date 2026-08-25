@@ -21,6 +21,7 @@ interface LayoutProps {
   user?: UserLike | null;
   onSignOut?: () => void;
   statusReadouts?: StatusReadout[];
+  dailyQuote?: { text: string; author: string };
 }
 
 const NAV_GROUPS = [
@@ -67,6 +68,7 @@ const Layout: React.FC<LayoutProps> = ({
   user,
   onSignOut,
   statusReadouts,
+  dailyQuote,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
@@ -206,25 +208,40 @@ const Layout: React.FC<LayoutProps> = ({
 
   const STATUS_STRIP = (
     <div
-      style={{
-        borderBottom: '1px solid rgba(23,25,26,0.12)',
-        minHeight: '46px',
-      }}
+      style={{ borderBottom: '1px solid rgba(23,25,26,0.12)' }}
       className={[
-        'bg-brand-panel2 flex-shrink-0 flex items-center justify-between flex-wrap',
-        isNarrow ? 'px-[18px] py-2 gap-[6px_18px]' : 'px-8 py-2 gap-[6px_18px]',
+        'bg-brand-panel2 flex-shrink-0',
+        isNarrow ? 'px-[18px]' : 'px-8',
       ].join(' ')}
     >
-      <div className="flex items-center flex-wrap gap-[6px_22px]">
-        {defaultReadouts.map(r => (
-          <span key={r.label} className="font-mono text-[9px] tracking-[0.16em] text-brand-ink/50 uppercase">
-            {r.label} <span className="text-brand-ink/75">{r.value}</span>
-          </span>
-        ))}
-      </div>
-      <div className="flex items-center gap-[6px]">
-        <span className="pulse-brass w-[5px] h-[5px] rounded-full bg-brand-accent inline-block"></span>
-        <span className="font-mono text-[9px] tracking-[0.16em] text-brand-accent-ink uppercase">Engine Active</span>
+      {/* Quote bar */}
+      {dailyQuote && (
+        <div
+          style={{ borderBottom: '1px solid rgba(23,25,26,0.08)', padding: '10px 0 9px' }}
+          className="flex items-baseline gap-3"
+        >
+          <span style={{ flexShrink: 0, width: '3px', height: '28px', background: '#c9a227', display: 'inline-block', alignSelf: 'center' }} />
+          <p className="font-serif italic" style={{ fontSize: '13px', color: 'rgba(23,25,26,0.70)', lineHeight: 1.5, flex: 1, minWidth: 0 }}>
+            "{dailyQuote.text}"
+            <span className="font-mono not-italic" style={{ fontSize: '8px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.38)', marginLeft: '10px', whiteSpace: 'nowrap' }}>
+              — {dailyQuote.author}
+            </span>
+          </p>
+        </div>
+      )}
+      {/* Status row */}
+      <div className="flex items-center justify-between flex-wrap gap-[6px_18px]" style={{ minHeight: '38px', paddingTop: '6px', paddingBottom: '6px' }}>
+        <div className="flex items-center flex-wrap gap-[6px_22px]">
+          {defaultReadouts.map(r => (
+            <span key={r.label} className="font-mono text-[9px] tracking-[0.16em] text-brand-ink/50 uppercase">
+              {r.label} <span className="text-brand-ink/75">{r.value}</span>
+            </span>
+          ))}
+        </div>
+        <div className="flex items-center gap-[6px]">
+          <span className="pulse-brass w-[5px] h-[5px] rounded-full bg-brand-accent inline-block"></span>
+          <span className="font-mono text-[9px] tracking-[0.16em] text-brand-accent-ink uppercase">Engine Active</span>
+        </div>
       </div>
     </div>
   );
