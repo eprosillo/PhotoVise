@@ -124,76 +124,77 @@ const AskProPage: React.FC<{
     ? 'Ask what you’re stuck on right now…'
     : 'Ask about shooting, culling, processing, clients, or your current assignment…';
 
+  const disabled = props.isGeneratingAskPro || !props.askProInput.trim();
+
   return (
     <div className="animate-in fade-in duration-700">
-      <header className="mb-10">
-        <h2 className="text-4xl font-display text-brand-black tracking-wide uppercase">Ask a Pro</h2>
-        {!props.isFieldMode && (
-          <p className="text-brand-gray mt-2 text-sm font-medium">Ask questions and get answers from a photographer who works in your genres.</p>
-        )}
-      </header>
+      {/* Screen header */}
+      <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-6">
+        <div>
+          <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Grow / Guidance</p>
+          <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Ask a Pro</h1>
+        </div>
+      </div>
 
       <div className={containerClass}>
-        <div className="bg-brand-black rounded-lg p-8 text-brand-white shadow-xl border border-white/5">
-          <div className="space-y-6">
-            <div>
-              <label className="text-xs font-medium text-brand-rose/80 block mb-3">
-                Your question
-              </label>
-              <textarea
-                ref={askProInputRef}
-                className="w-full bg-white/5 border border-white/10 rounded-md px-5 py-4 text-sm focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[200px] resize-none"
-                value={props.askProInput}
-                onChange={(e) => props.setAskProInput(e.target.value)}
-                placeholder={askProPlaceholder}
-              />
-            </div>
-            
-            <div className="flex justify-end">
-              <button
-                onClick={props.onAskProSubmit}
-                disabled={props.isGeneratingAskPro || !props.askProInput.trim()}
-                className={`flex items-center justify-center gap-3 rounded-md text-sm font-semibold transition-all shadow-lg ${askButtonClass} ${
-                  props.isGeneratingAskPro || !props.askProInput.trim()
-                    ? 'bg-brand-gray/20 text-brand-gray cursor-not-allowed'
-                    : 'bg-brand-blue text-white hover:bg-[#7a93a0] active:scale-95'
-                }`}
-              >
-                {props.isGeneratingAskPro ? (
-                  <><i className="fa-solid fa-circle-notch animate-spin"></i> Consulting...</>
-                ) : (
-                  <><i className="fa-solid fa-paper-plane"></i> Ask the Pro</>
-                )}
-              </button>
-            </div>
+        {/* Composer panel */}
+        <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <p className="font-mono text-[9px] tracking-[0.22em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>Your Question</p>
+          <textarea
+            ref={askProInputRef}
+            style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', fontSize: '13px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', minHeight: '180px', resize: 'none', fontFamily: 'inherit', lineHeight: 1.6 }}
+            value={props.askProInput}
+            onChange={(e) => props.setAskProInput(e.target.value)}
+            placeholder={askProPlaceholder}
+          />
+          <div className="flex justify-end">
+            <button
+              onClick={props.onAskProSubmit}
+              disabled={disabled}
+              className="font-mono text-[9px] tracking-[0.20em] uppercase transition-colors"
+              style={{
+                padding: '10px 22px',
+                background: disabled ? 'rgba(23,25,26,0.08)' : '#17191a',
+                border: disabled ? '1px solid rgba(23,25,26,0.14)' : '1px solid #17191a',
+                color: disabled ? 'rgba(23,25,26,0.30)' : '#f4f3ef',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+              }}
+              onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#17191a'; } }}
+              onMouseLeave={e => { if (!disabled) { e.currentTarget.style.background = '#17191a'; e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#f4f3ef'; } }}
+            >
+              {props.isGeneratingAskPro ? 'Consulting…' : 'Ask the Pro'}
+            </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-brand-black/5 shadow-sm overflow-hidden flex flex-col h-full">
-          <div className="bg-brand-black/5 px-8 py-5 border-b border-brand-black/5 flex items-center justify-between">
-            <span className="text-xs font-medium text-brand-black/40">The Pro's Response</span>
-            <div className="flex items-center gap-3">
-              {props.askProAnswer && (
-                <button
-                  onClick={props.onReset}
-                  className="text-xs font-medium text-brand-gray/50 hover:text-brand-rose transition-colors border border-brand-black/10 hover:border-brand-rose/30 px-3 py-1 rounded-md"
-                >
-                  <i className="fa-solid fa-rotate-left mr-1.5"></i>Reset
-                </button>
-              )}
-              <i className="fa-solid fa-pen-nib text-brand-rose/40"></i>
-            </div>
+        {/* Response panel */}
+        <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(23,25,26,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p className="font-mono text-[9px] tracking-[0.22em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>Response</p>
+            {props.askProAnswer && (
+              <button
+                onClick={props.onReset}
+                className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors"
+                style={{ color: 'rgba(23,25,26,0.40)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#17191a')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(23,25,26,0.40)')}
+              >
+                × Reset
+              </button>
+            )}
           </div>
-          <div className="p-10 flex-1 overflow-y-auto custom-scrollbar min-h-[300px]">
+          <div style={{ padding: '16px 20px', flex: 1, overflowY: 'auto', minHeight: '280px' }}>
             {props.askProAnswer ? (
-              <div className="space-y-4">
-                <div className="text-sm text-brand-black leading-relaxed whitespace-pre-wrap font-medium">
-                  {visibleAnswer}
+              <div>
+                {/* Brass border-left thread style */}
+                <div style={{ borderLeft: '2px solid #c9a227', paddingLeft: '14px', marginBottom: '12px' }}>
+                  <p style={{ fontSize: '13px', lineHeight: 1.7, color: '#17191a', whiteSpace: 'pre-wrap' }}>{visibleAnswer}</p>
                 </div>
                 {props.isFieldMode && isLong && (
                   <button
                     type="button"
-                    className="text-xs font-medium text-brand-rose underline underline-offset-4"
+                    className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors mt-2"
+                    style={{ color: '#c9a227', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                     onClick={() => setShowFullAskProAnswer(v => !v)}
                   >
                     {showFullAskProAnswer ? 'Show less' : 'Show full answer'}
@@ -202,9 +203,10 @@ const AskProPage: React.FC<{
                 <FeedbackFlag section="Ask a Pro" onSubmit={props.onFeedback} />
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center opacity-30 space-y-4 py-20">
-                <i className="fa-solid fa-comment-dots text-4xl"></i>
-                <p className="text-sm text-brand-gray/50">Your answer from the pro will appear here.</p>
+              <div className="flex items-center justify-center" style={{ minHeight: '200px' }}>
+                <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.28)' }}>
+                  {props.isGeneratingAskPro ? 'Consulting…' : 'Your answer will appear here'}
+                </p>
               </div>
             )}
           </div>
@@ -236,133 +238,102 @@ const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus,
     low: { color: 'text-brand-gray/40' }
   };
 
+  const statusColor: Record<BulletinStatus, string> = {
+    unmarked:    'rgba(23,25,26,0.35)',
+    considering: '#c9a227',
+    applied:     '#4b6b52',
+    archived:    'rgba(23,25,26,0.25)',
+  };
+
   return (
-    <div className={`bg-white rounded-lg border border-brand-black/5 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all duration-500 ${isArchived ? 'opacity-80 grayscale-[0.4]' : ''}`}>
-      <div className="bg-brand-black p-6 text-brand-white flex items-center justify-between">
-        <div>
-          <div className="flex gap-2 items-center mb-2">
-            <span className="text-xs font-medium bg-white/10 px-2 py-0.5 rounded text-brand-rose">
-              {item.type}
-            </span>
-            <span className={`text-xs font-medium ${priorityConfig[item.priority].color}`}>
-              <i className="fa-solid fa-bolt mr-1"></i> {item.priority}
-            </span>
+    <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', display: 'flex', flexDirection: 'column', opacity: isArchived ? 0.6 : 1 }}>
+      {/* Header strip */}
+      <div style={{ borderBottom: '1px solid rgba(23,25,26,0.12)', padding: '14px 16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: 'rgba(23,25,26,0.45)', border: '1px solid rgba(23,25,26,0.16)', padding: '2px 6px' }}>{item.type}</span>
+            <span className="font-mono text-[8px] tracking-[0.12em] uppercase" style={{ color: statusColor[item.status] }}>{item.status}</span>
           </div>
-          <h3 className="text-xl font-bold leading-snug">{item.name}</h3>
+          <p style={{ fontSize: '14px', fontWeight: 500, color: '#17191a', lineHeight: 1.3 }}>{item.name}</p>
+          {item.organizer && <p className="font-mono text-[8px] tracking-[0.10em] uppercase mt-1" style={{ color: 'rgba(23,25,26,0.42)' }}>{item.organizer}</p>}
         </div>
-        <i className="fa-solid fa-newspaper text-brand-rose/40 text-xl"></i>
-      </div>
-      
-      <div className="p-8 flex-1 flex flex-col">
-        <div className="flex justify-between items-start mb-4">
-          {item.organizer && (
-            <p className="text-xs text-brand-gray">
-              Organizer: <span className="text-brand-black font-medium">{item.organizer}</span>
-            </p>
+        <div className="flex gap-1 shrink-0">
+          {!isArchived ? (
+            <button onClick={() => updateBulletinStatus(item.id, 'archived')} style={{ padding: '4px 8px', border: '1px solid rgba(23,25,26,0.16)', background: 'transparent', cursor: 'pointer', color: 'rgba(23,25,26,0.40)', fontSize: '10px' }} title="Archive">▾</button>
+          ) : (
+            <button onClick={() => updateBulletinStatus(item.id, 'unmarked')} style={{ padding: '4px 8px', border: '1px solid rgba(23,25,26,0.16)', background: 'transparent', cursor: 'pointer', color: 'rgba(23,25,26,0.40)', fontSize: '10px' }} title="Restore">↑</button>
           )}
-          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${statusConfig[item.status].color}`}>
-            {statusConfig[item.status].label}
-          </span>
+          {onRemove && (
+            <button onClick={() => onRemove(item.id)} style={{ padding: '4px 8px', border: '1px solid rgba(23,25,26,0.16)', background: 'transparent', cursor: 'pointer', color: 'rgba(23,25,26,0.40)', fontSize: '10px' }} title="Remove">×</button>
+          )}
         </div>
+      </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="bg-brand-white p-3 rounded-md border border-brand-black/5">
-            <p className="text-xs text-brand-gray/70 mb-1">Deadline</p>
-            <p className={`text-sm font-semibold ${item.deadline === 'Rolling' ? 'text-brand-blue' : 'text-brand-rose'}`}>
-              {item.deadline || 'TBA'}
-            </p>
+      {/* Body */}
+      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+        {/* Data rows */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div className="flex items-baseline justify-between" style={{ borderBottom: '1px solid rgba(23,25,26,0.08)', paddingBottom: '5px' }}>
+            <span className="font-mono text-[8px] tracking-[0.16em] uppercase" style={{ color: 'rgba(23,25,26,0.38)' }}>Deadline</span>
+            <span style={{ fontSize: '11px', color: item.deadline === 'Rolling' ? '#4a6b7c' : '#c9a227' }}>{item.deadline || 'TBA'}</span>
           </div>
-          <div className="bg-brand-white p-3 rounded-md border border-brand-black/5">
-            <p className="text-xs text-brand-gray/70 mb-1">Region / location</p>
-            <p className="text-sm font-semibold text-brand-black truncate">
-              {item.region} {item.location && `• ${item.location}`}
-            </p>
+          <div className="flex items-baseline justify-between" style={{ borderBottom: '1px solid rgba(23,25,26,0.08)', paddingBottom: '5px' }}>
+            <span className="font-mono text-[8px] tracking-[0.16em] uppercase" style={{ color: 'rgba(23,25,26,0.38)' }}>Region</span>
+            <span style={{ fontSize: '11px', color: 'rgba(23,25,26,0.65)' }}>{item.region}{item.location ? ` · ${item.location}` : ''}</span>
+          </div>
+          <div className="flex items-baseline justify-between" style={{ borderBottom: '1px solid rgba(23,25,26,0.08)', paddingBottom: '5px' }}>
+            <span className="font-mono text-[8px] tracking-[0.16em] uppercase" style={{ color: 'rgba(23,25,26,0.38)' }}>Fee</span>
+            <span style={{ fontSize: '11px', color: 'rgba(23,25,26,0.65)' }}>{item.fee || 'Free'}</span>
           </div>
         </div>
 
-        <div className="bg-brand-white p-3 rounded-md border border-brand-black/5 mb-6">
-          <p className="text-xs text-brand-gray/70 mb-1">Entry fee</p>
-          <p className="text-sm font-semibold text-brand-black">
-            {item.fee || 'Free'}
-          </p>
-        </div>
-
-        {item.genres && (
-          <div className="flex flex-wrap gap-1.5 mb-6">
+        {item.genres && item.genres.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
             {item.genres.map(g => (
-              <span key={g} className="text-xs px-2 py-1 bg-brand-blue/5 text-brand-blue font-medium rounded-md border border-brand-blue/10">
-                {g}
-              </span>
+              <span key={g} className="font-mono text-[8px] tracking-[0.12em] uppercase" style={{ padding: '3px 6px', border: '1px solid rgba(23,25,26,0.16)', color: 'rgba(23,25,26,0.50)' }}>{g}</span>
             ))}
           </div>
         )}
 
         {item.blurb && (
-          <p className="text-sm text-brand-gray leading-relaxed mb-8 flex-1 italic">
-            {item.blurb}
-          </p>
+          <p style={{ fontSize: '12px', lineHeight: 1.6, color: 'rgba(23,25,26,0.60)', fontStyle: 'italic', flex: 1 }}>{item.blurb}</p>
         )}
 
-        <div className="mt-auto space-y-4 pt-6 border-t border-brand-black/5">
-          <div className="flex gap-2">
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 bg-brand-black text-white hover:bg-zinc-700 text-sm font-semibold rounded-md py-4 text-center transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
-            >
-              View details <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
-            </a>
-            {!isArchived ? (
-              <button
-                onClick={() => updateBulletinStatus(item.id, 'archived')}
-                className="px-5 bg-brand-white border border-brand-black/5 hover:bg-brand-rose/5 text-brand-gray hover:text-brand-rose transition-all rounded-md"
-                title="Archive"
-              >
-                <i className="fa-solid fa-box-archive"></i>
-              </button>
-            ) : (
-              <button
-                onClick={() => updateBulletinStatus(item.id, 'unmarked')}
-                className="px-5 bg-brand-white border border-brand-black/5 hover:bg-brand-blue/5 text-brand-gray hover:text-brand-blue transition-all rounded-md"
-                title="Restore"
-              >
-                <i className="fa-solid fa-box-open"></i>
-              </button>
-            )}
-            {onRemove && (
-              <button
-                onClick={() => onRemove(item.id)}
-                className="px-5 bg-brand-white border border-brand-black/5 hover:bg-brand-rose/5 text-brand-gray hover:text-brand-rose transition-all rounded-md"
-                title="Remove"
-              >
-                <i className="fa-solid fa-xmark"></i>
-              </button>
-            )}
-          </div>
-
+        {/* Actions */}
+        <div style={{ borderTop: '1px solid rgba(23,25,26,0.10)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 'auto' }}>
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-[8px] tracking-[0.18em] uppercase text-center transition-colors"
+            style={{ padding: '9px 0', background: '#17191a', color: '#f4f3ef', textDecoration: 'none', display: 'block' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.color = '#17191a'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#17191a'; e.currentTarget.style.color = '#f4f3ef'; }}
+          >
+            View Details ↗
+          </a>
           {!isArchived && (
-            <div className="flex gap-2">
+            <div style={{ display: 'flex', gap: '6px' }}>
               <button
                 onClick={() => updateBulletinStatus(item.id, 'considering')}
-                className={`flex-1 text-xs font-medium py-2 rounded-md border transition-all ${
-                  item.status === 'considering'
-                    ? 'bg-amber-100 text-amber-700 border-amber-200'
-                    : 'bg-white text-brand-gray border-brand-black/5 hover:border-amber-200'
-                }`}
-              >
-                Considering
-              </button>
+                className="font-mono text-[8px] tracking-[0.14em] uppercase flex-1 transition-colors"
+                style={{
+                  padding: '7px 0', cursor: 'pointer',
+                  border: item.status === 'considering' ? '1px solid #c9a227' : '1px solid rgba(23,25,26,0.18)',
+                  background: item.status === 'considering' ? 'rgba(201,162,39,0.08)' : 'transparent',
+                  color: item.status === 'considering' ? '#8a6b0f' : 'rgba(23,25,26,0.50)',
+                }}
+              >Considering</button>
               <button
                 onClick={() => updateBulletinStatus(item.id, 'applied')}
-                className={`flex-1 text-xs font-medium py-2 rounded-md border transition-all ${
-                  item.status === 'applied'
-                    ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                    : 'bg-white text-brand-gray border-brand-black/5 hover:border-emerald-200'
-                }`}
-              >
-                Applied
-              </button>
+                className="font-mono text-[8px] tracking-[0.14em] uppercase flex-1 transition-colors"
+                style={{
+                  padding: '7px 0', cursor: 'pointer',
+                  border: item.status === 'applied' ? '1px solid #4b6b52' : '1px solid rgba(23,25,26,0.18)',
+                  background: item.status === 'applied' ? 'rgba(75,107,82,0.08)' : 'transparent',
+                  color: item.status === 'applied' ? '#3d5a44' : 'rgba(23,25,26,0.50)',
+                }}
+              >Applied</button>
             </div>
           )}
         </div>
@@ -1354,110 +1325,114 @@ const App: React.FC = () => {
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} statusReadouts={statusReadouts} isFieldMode={isFieldMode} user={user} onSignOut={signOut}>
       {activeTab === 'dashboard' && (
         <div className="animate-in fade-in duration-700">
-          <header className="mb-10 flex justify-between items-start">
+          {/* Screen header */}
+          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-6">
             <div>
-              <h2 className="text-4xl font-display text-brand-black tracking-wide">SESSIONS</h2>
-              <p className="text-brand-gray mt-2 text-sm font-medium">Class assignments, internship work, and personal shoots.</p>
+              <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Shoot / Pipeline</p>
+              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Sessions</h1>
             </div>
-            {/* Field Mode Toggle - Dashboard Only */}
-            <div className="flex flex-col items-end gap-1">
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-brand-black/70">Field mode</label>
-                <button 
+            <div className="flex items-center gap-4">
+              {/* Field mode toggle */}
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: 'rgba(23,25,26,0.45)' }}>Field</span>
+                <button
                   onClick={() => setIsFieldMode(!isFieldMode)}
-                  className={`w-10 h-5 rounded-full transition-all relative ${isFieldMode ? 'bg-brand-blue' : 'bg-brand-gray/30'}`}
+                  style={{
+                    width: '32px', height: '16px', position: 'relative',
+                    background: isFieldMode ? '#c9a227' : 'rgba(23,25,26,0.18)',
+                    border: 'none', cursor: 'pointer', transition: 'background 0.2s',
+                  }}
                 >
-                  <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${isFieldMode ? 'left-6' : 'left-1'}`}></div>
+                  <div style={{
+                    position: 'absolute', top: '3px',
+                    left: isFieldMode ? '17px' : '3px',
+                    width: '10px', height: '10px',
+                    background: '#f8f7f4',
+                    transition: 'left 0.2s',
+                  }} />
                 </button>
               </div>
-              <p className="text-xs text-brand-gray/50 font-normal">Simplify layout for on-assignment use.</p>
             </div>
-          </header>
+          </div>
 
-          <section className="bg-brand-white border border-brand-black/5 rounded-lg p-8 mb-12 shadow-sm relative overflow-hidden group hover:border-brand-rose/20 transition-all duration-700">
-             <div className="absolute top-0 left-0 w-1 h-full bg-brand-rose/20"></div>
-             <p className="text-xs font-semibold text-brand-rose/70 mb-5">
-               {profile.name.trim() ? `Hi ${profile.name.trim().split(' ')[0]}, here's your daily inspiration quote` : 'Daily inspiration'}
-             </p>
-             <div className="max-w-2xl">
-               <p className="text-xl md:text-2xl font-serif italic text-brand-black leading-snug mb-4">
-                 "{dailyQuote.text}"
-               </p>
-               <p className="text-sm font-medium text-brand-gray/70">
-                 — {dailyQuote.author}
-               </p>
-             </div>
-             <i className="fa-solid fa-quote-right absolute bottom-6 right-8 text-4xl text-brand-black/5"></i>
-          </section>
+          {/* Daily quote */}
+          <div style={{ borderLeft: '2px solid rgba(23,25,26,0.12)', paddingLeft: '14px', marginBottom: '20px' }}>
+            <p className="font-serif italic" style={{ fontSize: '14px', color: 'rgba(23,25,26,0.55)', lineHeight: 1.6 }}>"{dailyQuote.text}"</p>
+            <p className="font-mono text-[8px] tracking-[0.14em] uppercase mt-1" style={{ color: 'rgba(23,25,26,0.35)' }}>— {dailyQuote.author}</p>
+          </div>
 
-          <section className="bg-brand-black rounded-lg p-8 text-brand-white mb-12 shadow-xl border border-white/5">
-            <h3 className="text-xs font-semibold text-brand-rose/80 mb-5">Log new session</h3>
-            <form onSubmit={addSession} className="space-y-3">
+          {/* New session form */}
+          <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', padding: '20px', marginBottom: '22px' }}>
+            <p className="font-mono text-[9px] tracking-[0.22em] uppercase mb-4" style={{ color: 'rgba(23,25,26,0.40)' }}>New Session</p>
+            <form onSubmit={addSession} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <input
                 name="title"
                 type="text"
                 placeholder="Session title (optional)"
-                className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
               />
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                 <input
                   name="date"
                   type="date"
                   required
-                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
                 />
                 <LocationAutocomplete
                   name="location"
                   placeholder="Location (e.g. Austin)"
                   required
-                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
+                  className="w-full"
+                  style={{ padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
                 />
                 <select
                   name="genre"
                   required
-                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
                 >
                   {genreOptions.map(g => (
-                    <option key={g} value={g} className="text-brand-black">{g}</option>
+                    <option key={g} value={g}>{g}</option>
                   ))}
                 </select>
                 <button
                   type="submit"
-                  className="bg-brand-blue hover:bg-[#7a93a0] text-white text-sm font-semibold rounded-md py-3 transition-all active:scale-95 shadow-lg"
+                  className="font-mono text-[9px] tracking-[0.20em] uppercase transition-colors"
+                  style={{ padding: '9px 0', background: '#17191a', border: '1px solid #17191a', color: '#f4f3ef', cursor: 'pointer' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#17191a'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#17191a'; e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#f4f3ef'; }}
                 >
-                  Add session
+                  + Add Session
                 </button>
               </div>
-              {/* Type + Deadline */}
               <div className="grid grid-cols-2 gap-3">
                 <select
                   name="type"
-                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all text-white/70"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
                 >
-                  <option value="" className="text-brand-black">Type (optional)</option>
-                  <option value="Class" className="text-brand-black">Class</option>
-                  <option value="Internship" className="text-brand-black">Internship</option>
-                  <option value="Personal" className="text-brand-black">Personal</option>
+                  <option value="">Type (optional)</option>
+                  <option value="Class">Class</option>
+                  <option value="Internship">Internship</option>
+                  <option value="Personal">Personal</option>
                 </select>
                 <input
                   name="deadline"
                   type="date"
-                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all text-white/70"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
                   title="Submission deadline (optional)"
                 />
               </div>
               <textarea
                 name="brief"
                 placeholder="Assignment brief / requirements (optional)"
-                className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[60px]"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
               />
               <textarea
                 name="notes"
                 placeholder="Notes"
-                className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[60px]"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
               />
             </form>
-          </section>
+          </div>
 
           {/* ── Dashboard filters ── */}
           {(() => {
@@ -1486,103 +1461,97 @@ const App: React.FC = () => {
             return (
               <>
                 {activeSessions.length > 0 && (
-                  <div className="mb-8 space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center gap-4 flex-wrap">
-                      {/* Type filter */}
-                      <div className="flex-shrink-0">
-                        <p className="text-xs text-brand-gray/50 font-medium mb-2">Type</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {(['All', 'Class', 'Internship', 'Personal'] as const).map(t => (
-                            <button key={t}
-                              onClick={() => setDashboardTypeFilter(t)}
-                              className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${
-                                dashboardTypeFilter === t
-                                  ? t === 'Class'      ? 'bg-brand-blue text-white border-brand-blue'
-                                  : t === 'Internship' ? 'bg-amber-500 text-white border-amber-500'
-                                  : t === 'Personal'   ? 'bg-emerald-500 text-white border-emerald-500'
-                                  : 'bg-brand-black text-white border-brand-black'
-                                  : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'
-                              }`}
-                            >{t}</button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Genre filter */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-brand-gray/50 font-medium mb-2">Genre</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          <button
-                            onClick={() => setDashboardGenreFilter('All')}
-                            className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${dashboardGenreFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
-                          >All</button>
-                          {presentGenres.map(g => (
-                            <button key={g}
-                              onClick={() => setDashboardGenreFilter(g)}
-                              className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${dashboardGenreFilter === g ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-blue/30'}`}
-                            >{g}</button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Status filter */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-brand-gray/50 font-medium mb-2">Progress</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {(['All', 'capturing', 'shot', 'culled', 'edited', 'backed up', 'posted'] as const).map(s => (
-                            <button key={s}
-                              onClick={() => setDashboardStatusFilter(s)}
-                              className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${dashboardStatusFilter === s ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}
-                            >{s === 'All' ? 'All' : { capturing: 'Capturing', shot: 'Culling', culled: 'Editing', edited: 'Backing Up', 'backed up': 'Posting', posted: 'Complete' }[s]}</button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Sort */}
-                      <div className="flex-shrink-0">
-                        <p className="text-xs text-brand-gray/50 font-medium mb-2">Sort</p>
-                        <button
-                          onClick={() => setDashboardDateSort(p => p === 'deadline' ? 'newest' : p === 'newest' ? 'oldest' : 'deadline')}
-                          className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-md border border-brand-black/10 bg-white text-brand-gray hover:border-brand-black/30 transition-all"
-                        >
-                          <i className={`fa-solid ${dashboardDateSort === 'deadline' ? 'fa-clock' : dashboardDateSort === 'newest' ? 'fa-arrow-down-short-wide' : 'fa-arrow-up-short-wide'} text-[9px]`}></i>
-                          {dashboardDateSort === 'deadline' ? 'Deadline first' : dashboardDateSort === 'newest' ? 'Newest first' : 'Oldest first'}
-                        </button>
-                      </div>
+                  <div className="mb-5">
+                    {/* Filter pills row */}
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {/* Type filters */}
+                      {(['All', 'Class', 'Internship', 'Personal'] as const).map(t => {
+                        const active = dashboardTypeFilter === t;
+                        return (
+                          <button key={t}
+                            onClick={() => setDashboardTypeFilter(t)}
+                            className="font-mono text-[8px] tracking-[0.16em] uppercase transition-colors"
+                            style={{ padding: '5px 10px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}
+                            onMouseEnter={e => { if (!active) { e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#17191a'; } }}
+                            onMouseLeave={e => { if (!active) { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.55)'; } }}
+                          >{t}</button>
+                        );
+                      })}
+                      <span style={{ width: '1px', background: 'rgba(23,25,26,0.14)', margin: '0 4px' }} />
+                      {/* Genre filters */}
+                      {(['All', ...presentGenres] as const).map(g => {
+                        const active = dashboardGenreFilter === g;
+                        return (
+                          <button key={g}
+                            onClick={() => setDashboardGenreFilter(g as typeof dashboardGenreFilter)}
+                            className="font-mono text-[8px] tracking-[0.16em] uppercase transition-colors"
+                            style={{ padding: '5px 10px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}
+                            onMouseEnter={e => { if (!active) { e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#17191a'; } }}
+                            onMouseLeave={e => { if (!active) { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.55)'; } }}
+                          >{g === 'All' ? 'All Genres' : g}</button>
+                        );
+                      })}
+                      <span style={{ width: '1px', background: 'rgba(23,25,26,0.14)', margin: '0 4px' }} />
+                      {/* Status filters */}
+                      {(['All', 'capturing', 'shot', 'culled', 'edited', 'backed up', 'posted'] as const).map(s => {
+                        const active = dashboardStatusFilter === s;
+                        const label = s === 'All' ? 'All' : { capturing: 'Shoot', shot: 'Cull', culled: 'Edit', edited: 'Backup', 'backed up': 'Post', posted: 'Done' }[s];
+                        return (
+                          <button key={s}
+                            onClick={() => setDashboardStatusFilter(s)}
+                            className="font-mono text-[8px] tracking-[0.16em] uppercase transition-colors"
+                            style={{ padding: '5px 10px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}
+                            onMouseEnter={e => { if (!active) { e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#17191a'; } }}
+                            onMouseLeave={e => { if (!active) { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.55)'; } }}
+                          >{label}</button>
+                        );
+                      })}
+                      <button
+                        onClick={() => setDashboardDateSort(p => p === 'deadline' ? 'newest' : p === 'newest' ? 'oldest' : 'deadline')}
+                        className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors ml-2"
+                        style={{ padding: '5px 10px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', color: 'rgba(23,25,26,0.50)', cursor: 'pointer' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#8a6b0f'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.50)'; }}
+                      >
+                        {dashboardDateSort === 'deadline' ? 'Deadline ↑' : dashboardDateSort === 'newest' ? 'Newest ↓' : 'Oldest ↑'}
+                      </button>
                     </div>
-
-                    {/* Results summary + clear */}
                     <div className="flex items-center justify-between">
-                      <p className="text-xs text-brand-gray/40 font-normal">
-                        {filtered.length} of {activeSessions.length} session{activeSessions.length !== 1 ? 's' : ''}
+                      <p className="font-mono text-[8px] tracking-[0.12em] uppercase" style={{ color: 'rgba(23,25,26,0.38)' }}>
+                        {filtered.length} / {activeSessions.length} Sessions
                       </p>
                       {hasFilters && (
                         <button
                           onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); setDashboardTypeFilter('All'); }}
-                          className="text-xs text-brand-gray/50 hover:text-brand-black hover:underline"
+                          className="font-mono text-[8px] tracking-[0.12em] uppercase transition-colors"
+                          style={{ color: 'rgba(23,25,26,0.40)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          onMouseEnter={e => (e.currentTarget.style.color = '#c9a227')}
+                          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(23,25,26,0.40)')}
                         >
-                          <i className="fa-solid fa-xmark mr-1"></i>Clear filters
+                          × Clear
                         </button>
                       )}
                     </div>
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {activeSessions.length === 0 ? (
-                    <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-lg">
-                      <p className="text-sm font-medium text-brand-gray/50">No active sessions detected</p>
+                    <div className="col-span-full py-10" style={{ borderLeft: '2px solid rgba(23,25,26,0.14)', paddingLeft: '14px' }}>
+                      <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No Active Sessions</p>
                     </div>
                   ) : filtered.length === 0 ? (
-                    <div className="col-span-full py-16 text-center border border-dashed border-brand-gray/20 rounded-lg">
-                      <p className="text-sm font-medium text-brand-gray/50 mb-2">No sessions match these filters</p>
-                      <button onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); setDashboardTypeFilter('All'); }} className="text-xs text-brand-rose font-medium hover:underline">
+                    <div className="col-span-full py-8" style={{ borderLeft: '2px solid rgba(23,25,26,0.14)', paddingLeft: '14px' }}>
+                      <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No Sessions Match</p>
+                      <button onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); setDashboardTypeFilter('All'); }}
+                        className="font-mono text-[8px] tracking-[0.14em] uppercase mt-2 transition-colors"
+                        style={{ color: '#c9a227', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                         Clear filters
                       </button>
                     </div>
                   ) : (
                     filtered.map(session => (
-                      <div key={session.id} id={`session-${session.id}`} className={`transition-all duration-700 ${highlightedSessionId === session.id ? 'ring-2 ring-brand-rose ring-offset-2 rounded-lg' : ''}`}>
+                      <div key={session.id} id={`session-${session.id}`} style={{ outline: highlightedSessionId === session.id ? '2px solid #c9a227' : 'none', outlineOffset: '2px', transition: 'outline 0.3s' }}>
                         <SessionCard
                           session={session}
                           onUpdateStatus={updateStatus}
@@ -1602,316 +1571,188 @@ const App: React.FC = () => {
 
       {activeTab === 'profile' && (
         <div className="animate-in fade-in duration-700">
-          <header className="mb-10 flex justify-between items-end">
+          {/* Screen header */}
+          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-4xl font-display text-brand-black tracking-wide">PHOTOGRAPHER PROFILE</h2>
-              <p className="text-brand-gray mt-2 text-sm font-medium">Define your shooting style, constraints, and growth goals.</p>
+              <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">You / Identity</p>
+              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Profile</h1>
             </div>
-            {profileSuccessMsg && (
-              <div className="bg-emerald-500 text-white text-xs font-medium px-4 py-2 rounded-md shadow-lg animate-in slide-in-from-right fade-in duration-500">
-                <i className="fa-solid fa-check mr-2"></i> Profile applied
-              </div>
-            )}
-          </header>
+            <div className="flex items-center gap-3">
+              {profileSuccessMsg && <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: '#4b6b52' }}>Saved ✓</span>}
+              {user && (
+                <button onClick={signOut} className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors"
+                  style={{ padding: '7px 12px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', color: 'rgba(23,25,26,0.55)', cursor: 'pointer' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#17191a'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.55)'; }}>Sign Out</button>
+              )}
+            </div>
+          </div>
 
+          {/* Account strip */}
           {user && (
-            <div className="mb-8 flex items-center justify-between bg-white border border-brand-black/5 rounded-lg px-6 py-4 shadow-sm">
-              <div className="flex items-center gap-4">
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover border border-brand-black/10" />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-brand-rose/10 flex items-center justify-center">
-                    <i className="fa-solid fa-user text-brand-rose text-sm"></i>
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-semibold text-brand-black">{user.displayName || 'Photographer'}</p>
-                  <p className="text-xs text-brand-gray mt-0.5">{user.email}</p>
-                </div>
+            <div style={{ background: '#f4f3ef', border: '1px solid rgba(23,25,26,0.14)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+              {user.photoURL
+                ? <img src={user.photoURL} alt="avatar" style={{ width: '32px', height: '32px', objectFit: 'cover', border: '1px solid rgba(23,25,26,0.14)' }} />
+                : <div style={{ width: '32px', height: '32px', background: 'rgba(23,25,26,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', color: 'rgba(23,25,26,0.40)' }}>◎</div>
+              }
+              <div>
+                <p style={{ fontSize: '13px', fontWeight: 500, color: '#17191a' }}>{user.displayName || 'Photographer'}</p>
+                <p className="font-mono text-[9px] tracking-[0.12em]" style={{ color: 'rgba(23,25,26,0.42)', marginTop: '2px' }}>{user.email}</p>
               </div>
-              <button
-                onClick={signOut}
-                className="flex items-center gap-2 text-xs font-medium text-brand-gray border border-brand-black/10 px-4 py-2 rounded-md hover:bg-brand-black/5 hover:text-brand-black transition-all"
-              >
-                <i className="fa-solid fa-arrow-right-from-bracket text-xs"></i>
-                Sign out
-              </button>
             </div>
           )}
 
-          <section className="bg-white rounded-lg border border-brand-black/5 p-10 shadow-sm">
-            <div className="space-y-12">
-              <div>
-                <h3 className="text-xs font-semibold text-brand-rose mb-5 border-b border-brand-black/5 pb-2">Basics</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Name</label>
-                    <input 
-                      type="text"
-                      value={draftProfile.name}
-                      onChange={e => setDraftProfile(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                      placeholder="e.g. Jane Doe"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Years shooting</label>
-                    <input 
-                      type="text"
-                      value={draftProfile.yearsShooting}
-                      onChange={e => setDraftProfile(prev => ({ ...prev, yearsShooting: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                      placeholder="e.g. 5 years, or since 2018"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-xs font-medium text-brand-gray/70 block mb-3">Primary genres</label>
-                    <div className="flex flex-wrap gap-2">
-                      {genreOptions.map((g: Genre) => (
-                        <button
-                          key={g}
-                          onClick={() => setDraftProfile(prev => ({
-                            ...prev,
-                            primaryGenres: prev.primaryGenres.includes(g)
-                              ? prev.primaryGenres.filter(pg => pg !== g)
-                              : [...prev.primaryGenres, g]
-                          }))}
-                          className={`text-xs font-medium px-4 py-2 rounded-md border transition-all ${
-                            draftProfile.primaryGenres.includes(g)
-                              ? 'bg-brand-blue text-white border-brand-blue'
-                              : 'bg-brand-white text-brand-gray border-brand-black/5'
-                          }`}
-                        >
-                          {g}
-                        </button>
-                      ))}
-                    </div>
-                    {draftProfile.primaryGenres.includes('Other') && (
-                      <input
-                        type="text"
-                        value={draftProfile.otherGenreNote || ''}
-                        onChange={e => setDraftProfile(prev => ({ ...prev, otherGenreNote: e.target.value }))}
-                        placeholder="Specify your genre..."
-                        className="mt-3 w-full bg-brand-white border border-brand-rose/30 rounded-md px-4 py-2.5 text-xs text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-blue outline-none"
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
+          {/* Panel grid — 2 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
+            {/* Panel: Basics */}
+            <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTop: '2px solid #4a6b7c', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p className="font-mono text-[9px] tracking-[0.20em] uppercase" style={{ color: '#4a6b7c' }}>Basics</p>
               <div>
-                <h3 className="text-xs font-semibold text-brand-rose mb-5 border-b border-brand-black/5 pb-2">Software & workflow</h3>
-                <div className="space-y-8">
-                  <div>
-                    <label className="text-xs font-medium text-brand-gray/70 block mb-3">Editing / RAW</label>
-                    <div className="flex flex-wrap gap-2">
-                      {editingAppsList.map(app => (
-                        <button
-                          key={app}
-                          onClick={() => setDraftProfile(prev => ({
-                            ...prev,
-                            editingApps: prev.editingApps.includes(app)
-                              ? prev.editingApps.filter(a => a !== app)
-                              : [...prev.editingApps, app]
-                          }))}
-                          className={`text-xs font-medium px-4 py-2 rounded-md border transition-all ${
-                            draftProfile.editingApps.includes(app)
-                              ? 'bg-brand-blue text-white border-brand-blue'
-                              : 'bg-brand-white text-brand-gray border-brand-black/5'
-                          }`}
-                        >
-                          {app}
-                        </button>
-                      ))}
-                    </div>
-                    {draftProfile.editingApps.includes('Other') && (
-                      <input
-                        type="text"
-                        value={draftProfile.otherEditingAppNote || ''}
-                        onChange={e => setDraftProfile(prev => ({ ...prev, otherEditingAppNote: e.target.value }))}
-                        placeholder="Specify your editing app..."
-                        className="mt-3 w-full bg-brand-white border border-brand-blue/30 rounded-md px-4 py-2.5 text-xs text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-blue outline-none"
-                      />
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-brand-gray/70 block mb-3">Tethering / capture</label>
-                    <div className="flex flex-wrap gap-2">
-                      {tetheringAppsList.map(app => (
-                        <button
-                          key={app}
-                          onClick={() => setDraftProfile(prev => ({
-                            ...prev,
-                            tetheringApps: prev.tetheringApps.includes(app)
-                              ? prev.tetheringApps.filter(a => a !== app)
-                              : [...prev.tetheringApps, app]
-                          }))}
-                          className={`text-xs font-medium px-4 py-2 rounded-md border transition-all ${
-                            draftProfile.tetheringApps.includes(app)
-                              ? 'bg-brand-blue text-white border-brand-blue'
-                              : 'bg-brand-white text-brand-gray border-brand-black/5'
-                          }`}
-                        >
-                          {app}
-                        </button>
-                      ))}
-                    </div>
-                    {draftProfile.tetheringApps.includes('Other') && (
-                      <input
-                        type="text"
-                        value={draftProfile.otherTetheringAppNote || ''}
-                        onChange={e => setDraftProfile(prev => ({ ...prev, otherTetheringAppNote: e.target.value }))}
-                        placeholder="Specify your tethering app..."
-                        className="mt-3 w-full bg-brand-white border border-brand-rose/30 rounded-md px-4 py-2.5 text-xs text-brand-black placeholder-brand-gray/40 focus:ring-1 focus:ring-brand-blue outline-none"
-                      />
-                    )}
-                  </div>
-                </div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Name</label>
+                <input type="text" value={draftProfile.name} onChange={e => setDraftProfile(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g. Jane Doe"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
               </div>
-
               <div>
-                <h3 className="text-xs font-semibold text-brand-rose mb-5 border-b border-brand-black/5 pb-2">Work & style</h3>
-                <div className="space-y-6">
-                  <div>
-                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Typical work / scope</label>
-                    <textarea 
-                      value={draftProfile.typicalWork}
-                      onChange={e => setDraftProfile(prev => ({ ...prev, typicalWork: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
-                      placeholder="e.g. editorial assignments, street photography series"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                      <label className="text-xs font-medium text-brand-gray/70 block mb-2">Style keywords</label>
-                      <input 
-                        type="text"
-                        value={styleKeywordsDraft}
-                        onChange={e => setStyleKeywordsDraft(e.target.value)}
-                        className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                        placeholder="cinematic, high contrast, natural light…"
-                      />
-                      <p className="text-xs text-brand-gray mt-2">Type style keywords separated by commas, e.g. cinematic, high contrast, natural light.</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-brand-gray/70 block mb-2">Risk profile</label>
-                      <div className="flex gap-2">
-                        {(['cautious', 'balanced', 'experimental'] as PhotographerProfile['riskProfile'][]).map((r) => (
-                          <button
-                            key={r}
-                            onClick={() => setDraftProfile(prev => ({ ...prev, riskProfile: r }))}
-                            className={`flex-1 text-xs font-medium py-3 rounded-md border transition-all ${
-                              draftProfile.riskProfile === r
-                                ? 'bg-brand-black text-white border-brand-black'
-                                : 'bg-brand-white text-brand-gray border-brand-black/5 hover:border-brand-black/20'
-                            }`}
-                          >
-                            {r}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Years Shooting</label>
+                <input type="text" value={draftProfile.yearsShooting} onChange={e => setDraftProfile(prev => ({ ...prev, yearsShooting: e.target.value }))} placeholder="e.g. 5 years, or since 2018"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
               </div>
-
               <div>
-                <h3 className="text-xs font-semibold text-brand-rose mb-5 border-b border-brand-black/5 pb-2">Strengths & struggles</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Strengths</label>
-                    <textarea 
-                      value={draftProfile.strengths}
-                      onChange={e => setDraftProfile(prev => ({ ...prev, strengths: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[100px]"
-                      placeholder="Describe what you do best..."
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Struggles / challenges</label>
-                    <textarea 
-                      value={draftProfile.struggles}
-                      onChange={e => setDraftProfile(prev => ({ ...prev, struggles: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[100px]"
-                      placeholder="Where do you feel friction or stall?"
-                    />
-                  </div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '7px' }}>Primary Genres</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {genreOptions.map((g: Genre) => {
+                    const active = draftProfile.primaryGenres.includes(g);
+                    return (
+                      <button key={g} onClick={() => setDraftProfile(prev => ({ ...prev, primaryGenres: active ? prev.primaryGenres.filter(pg => pg !== g) : [...prev.primaryGenres, g] }))}
+                        className="font-mono text-[8px] tracking-[0.12em] uppercase"
+                        style={{ padding: '4px 8px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}>{g}</button>
+                    );
+                  })}
                 </div>
-              </div>
-
-              <div>
-                <h3 className="text-xs font-semibold text-brand-rose mb-5 border-b border-brand-black/5 pb-2">Constraints & reality</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="md:col-span-1">
-                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Physical constraints</label>
-                    <textarea 
-                      value={draftProfile.physicalConstraints}
-                      onChange={e => setDraftProfile(prev => ({ ...prev, physicalConstraints: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
-                      placeholder="e.g. height, stamina, crowd tolerance"
-                    />
-                  </div>
-                  <div className="md:col-span-1">
-                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Access reality</label>
-                    <textarea 
-                      value={draftProfile.accessReality}
-                      onChange={e => setDraftProfile(prev => ({ ...prev, accessReality: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
-                      placeholder="e.g. public stands, press access, sidelines"
-                    />
-                  </div>
-                  <div className="md:col-span-1">
-                    <label className="text-xs font-medium text-brand-gray/70 block mb-2">Time budget</label>
-                    <textarea 
-                      value={draftProfile.timeBudget}
-                      onChange={e => setDraftProfile(prev => ({ ...prev, timeBudget: e.target.value }))}
-                      className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[80px]"
-                      placeholder="Typical time available per assignment"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-xs font-semibold text-brand-rose mb-5 border-b border-brand-black/5 pb-2">Growth goals</h3>
-                <div>
-                  <label className="text-xs font-medium text-brand-gray/70 block mb-2">Growth goals</label>
-                  <textarea 
-                    value={draftProfile.growthGoals}
-                    onChange={e => setDraftProfile(prev => ({ ...prev, growthGoals: e.target.value }))}
-                    className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-4 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all min-h-[100px]"
-                    placeholder="What are you currently trying to master?"
-                  />
-                </div>
-              </div>
-
-              {/* Profile Actions */}
-              <div className="pt-10 flex flex-col md:flex-row gap-4 justify-end border-t border-brand-black/5">
-                <button
-                  onClick={handleResetProfile}
-                  disabled={!isProfileDirty}
-                  className={`px-8 py-4 rounded-md text-sm font-medium transition-all border ${
-                    isProfileDirty
-                      ? 'bg-white text-brand-gray border-brand-black/10 hover:bg-brand-black/5'
-                      : 'bg-white text-brand-gray/30 border-brand-black/5 cursor-not-allowed'
-                  }`}
-                >
-                  Discard edits
-                </button>
-                <button
-                  onClick={handleApplyProfile}
-                  disabled={!isProfileDirty}
-                  className={`px-12 py-4 rounded-md text-sm font-semibold transition-all shadow-lg ${
-                    isProfileDirty
-                      ? 'bg-brand-blue text-white hover:bg-[#7a93a0] active:scale-95'
-                      : 'bg-brand-gray/10 text-brand-gray/30 cursor-not-allowed shadow-none'
-                  }`}
-                >
-                  Apply Profile Changes
-                </button>
+                {draftProfile.primaryGenres.includes('Other') && (
+                  <input type="text" value={draftProfile.otherGenreNote || ''} onChange={e => setDraftProfile(prev => ({ ...prev, otherGenreNote: e.target.value }))} placeholder="Specify genre…"
+                    style={{ width: '100%', marginTop: '8px', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                )}
               </div>
             </div>
-          </section>
+
+            {/* Panel: Style */}
+            <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTop: '2px solid #c9a227', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p className="font-mono text-[9px] tracking-[0.20em] uppercase" style={{ color: '#8a6b0f' }}>Work & Style</p>
+              <div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Typical Work / Scope</label>
+                <textarea value={draftProfile.typicalWork} onChange={e => setDraftProfile(prev => ({ ...prev, typicalWork: e.target.value }))} placeholder="e.g. editorial assignments, street photography series"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '70px', resize: 'vertical', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Style Keywords</label>
+                <input type="text" value={styleKeywordsDraft} onChange={e => setStyleKeywordsDraft(e.target.value)} placeholder="cinematic, high contrast, natural light…"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '7px' }}>Risk Profile</label>
+                <div className="flex gap-2">
+                  {(['cautious', 'balanced', 'experimental'] as PhotographerProfile['riskProfile'][]).map(r => {
+                    const active = draftProfile.riskProfile === r;
+                    return (
+                      <button key={r} onClick={() => setDraftProfile(prev => ({ ...prev, riskProfile: r }))}
+                        className="flex-1 font-mono text-[8px] tracking-[0.12em] uppercase"
+                        style={{ padding: '8px 4px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}>{r}</button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Panel: Software */}
+            <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTop: '2px solid #4a6b7c', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p className="font-mono text-[9px] tracking-[0.20em] uppercase" style={{ color: '#4a6b7c' }}>Software & Workflow</p>
+              <div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '7px' }}>Editing / RAW</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {editingAppsList.map(app => {
+                    const active = draftProfile.editingApps.includes(app);
+                    return (
+                      <button key={app} onClick={() => setDraftProfile(prev => ({ ...prev, editingApps: active ? prev.editingApps.filter(a => a !== app) : [...prev.editingApps, app] }))}
+                        className="font-mono text-[8px] tracking-[0.12em] uppercase"
+                        style={{ padding: '4px 8px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}>{app}</button>
+                    );
+                  })}
+                </div>
+                {draftProfile.editingApps.includes('Other') && (
+                  <input type="text" value={draftProfile.otherEditingAppNote || ''} onChange={e => setDraftProfile(prev => ({ ...prev, otherEditingAppNote: e.target.value }))} placeholder="Specify editing app…"
+                    style={{ width: '100%', marginTop: '8px', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                )}
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '7px' }}>Tethering / Capture</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {tetheringAppsList.map(app => {
+                    const active = draftProfile.tetheringApps.includes(app);
+                    return (
+                      <button key={app} onClick={() => setDraftProfile(prev => ({ ...prev, tetheringApps: active ? prev.tetheringApps.filter(a => a !== app) : [...prev.tetheringApps, app] }))}
+                        className="font-mono text-[8px] tracking-[0.12em] uppercase"
+                        style={{ padding: '4px 8px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}>{app}</button>
+                    );
+                  })}
+                </div>
+                {draftProfile.tetheringApps.includes('Other') && (
+                  <input type="text" value={draftProfile.otherTetheringAppNote || ''} onChange={e => setDraftProfile(prev => ({ ...prev, otherTetheringAppNote: e.target.value }))} placeholder="Specify tethering app…"
+                    style={{ width: '100%', marginTop: '8px', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                )}
+              </div>
+            </div>
+
+            {/* Panel: Strengths & Constraints */}
+            <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTop: '2px solid #a35a4a', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p className="font-mono text-[9px] tracking-[0.20em] uppercase" style={{ color: '#a35a4a' }}>Strengths & Constraints</p>
+              <div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Strengths</label>
+                <textarea value={draftProfile.strengths} onChange={e => setDraftProfile(prev => ({ ...prev, strengths: e.target.value }))} placeholder="Describe what you do best…"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '60px', resize: 'vertical', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Struggles</label>
+                <textarea value={draftProfile.struggles} onChange={e => setDraftProfile(prev => ({ ...prev, struggles: e.target.value }))} placeholder="Where do you feel friction or stall?"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '60px', resize: 'vertical', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Physical Constraints</label>
+                <textarea value={draftProfile.physicalConstraints} onChange={e => setDraftProfile(prev => ({ ...prev, physicalConstraints: e.target.value }))} placeholder="e.g. height, stamina, crowd tolerance"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '55px', resize: 'vertical', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Access Reality</label>
+                <textarea value={draftProfile.accessReality} onChange={e => setDraftProfile(prev => ({ ...prev, accessReality: e.target.value }))} placeholder="e.g. public stands, press access, sidelines"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '55px', resize: 'vertical', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Time Budget</label>
+                <textarea value={draftProfile.timeBudget} onChange={e => setDraftProfile(prev => ({ ...prev, timeBudget: e.target.value }))} placeholder="Typical time available per assignment"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '55px', resize: 'vertical', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            {/* Panel: Growth Goals — full width */}
+            <div className="md:col-span-2" style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTop: '2px solid #4b6b52', padding: '18px' }}>
+              <p className="font-mono text-[9px] tracking-[0.20em] uppercase mb-3" style={{ color: '#4b6b52' }}>Growth Goals</p>
+              <textarea value={draftProfile.growthGoals} onChange={e => setDraftProfile(prev => ({ ...prev, growthGoals: e.target.value }))} placeholder="What are you currently trying to master?"
+                style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '80px', resize: 'vertical', boxSizing: 'border-box' }} />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ borderTop: '1px solid rgba(23,25,26,0.12)', paddingTop: '16px', marginTop: '18px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button onClick={handleResetProfile} disabled={!isProfileDirty}
+              className="font-mono text-[9px] tracking-[0.18em] uppercase"
+              style={{ padding: '9px 16px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', color: isProfileDirty ? 'rgba(23,25,26,0.55)' : 'rgba(23,25,26,0.25)', cursor: isProfileDirty ? 'pointer' : 'not-allowed' }}>Discard</button>
+            <button onClick={handleApplyProfile} disabled={!isProfileDirty}
+              className="font-mono text-[9px] tracking-[0.18em] uppercase"
+              style={{ padding: '9px 20px', background: isProfileDirty ? '#17191a' : 'rgba(23,25,26,0.12)', color: isProfileDirty ? '#f4f3ef' : 'rgba(23,25,26,0.30)', border: 'none', cursor: isProfileDirty ? 'pointer' : 'not-allowed' }}
+              onMouseEnter={e => { if (isProfileDirty) { e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.color = '#17191a'; } }}
+              onMouseLeave={e => { if (isProfileDirty) { e.currentTarget.style.background = '#17191a'; e.currentTarget.style.color = '#f4f3ef'; } }}>Apply Changes</button>
+          </div>
         </div>
       )}
 
@@ -1942,220 +1783,154 @@ const App: React.FC = () => {
 
 
       {activeTab === 'cfe' && (
-        <div className="animate-in fade-in duration-700 space-y-12">
-          <header className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+        <div className="animate-in fade-in duration-700">
+          {/* Screen header */}
+          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-6">
             <div>
-              <h2 className="text-4xl font-display text-brand-black tracking-wide">BULLETIN BOARD</h2>
-              <p className="text-brand-gray mt-2 text-sm font-medium">Competitions, grants, fellowships, portfolio reviews, calls for entry, and more.</p>
+              <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Plan / Calls for Entry</p>
+              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Bulletin Board</h1>
             </div>
             <button
               onClick={refreshBulletinEvents}
               disabled={isFetchingBulletin}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white text-xs font-medium rounded-md disabled:opacity-50 hover:bg-[#7a93a0] transition-colors"
+              className="font-mono text-[9px] tracking-[0.18em] uppercase transition-colors"
+              style={{ padding: '9px 16px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', color: isFetchingBulletin ? 'rgba(23,25,26,0.30)' : 'rgba(23,25,26,0.55)', cursor: isFetchingBulletin ? 'not-allowed' : 'pointer' }}
             >
-              <i className={`fa-solid fa-rotate-right text-xs ${isFetchingBulletin ? 'animate-spin' : ''}`}></i>
-              {isFetchingBulletin ? 'Fetching...' : 'Refresh events'}
+              {isFetchingBulletin ? 'Fetching…' : '↻ Refresh'}
             </button>
-          </header>
+          </div>
 
-          <section className="bg-white border border-brand-black/5 rounded-lg p-8 shadow-sm space-y-8">
-            <h3 className="text-xs font-medium text-brand-black/40 border-b border-brand-black/5 pb-4">Filters & search</h3>
-            <div className="space-y-6">
-              {/* Opportunity Type */}
-              <div>
-                <label className="text-xs font-medium text-brand-gray/70 block mb-3">Opportunity Type</label>
-                <div className="flex flex-wrap gap-2">
-                  {(['All', 'Competition', 'Grant', 'Fellowship', 'Residency', 'Open Call', 'Call for Entry', 'Portfolio Review', 'Festival', 'Event'] as const).map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setTypeFilter(t)}
-                      className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${typeFilter === t ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-brand-gray border-brand-black/5 hover:border-brand-blue/30'}`}
-                    >{t === 'All' ? 'All types' : t}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Genre */}
-                <div>
-                  <label className="text-xs font-medium text-brand-gray/70 block mb-3">Genre Focus</label>
-                  <select
-                    value={genreFilter}
-                    onChange={(e) => setGenreFilter(e.target.value as Genre | 'All')}
-                    className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-2.5 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
-                  >
-                    <option value="All">All Genres</option>
-                    {genreOptions.map((g: Genre) => <option key={g} value={g}>{g}</option>)}
-                  </select>
-                </div>
-                {/* Region */}
-                <div>
-                  <label className="text-xs font-medium text-brand-gray/70 block mb-3">Region</label>
-                  <select
-                    value={regionFilter}
-                    onChange={(e) => setRegionFilter(e.target.value as BulletinRegion | 'All')}
-                    className="w-full bg-brand-white border border-brand-black/5 rounded-md px-4 py-2.5 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
-                  >
-                    <option value="All">All Regions</option>
-                    {(['Global', 'US', 'Europe', 'Asia', 'Latin America', 'Africa', 'Other'] as const).map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                </div>
-                {/* Priority */}
-                <div>
-                  <label className="text-xs font-medium text-brand-gray/70 block mb-3">Priority Level</label>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setPriorityFilter('All')}
-                      className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${priorityFilter === 'All' ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/5'}`}
-                    >All</button>
-                    {(['high', 'medium', 'low'] as BulletinPriority[]).map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => setPriorityFilter(p)}
-                        className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${priorityFilter === p ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/5'}`}
-                      >{p.charAt(0).toUpperCase() + p.slice(1)}</button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-brand-gray/60">
-                <i className="fa-solid fa-circle-info mr-1"></i> Filters apply instantly to loaded results. Hit <span className="font-medium text-brand-rose">Refresh events</span> to fetch a new set matching your selection.
-              </p>
+          {/* Filter pills */}
+          <div style={{ background: '#f4f3ef', border: '1px solid rgba(23,25,26,0.14)', padding: '14px 16px', marginBottom: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="flex flex-wrap gap-2">
+              {(['All', 'Competition', 'Grant', 'Fellowship', 'Residency', 'Open Call', 'Call for Entry', 'Portfolio Review', 'Festival', 'Event'] as const).map(t => {
+                const active = typeFilter === t;
+                return (
+                  <button key={t} onClick={() => setTypeFilter(t)}
+                    className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors"
+                    style={{ padding: '5px 9px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}
+                  >{t === 'All' ? 'All Types' : t}</button>
+                );
+              })}
             </div>
-          </section>
-
-          <section>
-            {isFetchingBulletin && aiBulletinItems.length === 0 ? (
-              <div className="py-24 text-center border border-dashed border-brand-gray/20 rounded-lg">
-                <i className="fa-solid fa-circle-notch animate-spin text-brand-rose text-xl mb-4 block"></i>
-                <p className="text-brand-gray text-xs font-medium">Fetching upcoming events...</p>
+            <div className="flex flex-wrap gap-3 items-center">
+              <select value={genreFilter} onChange={e => setGenreFilter(e.target.value as Genre | 'All')}
+                style={{ padding: '7px 10px', fontSize: '11px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', color: '#17191a', outline: 'none', cursor: 'pointer' }}>
+                <option value="All">All Genres</option>
+                {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <select value={regionFilter} onChange={e => setRegionFilter(e.target.value as BulletinRegion | 'All')}
+                style={{ padding: '7px 10px', fontSize: '11px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', color: '#17191a', outline: 'none', cursor: 'pointer' }}>
+                <option value="All">All Regions</option>
+                {(['Global', 'US', 'Europe', 'Asia', 'Latin America', 'Africa', 'Other'] as const).map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <div className="flex gap-1">
+                {(['All', 'high', 'medium', 'low'] as const).map(p => {
+                  const active = priorityFilter === p;
+                  return (
+                    <button key={p} onClick={() => setPriorityFilter(p)}
+                      className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors"
+                      style={{ padding: '5px 9px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}
+                    >{p === 'All' ? 'Any Priority' : p}</button>
+                  );
+                })}
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {primaryBoardItems.length === 0 ? (
-                  <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-lg">
-                    <p className="text-brand-gray text-xs font-medium">No opportunities match these filters</p>
-                  </div>
-                ) : (
-                  primaryBoardItems.map((item) => (
-                    <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} />
-                  ))
-                )}
-              </div>
-            )}
-          </section>
+            </div>
+          </div>
 
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <button
-              onClick={() => setActiveTab('cfe-considering')}
-              className="group flex items-center justify-between p-6 bg-white border-2 border-amber-200 hover:border-amber-400 rounded-lg shadow-sm hover:shadow-md transition-all text-left"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-1.5 h-12 bg-amber-400 rounded flex-shrink-0"></div>
-                <div>
-                  <p className="text-xs font-medium text-amber-600 mb-1 flex items-center gap-2">
-                    <i className="fa-solid fa-bookmark"></i> Shortlist
-                  </p>
-                  <p className="text-xl font-bold text-brand-black">On the shortlist</p>
-                  <p className="text-xs text-brand-gray mt-1">{consideringItems.length} {consideringItems.length === 1 ? 'opportunity' : 'opportunities'} under consideration</p>
+          {/* Cards */}
+          {isFetchingBulletin && aiBulletinItems.length === 0 ? (
+            <p className="font-mono text-[9px] tracking-[0.18em] uppercase pulse-brass py-10" style={{ color: '#c9a227' }}>Fetching events…</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {primaryBoardItems.length === 0 ? (
+                <div className="col-span-full" style={{ borderLeft: '2px solid rgba(23,25,26,0.14)', paddingLeft: '14px', padding: '14px' }}>
+                  <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No Opportunities Match</p>
                 </div>
-              </div>
-              <i className="fa-solid fa-arrow-right text-amber-400 group-hover:translate-x-1 transition-transform"></i>
-            </button>
+              ) : (
+                primaryBoardItems.map(item => <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} />)
+              )}
+            </div>
+          )}
 
-            <button
-              onClick={() => setActiveTab('cfe-applied')}
-              className="group flex items-center justify-between p-6 bg-white border-2 border-emerald-200 hover:border-emerald-400 rounded-lg shadow-sm hover:shadow-md transition-all text-left"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-1.5 h-12 bg-emerald-500 rounded flex-shrink-0"></div>
-                <div>
-                  <p className="text-xs font-medium text-emerald-600 mb-1 flex items-center gap-2">
-                    <i className="fa-solid fa-paper-plane"></i> Applications
-                  </p>
-                  <p className="text-xl font-bold text-brand-black">Applications sent</p>
-                  <p className="text-xs text-brand-gray mt-1">{appliedItems.length} {appliedItems.length === 1 ? 'application' : 'applications'} submitted</p>
-                </div>
+          {/* Shortlist / Applied nav panels */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            <button onClick={() => setActiveTab('cfe-considering')} className="flex items-center justify-between text-left transition-colors"
+              style={{ padding: '16px', border: '1px solid rgba(201,162,39,0.35)', background: 'rgba(201,162,39,0.04)', cursor: 'pointer' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#c9a227'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(201,162,39,0.35)'; }}>
+              <div>
+                <p className="font-mono text-[8px] tracking-[0.18em] uppercase mb-1" style={{ color: '#c9a227' }}>Shortlist</p>
+                <p style={{ fontSize: '15px', fontWeight: 500, color: '#17191a' }}>On the shortlist</p>
+                <p className="font-mono text-[8px] tracking-[0.12em] uppercase mt-1" style={{ color: 'rgba(23,25,26,0.42)' }}>{consideringItems.length} under consideration</p>
               </div>
-              <i className="fa-solid fa-arrow-right text-emerald-500 group-hover:translate-x-1 transition-transform"></i>
+              <span style={{ color: '#c9a227', fontSize: '16px' }}>→</span>
             </button>
-          </section>
+            <button onClick={() => setActiveTab('cfe-applied')} className="flex items-center justify-between text-left transition-colors"
+              style={{ padding: '16px', border: '1px solid rgba(75,107,82,0.35)', background: 'rgba(75,107,82,0.04)', cursor: 'pointer' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#4b6b52'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(75,107,82,0.35)'; }}>
+              <div>
+                <p className="font-mono text-[8px] tracking-[0.18em] uppercase mb-1" style={{ color: '#4b6b52' }}>Applications</p>
+                <p style={{ fontSize: '15px', fontWeight: 500, color: '#17191a' }}>Applications sent</p>
+                <p className="font-mono text-[8px] tracking-[0.12em] uppercase mt-1" style={{ color: 'rgba(23,25,26,0.42)' }}>{appliedItems.length} submitted</p>
+              </div>
+              <span style={{ color: '#4b6b52', fontSize: '16px' }}>→</span>
+            </button>
+          </div>
 
           {archivedBoardItems.length > 0 && (
-            <section className="pt-16 border-t border-brand-black/5">
-              <h3 className="text-xs font-medium text-brand-black/30 mb-8 flex items-center gap-3">
-                <i className="fa-solid fa-box-archive"></i> Archived opportunities
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {archivedBoardItems.map((item) => (
-                  <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} onRemove={removeBulletinItem} />
-                ))}
+            <div style={{ borderTop: '1px solid rgba(23,25,26,0.12)', paddingTop: '18px', marginTop: '18px' }}>
+              <p className="font-mono text-[9px] tracking-[0.18em] uppercase mb-4" style={{ color: 'rgba(23,25,26,0.35)' }}>Archived ({archivedBoardItems.length})</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {archivedBoardItems.map(item => <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} onRemove={removeBulletinItem} />)}
               </div>
-            </section>
+            </div>
           )}
         </div>
       )}
 
       {activeTab === 'cfe-considering' && (
-        <div className="animate-in fade-in duration-700 space-y-12">
-          <header className="mb-10">
-            <button
-              onClick={() => setActiveTab('cfe')}
-              className="flex items-center gap-2 text-xs font-medium text-brand-gray hover:text-brand-rose transition-colors mb-6"
-            >
-              <i className="fa-solid fa-arrow-left text-[9px]"></i> Bulletin Board
-            </button>
-            <div className="flex items-center gap-4">
-              <div className="w-1.5 h-10 bg-amber-400 rounded"></div>
-              <div>
-                <h2 className="text-4xl font-display text-brand-black tracking-wide">ON THE SHORTLIST</h2>
-                <p className="text-brand-gray mt-1 text-sm font-medium">{consideringItems.length} {consideringItems.length === 1 ? 'opportunity' : 'opportunities'} under consideration</p>
-              </div>
+        <div className="animate-in fade-in duration-700">
+          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-4">
+            <div>
+              <button onClick={() => setActiveTab('cfe')} className="font-mono text-[8px] tracking-[0.14em] uppercase mb-2 transition-colors" style={{ color: 'rgba(23,25,26,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>← Bulletin Board</button>
+              <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Plan / Shortlist</p>
+              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Shortlist</h1>
             </div>
-          </header>
+            <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: '#c9a227' }}>{consideringItems.length} items</p>
+          </div>
           {consideringItems.length === 0 ? (
-            <div className="py-24 text-center border border-dashed border-amber-200 rounded-lg">
-              <i className="fa-solid fa-bookmark text-amber-300 text-2xl mb-4 block"></i>
-              <p className="text-brand-gray text-xs font-medium">No events on your shortlist yet</p>
-              <p className="text-brand-gray/50 text-xs mt-2">Mark events as Considering from the Bulletin Board.</p>
+            <div style={{ borderLeft: '2px solid rgba(201,162,39,0.40)', paddingLeft: '14px', padding: '14px' }}>
+              <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>Nothing on your shortlist yet</p>
+              <p style={{ fontSize: '12px', color: 'rgba(23,25,26,0.55)', marginTop: '4px' }}>Mark events as Considering from the Bulletin Board.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {consideringItems.map((item) => (
-                <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} onRemove={removeBulletinItem} />
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {consideringItems.map(item => <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} onRemove={removeBulletinItem} />)}
             </div>
           )}
         </div>
       )}
 
       {activeTab === 'cfe-applied' && (
-        <div className="animate-in fade-in duration-700 space-y-12">
-          <header className="mb-10">
-            <button
-              onClick={() => setActiveTab('cfe')}
-              className="flex items-center gap-2 text-xs font-medium text-brand-gray hover:text-brand-rose transition-colors mb-6"
-            >
-              <i className="fa-solid fa-arrow-left text-[9px]"></i> Bulletin Board
-            </button>
-            <div className="flex items-center gap-4">
-              <div className="w-1.5 h-10 bg-emerald-500 rounded"></div>
-              <div>
-                <h2 className="text-4xl font-display text-brand-black tracking-wide">APPLICATIONS SENT</h2>
-                <p className="text-brand-gray mt-1 text-sm font-medium">{appliedItems.length} {appliedItems.length === 1 ? 'application' : 'applications'} submitted</p>
-              </div>
+        <div className="animate-in fade-in duration-700">
+          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-4">
+            <div>
+              <button onClick={() => setActiveTab('cfe')} className="font-mono text-[8px] tracking-[0.14em] uppercase mb-2 transition-colors" style={{ color: 'rgba(23,25,26,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>← Bulletin Board</button>
+              <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Plan / Applications</p>
+              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Applied</h1>
             </div>
-          </header>
+            <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: '#4b6b52' }}>{appliedItems.length} submitted</p>
+          </div>
           {appliedItems.length === 0 ? (
-            <div className="py-24 text-center border border-dashed border-emerald-200 rounded-lg">
-              <i className="fa-solid fa-paper-plane text-emerald-300 text-2xl mb-4 block"></i>
-              <p className="text-brand-gray text-xs font-medium">No applications recorded yet</p>
-              <p className="text-brand-gray/50 text-xs mt-2">Mark events as Applied from the Bulletin Board.</p>
+            <div style={{ borderLeft: '2px solid rgba(75,107,82,0.40)', paddingLeft: '14px', padding: '14px' }}>
+              <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No applications recorded yet</p>
+              <p style={{ fontSize: '12px', color: 'rgba(23,25,26,0.55)', marginTop: '4px' }}>Mark events as Applied from the Bulletin Board.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {appliedItems.map((item) => (
-                <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} onRemove={removeBulletinItem} />
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {appliedItems.map(item => <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} onRemove={removeBulletinItem} />)}
             </div>
           )}
         </div>
@@ -2183,25 +1958,21 @@ const App: React.FC = () => {
 
       {activeTab === 'archive' && (
         <div className="animate-in fade-in duration-700">
-          <header className="mb-10">
-            <h2 className="text-4xl font-display text-brand-black tracking-wide">ARCHIVE</h2>
-            <p className="text-brand-gray mt-2 text-sm font-medium">Completed sessions stored for reference.</p>
-          </header>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-6">
+            <div>
+              <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">You / Closed Work</p>
+              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Archive</h1>
+            </div>
+            <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>{sessions.filter(s => s.status === 'archived').length} sessions</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {sessions.filter(s => s.status === 'archived').length === 0 ? (
-              <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-lg">
-                <p className="text-brand-gray text-xs font-medium">No sessions archived yet</p>
+              <div className="col-span-full" style={{ borderLeft: '2px solid rgba(23,25,26,0.14)', padding: '14px' }}>
+                <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No Archived Sessions</p>
               </div>
             ) : (
               sessions.filter(s => s.status === 'archived').map(session => (
-                <SessionCard
-                  key={session.id}
-                  session={session}
-                  onUpdateStatus={updateStatus}
-                  onUpdate={updateSession}
-                  onDelete={deleteSession}
-                />
+                <SessionCard key={session.id} session={session} onUpdateStatus={updateStatus} onUpdate={updateSession} onDelete={deleteSession} />
               ))
             )}
           </div>
@@ -2210,103 +1981,80 @@ const App: React.FC = () => {
 
       {activeTab === 'gear' && (
         <div className="animate-in fade-in duration-700">
-          <header className="mb-10">
-            <h2 className="text-4xl font-display text-brand-black tracking-wide">GEAR LOCKER</h2>
-            <p className="text-brand-gray mt-2 text-sm font-medium">Equipment inventory informing strategy and planning.</p>
-          </header>
+          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-6">
+            <div>
+              <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">You / Kit</p>
+              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Gear Locker</h1>
+            </div>
+            <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>{gear.length} items</p>
+          </div>
 
-          <section className="bg-brand-black rounded-lg p-8 text-brand-white mb-12 shadow-xl border border-white/5">
-            <h3 className="text-xs font-semibold text-brand-rose mb-6">Register new equipment</h3>
-            <form onSubmit={addGearItem} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <input
-                  name="gearName"
-                  placeholder="Name (e.g. Sony A9 III)"
-                  required
-                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
-                />
-                <select
-                  name="category"
-                  required
-                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                >
-                  <option value="Body" className="text-brand-black">Body</option>
-                  <option value="Lens" className="text-brand-black">Lens</option>
-                  <option value="Flash" className="text-brand-black">Flash</option>
-                  <option value="Modifier" className="text-brand-black">Modifier</option>
-                  <option value="Support" className="text-brand-black">Support</option>
-                  <option value="Accessory" className="text-brand-black">Accessory</option>
+          {/* Register form */}
+          <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', padding: '20px', marginBottom: '18px' }}>
+            <p className="font-mono text-[9px] tracking-[0.18em] uppercase mb-4" style={{ color: 'rgba(23,25,26,0.40)' }}>Register Equipment</p>
+            <form onSubmit={addGearItem}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                <input name="gearName" placeholder="Name (e.g. Sony A9 III)" required
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                <select name="category" required
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}>
+                  <option value="Body">Body</option>
+                  <option value="Lens">Lens</option>
+                  <option value="Flash">Flash</option>
+                  <option value="Modifier">Modifier</option>
+                  <option value="Support">Support</option>
+                  <option value="Accessory">Accessory</option>
                 </select>
-                <input
-                  name="tags"
-                  placeholder="Tags (comma separated)"
-                  className="bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20"
-                />
-                <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-md px-4 py-3">
-                  <span className="text-xs font-medium text-white/50">Available</span>
-                  <input name="available" type="checkbox" defaultChecked className="accent-brand-rose h-4 w-4" />
+                <input name="tags" placeholder="Tags (comma separated)"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', border: '1px solid rgba(23,25,26,0.14)', background: 'rgba(23,25,26,0.04)' }}>
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.50)' }}>Available</span>
+                  <input name="available" type="checkbox" defaultChecked style={{ width: '14px', height: '14px', accentColor: '#c9a227' }} />
                 </div>
               </div>
-              <div className="flex gap-4 items-start">
-                <textarea
-                  name="details"
-                  placeholder="Equipment details / specs (e.g. 24-70mm f/2.8, stabilized)"
-                  className="flex-1 bg-white/5 border border-white/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-white/20 min-h-[60px]"
-                />
-                <button
-                  type="submit"
-                  className="bg-brand-blue hover:bg-[#7a93a0] text-white text-sm font-semibold rounded-md py-3 px-10 h-[60px] transition-all active:scale-95 shadow-lg"
-                >
-                  Add to locker
-                </button>
+              <div className="flex gap-3">
+                <textarea name="details" placeholder="Details / specs (e.g. 24-70mm f/2.8, stabilized)"
+                  style={{ flex: 1, padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '60px', resize: 'vertical' }} />
+                <button type="submit"
+                  style={{ padding: '9px 20px', background: '#17191a', color: '#f4f3ef', border: 'none', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer', flexShrink: 0 }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.color = '#17191a'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#17191a'; e.currentTarget.style.color = '#f4f3ef'; }}
+                >+ Add</button>
               </div>
             </form>
-          </section>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Gear cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {gear.length === 0 ? (
-              <div className="col-span-full py-24 text-center border border-dashed border-brand-gray/20 rounded-lg">
-                <p className="text-brand-gray text-xs font-medium">Gear locker empty</p>
+              <div className="col-span-full" style={{ borderLeft: '2px solid rgba(23,25,26,0.14)', padding: '14px' }}>
+                <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>Locker Empty</p>
               </div>
             ) : (
               gear.map(item => (
-                <div key={item.id} className={`bg-white rounded-lg border border-brand-black/5 p-6 shadow-sm transition-all duration-300 hover:shadow-md flex flex-col ${!item.available ? 'opacity-60' : ''}`}>
-                  <div className="flex justify-between items-start mb-4">
+                <div key={item.id} style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', padding: '16px', display: 'flex', flexDirection: 'column', opacity: item.available ? 1 : 0.55 }}>
+                  <div className="flex items-start justify-between mb-2">
                     <div>
-                      <span className="text-xs font-medium bg-brand-black/5 px-2 py-0.5 rounded text-brand-gray mb-2 inline-block">
-                        {item.category}
-                      </span>
-                      <h3 className="text-base font-semibold text-brand-black leading-snug mt-1">{item.name}</h3>
+                      <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: 'rgba(23,25,26,0.40)', display: 'block', marginBottom: '4px' }}>{item.category}</span>
+                      <p style={{ fontSize: '14px', fontWeight: 500, color: '#17191a', lineHeight: 1.3 }}>{item.name}</p>
                     </div>
-                    <button 
-                      onClick={() => deleteGearItem(item.id)}
-                      className="text-brand-black/10 hover:text-brand-rose transition-colors"
-                    >
-                      <i className="fa-solid fa-trash-can text-xs"></i>
-                    </button>
+                    <button onClick={() => deleteGearItem(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(23,25,26,0.25)', padding: '2px', fontSize: '11px' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#a35a4a')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(23,25,26,0.25)')}>×</button>
                   </div>
-                  {item.details && (
-                    <p className="text-xs text-brand-gray leading-relaxed mb-4 flex-1 italic">{item.details}</p>
-                  )}
+                  {item.details && <p style={{ fontSize: '11px', color: 'rgba(23,25,26,0.60)', lineHeight: 1.55, marginBottom: '10px', flex: 1 }}>{item.details}</p>}
                   {item.tags && item.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-6">
+                    <div className="flex flex-wrap gap-1 mb-3">
                       {item.tags.map(tag => (
-                        <span key={tag} className="text-xs font-medium text-brand-blue bg-brand-blue/5 px-1.5 py-0.5 rounded">
-                          #{tag}
-                        </span>
+                        <span key={tag} className="font-mono text-[8px] tracking-[0.10em] uppercase" style={{ padding: '3px 6px', border: '1px solid rgba(23,25,26,0.14)', color: 'rgba(23,25,26,0.50)' }}>#{tag}</span>
                       ))}
                     </div>
                   )}
-                  <div className="pt-4 border-t border-brand-black/5 flex items-center justify-between">
-                    <span className={`text-xs font-medium ${item.available ? 'text-emerald-600' : 'text-brand-rose'}`}>
-                      {item.available ? 'Available' : 'Unavailable'}
-                    </span>
-                    <button
-                      onClick={() => toggleGearAvailability(item.id)}
-                      className="text-xs font-medium text-brand-blue hover:text-brand-black transition-colors"
-                    >
-                      Toggle status
-                    </button>
+                  <div style={{ borderTop: '1px solid rgba(23,25,26,0.08)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: item.available ? '#4b6b52' : '#a35a4a' }}>{item.available ? 'Available' : 'Out'}</span>
+                    <button onClick={() => toggleGearAvailability(item.id)} className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(23,25,26,0.40)' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#17191a')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(23,25,26,0.40)')}>Toggle</button>
                   </div>
                 </div>
               ))
