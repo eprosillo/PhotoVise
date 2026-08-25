@@ -6,6 +6,7 @@ interface LocationAutocompleteProps {
   placeholder?: string;
   required?: boolean;
   className?: string;
+  style?: React.CSSProperties;
   initialValue?: string;
   onChange?: (value: string) => void;
 }
@@ -20,6 +21,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   placeholder,
   required,
   className,
+  style,
   initialValue,
   onChange,
 }) => {
@@ -105,6 +107,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
           onFocus={() => inputValue.length >= 3 && suggestions.length > 0 && setShowDropdown(true)}
           placeholder={placeholder}
           className={`${className} pr-10`}
+          style={style}
           autoComplete="off"
         />
 

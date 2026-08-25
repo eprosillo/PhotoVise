@@ -148,113 +148,56 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
     setEditing(false);
   };
 
+  const FIELD: React.CSSProperties = { width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' };
+
   if (editing) {
     return (
-      <div className="overflow-hidden" style={{ background: '#f8f7f4', border: '1px solid #c9a227' }}>
-        <div className="p-6 space-y-3">
-          <p className="font-mono text-[9px] tracking-[0.18em] uppercase text-brand-accent-ink mb-4">Edit Session</p>
+      <div style={{ background: '#f8f7f4', border: '1px solid #c9a227' }}>
+        <div className="p-5 space-y-2">
+          <p className="font-mono text-[9px] tracking-[0.18em] uppercase mb-3" style={{ color: '#8a6b0f' }}>Edit Session</p>
 
-          <input
-            type="text"
-            value={editTitle}
-            onChange={e => setEditTitle(e.target.value)}
-            placeholder="Session title (optional)"
-            className="w-full border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20"
-          />
+          <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Session title (optional)" style={FIELD} />
 
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="date"
-              value={editDate}
-              onChange={e => setEditDate(e.target.value)}
-              className="border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
-            />
-            <LocationAutocomplete
-              name="editLocation"
-              placeholder="Location"
-              initialValue={editLocation}
-              onChange={setEditLocation}
-              className="border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20"
-            />
+          <div className="grid grid-cols-2 gap-2">
+            <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} style={FIELD} />
+            <LocationAutocomplete name="editLocation" placeholder="Location" initialValue={editLocation} onChange={setEditLocation}
+              className="w-full" style={{ padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }} />
           </div>
 
-          <select
-            value={editGenre}
-            onChange={e => setEditGenre(e.target.value as Genre)}
-            className="w-full border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
-          >
-            {GENRE_OPTIONS.map(g => (
-              <option key={g} value={g}>{g}</option>
-            ))}
+          <select value={editGenre} onChange={e => setEditGenre(e.target.value as Genre)} style={FIELD}>
+            {GENRE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
           </select>
 
-          {/* Type + Deadline row */}
-          <div className="grid grid-cols-2 gap-3">
-            <select
-              value={editType}
-              onChange={e => setEditType(e.target.value as SessionType | '')}
-              className="border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none"
-            >
+          <div className="grid grid-cols-2 gap-2">
+            <select value={editType} onChange={e => setEditType(e.target.value as SessionType | '')} style={FIELD}>
               <option value="">Type (optional)</option>
               {SESSION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <input
-              type="date"
-              value={editDeadline}
-              onChange={e => setEditDeadline(e.target.value)}
-              placeholder="Deadline (optional)"
-              className="border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none text-brand-black/70"
-            />
+            <input type="date" value={editDeadline} onChange={e => setEditDeadline(e.target.value)} style={FIELD} />
           </div>
 
-          <textarea
-            value={editNotes}
-            onChange={e => setEditNotes(e.target.value)}
-            placeholder="Notes"
-            className="w-full border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20 min-h-[70px]"
-          />
-
-          <textarea
-            value={editBrief}
-            onChange={e => setEditBrief(e.target.value)}
-            placeholder="Assignment brief / requirements (optional)"
-            className="w-full border border-brand-black/10 rounded-md px-4 py-3 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20 min-h-[70px]"
-          />
+          <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Notes" style={{ ...FIELD, minHeight: '70px', resize: 'vertical' }} />
+          <textarea value={editBrief} onChange={e => setEditBrief(e.target.value)} placeholder="Assignment brief / requirements (optional)" style={{ ...FIELD, minHeight: '70px', resize: 'vertical' }} />
 
           {(session.strategy || session.dayPlan || session.scoutNotes) && (
-            <div className="pt-2 space-y-2">
-              <p className="text-xs font-medium text-brand-black/30">Attached documents</p>
+            <div className="pt-2 space-y-1.5">
+              <p className="font-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: 'rgba(23,25,26,0.35)' }}>Attached Docs</p>
               {session.strategy && (
-                <div className="flex items-center justify-between px-3 py-2 bg-brand-blue/5 border border-brand-blue/20 rounded-md">
-                  <div className="flex items-center gap-2">
-                    <i className="fa-solid fa-file-contract text-brand-blue text-[9px]"></i>
-                    <span className="text-xs font-medium text-brand-blue">Assignment Strategy</span>
-                  </div>
-                  <button onClick={() => onUpdate(session.id, { strategy: undefined })} className="text-brand-black/20 hover:text-brand-rose transition-colors text-[10px]">
-                    <i className="fa-solid fa-xmark"></i>
-                  </button>
+                <div className="flex items-center justify-between px-3 py-2" style={{ border: '1px solid rgba(23,25,26,0.14)', background: 'rgba(23,25,26,0.03)' }}>
+                  <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: '#4a6b7c' }}>Strategy</span>
+                  <button onClick={() => onUpdate(session.id, { strategy: undefined })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(23,25,26,0.30)', fontSize: '12px' }}>×</button>
                 </div>
               )}
               {session.dayPlan && (
-                <div className="flex items-center justify-between px-3 py-2 bg-brand-rose/5 border border-brand-rose/20 rounded-md">
-                  <div className="flex items-center gap-2">
-                    <i className="fa-solid fa-stopwatch text-brand-rose text-[9px]"></i>
-                    <span className="text-xs font-medium text-brand-rose">Assignment Day Plan</span>
-                  </div>
-                  <button onClick={() => onUpdate(session.id, { dayPlan: undefined })} className="text-brand-black/20 hover:text-brand-rose transition-colors text-[10px]">
-                    <i className="fa-solid fa-xmark"></i>
-                  </button>
+                <div className="flex items-center justify-between px-3 py-2" style={{ border: '1px solid rgba(23,25,26,0.14)', background: 'rgba(23,25,26,0.03)' }}>
+                  <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: '#a35a4a' }}>Day Plan</span>
+                  <button onClick={() => onUpdate(session.id, { dayPlan: undefined })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(23,25,26,0.30)', fontSize: '12px' }}>×</button>
                 </div>
               )}
               {session.scoutNotes && (
-                <div className="flex items-center justify-between px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-md">
-                  <div className="flex items-center gap-2">
-                    <i className="fa-solid fa-map-pin text-emerald-600 text-[9px]"></i>
-                    <span className="text-xs font-medium text-emerald-600">Scouted Location</span>
-                  </div>
-                  <button onClick={() => onUpdate(session.id, { scoutNotes: undefined })} className="text-brand-black/20 hover:text-brand-rose transition-colors text-[10px]">
-                    <i className="fa-solid fa-xmark"></i>
-                  </button>
+                <div className="flex items-center justify-between px-3 py-2" style={{ border: '1px solid rgba(23,25,26,0.14)', background: 'rgba(23,25,26,0.03)' }}>
+                  <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: '#4b6b52' }}>Scout Notes</span>
+                  <button onClick={() => onUpdate(session.id, { scoutNotes: undefined })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(23,25,26,0.30)', fontSize: '12px' }}>×</button>
                 </div>
               )}
             </div>
@@ -385,29 +328,24 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
 
         {/* Notes */}
         {session.notes && (
-          <div className="mb-6 p-4 bg-brand-white border-l-2 border-brand-rose rounded-r-md">
-            <p className="text-xs font-medium text-brand-gray/60 mb-2">Notes</p>
-            <p className="text-xs text-brand-black leading-relaxed italic">{session.notes}</p>
+          <div className="mb-4" style={{ borderLeft: '2px solid rgba(23,25,26,0.18)', paddingLeft: '12px' }}>
+            <p className="font-mono text-[8px] tracking-[0.14em] uppercase mb-1" style={{ color: 'rgba(23,25,26,0.38)' }}>Notes</p>
+            <p style={{ fontSize: '12px', color: 'rgba(23,25,26,0.75)', lineHeight: 1.6 }}>{session.notes}</p>
           </div>
         )}
 
         {/* Brief */}
         {session.brief && (
-          <div className="mb-4 border border-violet-200 rounded-lg overflow-hidden">
-            <button
-              onClick={() => setBriefExpanded(v => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-violet-50 hover:bg-violet-100/60 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <i className="fa-solid fa-file-lines text-violet-600 text-[10px]"></i>
-                <span className="text-xs font-semibold text-violet-700">Assignment Brief</span>
-              </div>
-              <i className={`fa-solid fa-chevron-${briefExpanded ? 'up' : 'down'} text-violet-400 text-[9px]`}></i>
+          <div className="mb-3" style={{ border: '1px solid rgba(23,25,26,0.14)' }}>
+            <button onClick={() => setBriefExpanded(v => !v)} className="w-full flex items-center justify-between px-4 py-2.5 transition-colors"
+              style={{ background: 'rgba(23,25,26,0.04)', borderBottom: briefExpanded ? '1px solid rgba(23,25,26,0.10)' : 'none', cursor: 'pointer' }}>
+              <span className="font-mono text-[8px] tracking-[0.16em] uppercase" style={{ color: 'rgba(23,25,26,0.55)' }}>Brief</span>
+              <span style={{ fontSize: '10px', color: 'rgba(23,25,26,0.35)' }}>{briefExpanded ? '▲' : '▼'}</span>
             </button>
             {briefExpanded && (
-              <div className="p-4 bg-white border-t border-violet-100 max-h-72 overflow-y-auto custom-scrollbar">
+              <div className="p-4 max-h-64 overflow-y-auto" style={{ background: '#fdfcfa' }}>
                 {session.brief.split('\n').map((line, i) => (
-                  <p key={i} className="text-sm text-brand-black/80 leading-relaxed mb-2 last:mb-0 whitespace-pre-wrap">{line}</p>
+                  <p key={i} style={{ fontSize: '12px', color: 'rgba(23,25,26,0.80)', lineHeight: 1.65, marginBottom: '6px' }} className="whitespace-pre-wrap">{line}</p>
                 ))}
               </div>
             )}
@@ -416,21 +354,16 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
 
         {/* Strategy */}
         {session.strategy && (
-          <div className="mb-4 border border-brand-blue/20 rounded-lg overflow-hidden">
-            <button
-              onClick={() => setStrategyExpanded(v => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-brand-blue/5 hover:bg-brand-blue/10 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <i className="fa-solid fa-file-contract text-brand-blue text-[10px]"></i>
-                <span className="text-xs font-semibold text-brand-blue">Assignment Strategy</span>
-              </div>
-              <i className={`fa-solid fa-chevron-${strategyExpanded ? 'up' : 'down'} text-brand-blue/50 text-[9px]`}></i>
+          <div className="mb-3" style={{ border: '1px solid rgba(23,25,26,0.14)', borderLeft: '2px solid #4a6b7c' }}>
+            <button onClick={() => setStrategyExpanded(v => !v)} className="w-full flex items-center justify-between px-4 py-2.5 transition-colors"
+              style={{ background: 'rgba(74,107,124,0.05)', borderBottom: strategyExpanded ? '1px solid rgba(23,25,26,0.10)' : 'none', cursor: 'pointer' }}>
+              <span className="font-mono text-[8px] tracking-[0.16em] uppercase" style={{ color: '#4a6b7c' }}>Strategy</span>
+              <span style={{ fontSize: '10px', color: 'rgba(23,25,26,0.35)' }}>{strategyExpanded ? '▲' : '▼'}</span>
             </button>
             {strategyExpanded && (
-              <div className="p-4 bg-white border-t border-brand-blue/10 max-h-72 overflow-y-auto custom-scrollbar">
+              <div className="p-4 max-h-64 overflow-y-auto" style={{ background: '#fdfcfa' }}>
                 {session.strategy.split('\n').map((line, i) => (
-                  <p key={i} className="text-sm text-brand-black/80 leading-relaxed mb-2 last:mb-0 whitespace-pre-wrap">{line}</p>
+                  <p key={i} style={{ fontSize: '12px', color: 'rgba(23,25,26,0.80)', lineHeight: 1.65, marginBottom: '6px' }} className="whitespace-pre-wrap">{line}</p>
                 ))}
               </div>
             )}
@@ -439,21 +372,16 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
 
         {/* Day Plan */}
         {session.dayPlan && (
-          <div className="mb-4 border border-brand-rose/20 rounded-lg overflow-hidden">
-            <button
-              onClick={() => setDayPlanExpanded(v => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-brand-rose/5 hover:bg-brand-rose/10 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <i className="fa-solid fa-stopwatch text-brand-rose text-[10px]"></i>
-                <span className="text-xs font-semibold text-brand-rose">Assignment Day Plan</span>
-              </div>
-              <i className={`fa-solid fa-chevron-${dayPlanExpanded ? 'up' : 'down'} text-brand-rose/50 text-[9px]`}></i>
+          <div className="mb-3" style={{ border: '1px solid rgba(23,25,26,0.14)', borderLeft: '2px solid #a35a4a' }}>
+            <button onClick={() => setDayPlanExpanded(v => !v)} className="w-full flex items-center justify-between px-4 py-2.5 transition-colors"
+              style={{ background: 'rgba(163,90,74,0.05)', borderBottom: dayPlanExpanded ? '1px solid rgba(23,25,26,0.10)' : 'none', cursor: 'pointer' }}>
+              <span className="font-mono text-[8px] tracking-[0.16em] uppercase" style={{ color: '#a35a4a' }}>Day Plan</span>
+              <span style={{ fontSize: '10px', color: 'rgba(23,25,26,0.35)' }}>{dayPlanExpanded ? '▲' : '▼'}</span>
             </button>
             {dayPlanExpanded && (
-              <div className="p-4 bg-white border-t border-brand-rose/10 max-h-72 overflow-y-auto custom-scrollbar">
+              <div className="p-4 max-h-64 overflow-y-auto" style={{ background: '#fdfcfa' }}>
                 {session.dayPlan.split('\n').map((line, i) => (
-                  <p key={i} className="text-sm text-brand-black/80 leading-relaxed mb-2 last:mb-0 whitespace-pre-wrap">{line}</p>
+                  <p key={i} style={{ fontSize: '12px', color: 'rgba(23,25,26,0.80)', lineHeight: 1.65, marginBottom: '6px' }} className="whitespace-pre-wrap">{line}</p>
                 ))}
               </div>
             )}
@@ -462,21 +390,16 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
 
         {/* Scout Notes */}
         {session.scoutNotes && (
-          <div className="mb-8 border border-emerald-200 rounded-lg overflow-hidden">
-            <button
-              onClick={() => setScoutExpanded(v => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-emerald-50 hover:bg-emerald-100/60 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <i className="fa-solid fa-map-pin text-emerald-600 text-[10px]"></i>
-                <span className="text-xs font-semibold text-emerald-600">Scouted Location</span>
-              </div>
-              <i className={`fa-solid fa-chevron-${scoutExpanded ? 'up' : 'down'} text-emerald-400 text-[9px]`}></i>
+          <div className="mb-4" style={{ border: '1px solid rgba(23,25,26,0.14)', borderLeft: '2px solid #4b6b52' }}>
+            <button onClick={() => setScoutExpanded(v => !v)} className="w-full flex items-center justify-between px-4 py-2.5 transition-colors"
+              style={{ background: 'rgba(75,107,82,0.05)', borderBottom: scoutExpanded ? '1px solid rgba(23,25,26,0.10)' : 'none', cursor: 'pointer' }}>
+              <span className="font-mono text-[8px] tracking-[0.16em] uppercase" style={{ color: '#4b6b52' }}>Scout Notes</span>
+              <span style={{ fontSize: '10px', color: 'rgba(23,25,26,0.35)' }}>{scoutExpanded ? '▲' : '▼'}</span>
             </button>
             {scoutExpanded && (
-              <div className="p-4 bg-white border-t border-emerald-100 max-h-72 overflow-y-auto custom-scrollbar">
+              <div className="p-4 max-h-64 overflow-y-auto" style={{ background: '#fdfcfa' }}>
                 {session.scoutNotes.split('\n').map((line, i) => (
-                  <p key={i} className="text-sm text-brand-black/80 leading-relaxed mb-2 last:mb-0 whitespace-pre-wrap">{line}</p>
+                  <p key={i} style={{ fontSize: '12px', color: 'rgba(23,25,26,0.80)', lineHeight: 1.65, marginBottom: '6px' }} className="whitespace-pre-wrap">{line}</p>
                 ))}
               </div>
             )}
@@ -487,67 +410,45 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
         {!isArchived && onGenerateStrategy && (
           <div className="mb-4">
             {!showStrategyForm ? (
-              <button
-                onClick={() => { setStrategyInput(session.brief || ''); setShowStrategyForm(true); }}
-                className="flex items-center gap-2 text-xs font-semibold text-brand-black/40 hover:text-brand-blue transition-colors border border-dashed border-brand-black/10 hover:border-brand-blue/30 rounded-lg px-4 py-3 w-full justify-center"
-              >
-                <i className="fa-solid fa-wand-magic-sparkles text-[10px]" />
-                {session.strategy ? 'Regenerate strategy' : 'Generate strategy'}
+              <button onClick={() => { setStrategyInput(session.brief || ''); setShowStrategyForm(true); }}
+                className="w-full font-mono text-[8px] tracking-[0.16em] uppercase transition-colors"
+                style={{ padding: '9px', border: '1px dashed rgba(23,25,26,0.20)', background: 'transparent', color: 'rgba(23,25,26,0.42)', cursor: 'pointer' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#8a6b0f'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.20)'; e.currentTarget.style.color = 'rgba(23,25,26,0.42)'; }}>
+                {session.strategy ? '↻ Regenerate Strategy' : '+ Generate Strategy'}
               </button>
             ) : (
-              <div className="border border-brand-blue/20 rounded-lg overflow-hidden bg-brand-blue/3">
-                <div className="flex items-center justify-between px-4 py-3 bg-brand-blue/5 border-b border-brand-blue/10">
-                  <div className="flex items-center gap-2">
-                    <i className="fa-solid fa-wand-magic-sparkles text-brand-blue text-[10px]" />
-                    <span className="text-xs font-semibold text-brand-blue">Generate Strategy</span>
-                  </div>
-                  <button onClick={() => setShowStrategyForm(false)} className="text-brand-black/20 hover:text-brand-rose transition-colors text-[10px]">
-                    <i className="fa-solid fa-xmark" />
-                  </button>
+              <div style={{ border: '1px solid rgba(23,25,26,0.14)', background: '#f8f7f4' }}>
+                <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: '1px solid rgba(23,25,26,0.10)' }}>
+                  <span className="font-mono text-[8px] tracking-[0.16em] uppercase" style={{ color: 'rgba(23,25,26,0.50)' }}>Generate Strategy</span>
+                  <button onClick={() => setShowStrategyForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(23,25,26,0.30)', fontSize: '14px' }}>×</button>
                 </div>
                 <div className="p-4 space-y-3">
-                  <textarea
-                    value={strategyInput}
-                    onChange={e => setStrategyInput(e.target.value)}
-                    placeholder="Describe the assignment brief or requirements…"
-                    className="w-full border border-brand-black/10 rounded-md px-3 py-2.5 text-xs focus:ring-1 focus:ring-brand-blue outline-none placeholder:text-brand-black/20 min-h-[70px] resize-none"
-                  />
+                  <textarea value={strategyInput} onChange={e => setStrategyInput(e.target.value)} placeholder="Describe the assignment brief or requirements…"
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '70px', resize: 'vertical', boxSizing: 'border-box' }} />
                   <div className="flex flex-wrap gap-1.5">
-                    {(Object.keys(TIMEFRAME_LABELS) as AssignmentTimeframe[]).map(tf => (
-                      <button
-                        key={tf}
-                        onClick={() => setStrategyTimeframe(tf)}
-                        className={`text-[10px] font-semibold px-3 py-1.5 rounded-md border transition-all ${
-                          strategyTimeframe === tf
-                            ? 'bg-brand-blue text-white border-brand-blue'
-                            : 'bg-white text-brand-black/50 border-brand-black/10 hover:border-brand-blue/30'
-                        }`}
-                      >
-                        {TIMEFRAME_LABELS[tf]}
-                      </button>
-                    ))}
+                    {(Object.keys(TIMEFRAME_LABELS) as AssignmentTimeframe[]).map(tf => {
+                      const active = strategyTimeframe === tf;
+                      return (
+                        <button key={tf} onClick={() => setStrategyTimeframe(tf)}
+                          className="font-mono text-[8px] tracking-[0.12em] uppercase"
+                          style={{ padding: '5px 9px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}>
+                          {TIMEFRAME_LABELS[tf]}
+                        </button>
+                      );
+                    })}
                   </div>
-                  <button
-                    disabled={isGeneratingStrategy}
+                  <button disabled={isGeneratingStrategy}
                     onClick={async () => {
                       setIsGeneratingStrategy(true);
-                      try {
-                        await onGenerateStrategy(session.id, strategyInput, strategyTimeframe);
-                        setShowStrategyForm(false);
-                        setStrategyExpanded(true);
-                      } finally {
-                        setIsGeneratingStrategy(false);
-                      }
+                      try { await onGenerateStrategy(session.id, strategyInput, strategyTimeframe); setShowStrategyForm(false); setStrategyExpanded(true); }
+                      finally { setIsGeneratingStrategy(false); }
                     }}
-                    className={`w-full flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-md transition-all ${
-                      isGeneratingStrategy
-                        ? 'bg-brand-black/10 text-brand-black/30 cursor-not-allowed'
-                        : 'bg-brand-blue text-white hover:bg-[#7a93a0] active:scale-95'
-                    }`}
-                  >
-                    {isGeneratingStrategy
-                      ? <><i className="fa-solid fa-circle-notch fa-spin" /> Generating…</>
-                      : <><i className="fa-solid fa-bolt" /> Build strategy</>}
+                    className="w-full font-mono text-[9px] tracking-[0.18em] uppercase"
+                    style={{ padding: '10px', background: isGeneratingStrategy ? 'rgba(23,25,26,0.12)' : '#17191a', color: isGeneratingStrategy ? 'rgba(23,25,26,0.30)' : '#f4f3ef', border: 'none', cursor: isGeneratingStrategy ? 'not-allowed' : 'pointer' }}
+                    onMouseEnter={e => { if (!isGeneratingStrategy) { e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.color = '#17191a'; } }}
+                    onMouseLeave={e => { if (!isGeneratingStrategy) { e.currentTarget.style.background = '#17191a'; e.currentTarget.style.color = '#f4f3ef'; } }}>
+                    {isGeneratingStrategy ? 'Generating…' : 'Build Strategy'}
                   </button>
                 </div>
               </div>
