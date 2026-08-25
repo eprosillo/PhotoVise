@@ -4,12 +4,9 @@ import {
   getDailyMission,
   getLevel,
   getProgressToNextLevel,
-  getEncouragement,
   SKILL_NODE_META,
   MISSIONS,
 } from '../data/missions';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
 
 type Phase = 'mission' | 'timer' | 'capture' | 'feedback';
 
@@ -19,117 +16,197 @@ interface TodayViewProps {
   onSubmit: (missionId: string, missionTitle: string, skillNode: Submission['skillNode'], photoFile: File) => Promise<Submission>;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const GENRE_COLOR: Record<string, string> = {
-  Street:         'bg-brand-blue/10 text-brand-blue border-brand-blue/20',
-  Sports:         'bg-brand-rose/10 text-brand-rose border-brand-rose/20',
-  Photojournalism:'bg-amber-50 text-amber-700 border-amber-200',
-  Any:            'bg-brand-black/5 text-brand-black/50 border-brand-black/10',
-};
-
-const DIFFICULTY_DOTS = (d: 1 | 2 | 3) => (
-  <span className="flex items-center gap-0.5" title={`Difficulty ${d}/3`}>
-    {[1, 2, 3].map(i => (
-      <span key={i} className={`w-1.5 h-1.5 rounded-full ${i <= d ? 'bg-brand-rose' : 'bg-brand-black/10'}`} />
-    ))}
-  </span>
-);
-
 const pad = (n: number) => String(n).padStart(2, '0');
-
 const formatTime = (seconds: number) => `${pad(Math.floor(seconds / 60))}:${pad(seconds % 60)}`;
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+const DIFFICULTY_LABEL = { 1: 'STARTER', 2: 'DEVELOPING', 3: 'ADVANCED' } as const;
+
+// ── Screen header shared pattern ──────────────────────────────────────────────
+
+const ScreenHeader: React.FC<{
+  eyebrow: string;
+  title: string;
+  readoutLabel?: string;
+  readoutValue?: string;
+}> = ({ eyebrow, title, readoutLabel, readoutValue }) => (
+  <div
+    style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '28px' }}
+    className="flex items-end justify-between gap-6"
+  >
+    <div>
+      <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">{eyebrow}</p>
+      <h1 className="font-sans font-semibold text-[42px] md:text-[42px] text-[30px] leading-none tracking-[-0.02em] text-brand-ink">
+        {title}
+      </h1>
+    </div>
+    {readoutLabel && readoutValue && (
+      <div className="text-right shrink-0">
+        <p className="font-mono text-[9px] tracking-[0.2em] text-brand-ink/40 uppercase">{readoutLabel}</p>
+        <p className="font-mono text-[30px] font-medium leading-none tracking-[-0.02em] text-brand-ink mt-1">{readoutValue}</p>
+      </div>
+    )}
+  </div>
+);
+
+// ── ImagePlaceholder ──────────────────────────────────────────────────────────
+
+const ImagePlaceholder: React.FC<{ caption?: string; className?: string }> = ({ caption, className = '' }) => (
+  <div
+    className={`relative overflow-hidden ${className}`}
+    style={{
+      background: 'repeating-linear-gradient(135deg,#e3e1da 0 6px,#eceae4 6px 12px)',
+      border: '1px solid rgba(23,25,26,0.12)',
+    }}
+  >
+    {caption && (
+      <span className="absolute bottom-2 left-2 font-mono text-[8px] tracking-[0.14em] text-brand-ink/50 uppercase">{caption}</span>
+    )}
+  </div>
+);
+
+// ── MissionCard ───────────────────────────────────────────────────────────────
 
 const MissionCard: React.FC<{
   mission: Mission;
   alreadyDoneToday: boolean;
   totalCompleted: number;
+  submissions: Submission[];
   onStart: () => void;
   onPickAnother: () => void;
-}> = ({ mission, alreadyDoneToday, totalCompleted, onStart, onPickAnother }) => {
+  onGoToHistory: () => void;
+}> = ({ mission, alreadyDoneToday, totalCompleted, submissions, onStart, onPickAnother }) => {
   const meta = SKILL_NODE_META[mission.skillNode];
+  const missionNumber = MISSIONS.findIndex(m => m.id === mission.id) + 1;
+  const recentSubs = submissions.slice(-6).reverse();
+
+  const lastFrame = submissions[submissions.length - 1];
+
   return (
     <div className="animate-in fade-in duration-500">
-      {/* Header */}
-      <header className="mb-10 flex items-start justify-between flex-wrap gap-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 mb-1">Today's Mission</p>
-          <h2 className="text-4xl font-display text-brand-black tracking-wide">
-            {mission.title.toUpperCase()}
-          </h2>
-        </div>
-        {totalCompleted > 0 && (
-          <div className="text-right">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-brand-black/30">Total</p>
-            <p className="text-2xl font-display text-brand-black">{totalCompleted}</p>
+      <ScreenHeader
+        eyebrow={`TODAY / MISSION ${String(missionNumber).padStart(2, '0')}`}
+        title={mission.title}
+        readoutLabel="TIMEBOX"
+        readoutValue={`${pad(mission.timeBoxMinutes)}:00`}
+      />
+
+      {/* Two-column layout */}
+      <div className="flex flex-col md:flex-row gap-5 items-stretch mb-9">
+        {/* Left plate */}
+        <div className="md:flex-[1.35]" style={{ aspectRatio: '3/2', position: 'relative', minHeight: '200px' }}>
+          {lastFrame?.photoUrl ? (
+            <img
+              src={lastFrame.photoUrl}
+              alt="last submission"
+              className="w-full h-full object-cover"
+              style={{ border: '1px solid rgba(23,25,26,0.12)' }}
+            />
+          ) : (
+            <ImagePlaceholder caption="No shot yet" className="w-full h-full" />
+          )}
+          {/* Overlay bar */}
+          <div
+            className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 font-mono text-[9px] tracking-[0.16em] uppercase"
+            style={{ background: 'rgba(23,25,26,0.86)', color: '#f4f3ef' }}
+          >
+            <span>NODE / {mission.skillNode.toUpperCase()}</span>
+            <span style={{ color: '#e0bd4a' }}>DIFFICULTY {mission.difficulty} — {DIFFICULTY_LABEL[mission.difficulty]}</span>
           </div>
-        )}
-      </header>
-
-      {/* Mission card */}
-      <div className="bg-brand-black rounded-xl p-8 text-white mb-6 shadow-xl border border-white/5">
-        {/* Badges */}
-        <div className="flex items-center gap-3 mb-6">
-          <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded border ${GENRE_COLOR[mission.genre]}`}>
-            {mission.genre}
-          </span>
-          <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded border ${meta.bg} ${meta.color} ${meta.border}`}>
-            <i className={`fa-solid ${meta.icon} mr-1.5`} />{mission.skillNode}
-          </span>
-          <span className="ml-auto flex items-center gap-2 text-[10px] text-white/40 font-medium">
-            <i className="fa-regular fa-clock text-[9px]" /> {mission.timeBoxMinutes} min
-          </span>
         </div>
 
-        {/* Description */}
-        <p className="text-sm text-white/80 leading-relaxed mb-6">
-          {mission.promptDetail}
-        </p>
+        {/* Right spec panel */}
+        <div
+          className="md:flex-1 flex flex-col p-[22px]"
+          style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)' }}
+        >
+          {/* Data rows */}
+          {[
+            { label: 'SKILL NODE', value: mission.skillNode, color: meta.hexInk },
+            { label: 'GENRE', value: mission.genre, color: undefined },
+            { label: 'TIMEBOX', value: `${mission.timeBoxMinutes} MIN`, color: undefined },
+            { label: 'STATUS', value: alreadyDoneToday ? 'COMPLETE' : 'NOT STARTED', color: alreadyDoneToday ? '#3d5a44' : '#8a6b0f', last: true },
+          ].map(row => (
+            <div
+              key={row.label}
+              className="flex items-center justify-between gap-3"
+              style={{
+                padding: '7px 0',
+                borderTop: row.label !== 'SKILL NODE' ? '1px solid rgba(23,25,26,0.10)' : undefined,
+                marginBottom: row.last ? '20px' : undefined,
+              }}
+            >
+              <span className="font-mono text-[9px] tracking-[0.14em] text-brand-ink/42 uppercase">{row.label}</span>
+              <span className="font-mono text-[9px] tracking-[0.14em] text-brand-ink font-medium" style={row.color ? { color: row.color } : undefined}>
+                {row.value}
+              </span>
+            </div>
+          ))}
 
-        {/* Tip */}
-        <div className="border-t border-white/10 pt-5">
-          <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-rose/60 mb-2">Technique tip</p>
-          <p className="text-sm text-white/60 leading-relaxed italic">"{mission.tip}"</p>
-        </div>
+          {/* Mission description */}
+          <p className="text-[14px] leading-[1.65] text-brand-ink/82 mb-[18px]">{mission.promptDetail}</p>
 
-        {/* Difficulty */}
-        <div className="flex items-center gap-2 mt-5">
-          {DIFFICULTY_DOTS(mission.difficulty)}
-          <span className="text-[9px] text-white/30 uppercase tracking-wider">
-            {mission.difficulty === 1 ? 'Starter' : mission.difficulty === 2 ? 'Developing' : 'Advanced'}
-          </span>
+          {/* Tip block */}
+          <div className="mb-5" style={{ borderLeft: '2px solid #c9a227', paddingLeft: '14px' }}>
+            <p className="font-mono text-[9px] tracking-[0.22em] uppercase mb-1" style={{ color: '#8a6b0f' }}>Technique Tip</p>
+            <p className="text-[13px] leading-[1.6] text-brand-ink/70">{mission.tip}</p>
+          </div>
+
+          {/* Actions */}
+          <div className="mt-auto flex flex-col gap-[9px]">
+            {alreadyDoneToday && (
+              <p className="font-mono text-[9px] tracking-[0.12em] uppercase" style={{ color: '#3d5a44' }}>
+                Mission completed for today
+              </p>
+            )}
+            <button
+              onClick={onStart}
+              className="font-mono text-[11px] font-semibold tracking-[0.2em] uppercase text-brand-ink transition-colors"
+              style={{ background: '#c9a227', minHeight: '44px', padding: '15px' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#dab538')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#c9a227')}
+            >
+              {alreadyDoneToday ? 'Do It Again' : 'Start Mission'}
+            </button>
+            <button
+              onClick={onPickAnother}
+              className="font-mono text-[10px] tracking-[0.18em] uppercase text-brand-ink/62 transition-colors"
+              style={{ background: 'transparent', border: '1px solid rgba(23,25,26,0.2)', minHeight: '44px', padding: '12px 14px' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#17191a'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.2)'; e.currentTarget.style.color = 'rgba(23,25,26,0.62)'; }}
+            >
+              Browse {MISSIONS.length} Missions
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Already done today? */}
-      {alreadyDoneToday && (
-        <div className="flex items-center gap-2 mb-5 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
-          <i className="fa-solid fa-check-circle text-emerald-500 text-sm" />
-          <p className="text-xs font-semibold text-emerald-700">You already completed today's mission.</p>
+      {/* Contact sheet */}
+      {recentSubs.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="font-mono text-[9px] tracking-[0.24em] uppercase text-brand-ink/40">
+              Contact Sheet / Last {recentSubs.length} Submissions
+            </p>
+          </div>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+            {recentSubs.map(sub => (
+              <div key={sub.id} className="aspect-square relative overflow-hidden" style={{ border: '1px solid rgba(23,25,26,0.12)' }}>
+                <img src={sub.photoUrl} alt={sub.missionTitle} className="w-full h-full object-cover" />
+                <div className="absolute bottom-0 left-0 right-0 p-1" style={{ background: 'rgba(23,25,26,0.7)' }}>
+                  <p className="font-mono text-[8px] tracking-[0.1em] text-brand-panel/80 uppercase leading-none" style={{ color: SKILL_NODE_META[sub.skillNode]?.hexColor || '#f4f3ef' }}>
+                    {sub.skillNode?.slice(0, 4).toUpperCase()}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
-
-      {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button
-          onClick={onStart}
-          className="flex-1 flex items-center justify-center gap-2 bg-brand-blue text-white font-bold text-sm py-4 rounded-lg hover:bg-[#7a93a0] active:scale-95 transition-all shadow-sm"
-        >
-          <i className="fa-solid fa-bolt" />
-          {alreadyDoneToday ? 'Do It Again' : 'Start Mission'}
-        </button>
-        <button
-          onClick={onPickAnother}
-          className="flex items-center justify-center gap-2 border border-brand-black/10 text-brand-black/60 text-xs font-semibold py-4 px-5 rounded-lg hover:bg-brand-black/5 active:scale-95 transition-all"
-        >
-          <i className="fa-solid fa-shuffle text-[10px]" /> Browse missions
-        </button>
-      </div>
     </div>
   );
 };
+
+// ── TimerScreen ───────────────────────────────────────────────────────────────
 
 const TimerScreen: React.FC<{
   mission: Mission;
@@ -149,66 +226,68 @@ const TimerScreen: React.FC<{
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [running, seconds]);
 
-  const pct = ((mission.timeBoxMinutes * 60 - seconds) / (mission.timeBoxMinutes * 60)) * 100;
+  const total = mission.timeBoxMinutes * 60;
+  const pct = ((total - seconds) / total) * 100;
+  const isComplete = seconds === 0;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] animate-in fade-in duration-300 text-center">
-      {/* Mission label */}
-      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 mb-2">{mission.skillNode}</p>
-      <p className="text-base font-semibold text-brand-black/60 mb-10">{mission.title}</p>
+      <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-2">{mission.skillNode}</p>
+      <p className="text-[15px] font-medium text-brand-ink/60 mb-10">{mission.title}</p>
 
       {/* Timer ring */}
       <div className="relative mb-8">
         <svg width="200" height="200" viewBox="0 0 200 200" className="-rotate-90">
-          <circle cx="100" cy="100" r="90" fill="none" stroke="currentColor" strokeWidth="6" className="text-brand-black/5" />
+          <circle cx="100" cy="100" r="90" fill="none" strokeWidth="6" stroke="rgba(23,25,26,0.10)" />
           <circle
-            cx="100" cy="100" r="90" fill="none" stroke="currentColor" strokeWidth="6"
-            className={seconds === 0 ? 'text-emerald-500' : 'text-brand-blue'}
+            cx="100" cy="100" r="90" fill="none" strokeWidth="6"
+            stroke={isComplete ? '#4b6b52' : '#c9a227'}
             strokeDasharray={`${2 * Math.PI * 90}`}
             strokeDashoffset={`${2 * Math.PI * 90 * (1 - pct / 100)}`}
-            strokeLinecap="round"
-            style={{ transition: 'stroke-dashoffset 1s linear' }}
+            strokeLinecap="butt"
+            style={{ transition: 'stroke-dashoffset 1s linear, stroke 300ms' }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-5xl font-display text-brand-black tracking-widest">
+          <span className="font-mono font-medium text-[48px] leading-none tracking-[-0.02em] text-brand-ink">
             {formatTime(seconds)}
           </span>
-          {seconds === 0 && (
-            <span className="text-xs font-semibold text-emerald-600 mt-1">Time's up</span>
+          {isComplete && (
+            <span className="font-mono text-[9px] tracking-[0.16em] uppercase mt-1" style={{ color: '#3d5a44' }}>Time's Up</span>
           )}
         </div>
       </div>
 
-      {/* Tip reminder */}
-      <p className="text-xs text-brand-gray/60 italic max-w-xs mb-12 leading-relaxed">
-        "{mission.tip}"
-      </p>
+      <p className="text-[12px] text-brand-ink/40 max-w-xs mb-12 leading-[1.6]">{mission.tip}</p>
 
-      {/* Actions */}
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <button
           onClick={onGotShot}
-          className="w-full flex items-center justify-center gap-2 bg-brand-blue text-white font-bold text-sm py-4 rounded-lg hover:bg-[#7a93a0] active:scale-95 transition-all shadow-sm"
+          className="font-mono text-[11px] font-semibold tracking-[0.2em] uppercase text-brand-ink transition-colors"
+          style={{ background: '#c9a227', minHeight: '44px', padding: '15px' }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#dab538')}
+          onMouseLeave={e => (e.currentTarget.style.background = '#c9a227')}
         >
-          <i className="fa-solid fa-camera" /> I got the shot — upload
+          I Got The Shot — Upload
         </button>
         <button
           onClick={() => setRunning(r => !r)}
-          className="text-xs font-medium text-brand-black/40 hover:text-brand-black/60 transition-colors py-2"
+          className="font-mono text-[9px] tracking-[0.18em] uppercase text-brand-ink/42 hover:text-brand-ink/70 transition-colors py-2"
         >
           {running ? 'Pause' : 'Resume'}
         </button>
         <button
           onClick={onEnd}
-          className="text-xs font-medium text-brand-black/30 hover:text-brand-black/50 transition-colors py-2"
+          className="font-mono text-[9px] tracking-[0.18em] uppercase text-brand-ink/30 hover:text-brand-ink/50 transition-colors py-2"
         >
-          End session without uploading
+          End Without Uploading
         </button>
       </div>
     </div>
   );
 };
+
+// ── CaptureScreen ─────────────────────────────────────────────────────────────
 
 const CaptureScreen: React.FC<{
   mission: Mission;
@@ -229,66 +308,63 @@ const CaptureScreen: React.FC<{
 
   return (
     <div className="animate-in fade-in duration-300 max-w-lg mx-auto">
-      <header className="mb-8 text-center">
-        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 mb-1">{mission.title}</p>
-        <h3 className="text-2xl font-display text-brand-black tracking-wide">Upload Your Shot</h3>
-      </header>
+      <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '28px' }}>
+        <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">{mission.title.toUpperCase()}</p>
+        <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Upload Shot</h1>
+      </div>
 
-      {/* Drop zone / preview */}
+      {/* Drop zone */}
       <div
         onClick={() => inputRef.current?.click()}
-        className={`relative rounded-xl border-2 border-dashed cursor-pointer transition-all mb-6 overflow-hidden
-          ${preview ? 'border-brand-blue/40' : 'border-brand-black/15 hover:border-brand-blue/40 hover:bg-brand-blue/3'}
-        `}
-        style={{ minHeight: '260px' }}
+        className="cursor-pointer mb-6 flex flex-col items-center justify-center transition-colors"
+        style={{
+          minHeight: '260px',
+          border: preview ? '1px solid rgba(201,162,39,0.5)' : '2px dashed rgba(23,25,26,0.15)',
+          overflow: 'hidden',
+        }}
+        onMouseEnter={e => { if (!preview) (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(201,162,39,0.5)'; }}
+        onMouseLeave={e => { if (!preview) (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(23,25,26,0.15)'; }}
       >
         {preview ? (
           <img src={preview} alt="preview" className="w-full h-full object-cover" style={{ minHeight: '260px' }} />
         ) : (
           <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
-            <i className="fa-solid fa-camera text-brand-black/20 text-3xl mb-4" />
-            <p className="text-sm font-semibold text-brand-black/50 mb-1">Tap to take or choose a photo</p>
-            <p className="text-xs text-brand-black/30">Opens camera on mobile</p>
+            <i className="fa-solid fa-camera text-brand-ink/15 text-3xl mb-4" />
+            <p className="font-mono text-[9px] tracking-[0.18em] uppercase text-brand-ink/40 mb-1">Tap to take or choose a photo</p>
           </div>
         )}
       </div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFile}
-      />
+      <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
 
       <div className="flex flex-col gap-3">
         <button
           onClick={() => selectedFile && onFileSelected(selectedFile)}
           disabled={!selectedFile || isUploading}
-          className={`w-full flex items-center justify-center gap-2 font-bold text-sm py-4 rounded-lg transition-all active:scale-95 ${
-            selectedFile && !isUploading
-              ? 'bg-brand-blue text-white hover:bg-[#7a93a0] shadow-sm'
-              : 'bg-brand-black/10 text-brand-black/30 cursor-not-allowed'
-          }`}
+          className="font-mono text-[11px] font-semibold tracking-[0.2em] uppercase text-brand-ink transition-colors"
+          style={{
+            background: selectedFile && !isUploading ? '#c9a227' : 'rgba(23,25,26,0.10)',
+            color: selectedFile && !isUploading ? '#17191a' : 'rgba(23,25,26,0.30)',
+            minHeight: '44px',
+            padding: '15px',
+            cursor: selectedFile && !isUploading ? 'pointer' : 'not-allowed',
+          }}
         >
-          {isUploading ? (
-            <><i className="fa-solid fa-circle-notch fa-spin" /> Saving…</>
-          ) : (
-            <><i className="fa-solid fa-check" /> Submit shot</>
-          )}
+          {isUploading ? 'Saving…' : 'Submit Shot'}
         </button>
         <button
           onClick={onBack}
           disabled={isUploading}
-          className="text-xs font-medium text-brand-black/30 hover:text-brand-black/50 transition-colors py-2 text-center"
+          className="font-mono text-[9px] tracking-[0.18em] uppercase text-brand-ink/30 hover:text-brand-ink/50 transition-colors py-2 text-center"
         >
-          ← Back to timer
+          ← Back to Timer
         </button>
       </div>
     </div>
   );
 };
+
+// ── FeedbackCard ──────────────────────────────────────────────────────────────
 
 const FeedbackCard: React.FC<{
   submission: Submission;
@@ -303,58 +379,52 @@ const FeedbackCard: React.FC<{
   const pct = maxed ? 100 : Math.round((current / target) * 100);
 
   return (
-    <div className="animate-in fade-in duration-500 max-w-lg mx-auto text-center">
-      {/* Celebration header */}
-      <div className="mb-8">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-          <i className="fa-solid fa-check text-emerald-600 text-2xl" />
-        </div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-600 mb-1">Mission Complete</p>
-        <h3 className="text-2xl font-display text-brand-black tracking-wide">{submission.missionTitle.toUpperCase()}</h3>
-      </div>
+    <div className="animate-in fade-in duration-500 max-w-lg mx-auto">
+      <p className="font-mono text-[9px] tracking-[0.24em] uppercase mb-[9px]" style={{ color: '#3d5a44' }}>Mission Complete</p>
+      <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink mb-7">{submission.missionTitle}</h1>
 
-      {/* Photo thumbnail */}
-      <div className="rounded-xl overflow-hidden mb-6 shadow-md border border-brand-black/5">
+      {/* Frame */}
+      <div className="overflow-hidden mb-6" style={{ border: '1px solid rgba(23,25,26,0.12)' }}>
         <img src={submission.photoUrl} alt="your shot" className="w-full object-cover" style={{ maxHeight: '280px' }} />
       </div>
 
-      {/* Feedback text */}
-      <div className="bg-white border border-brand-black/5 rounded-lg px-6 py-5 mb-6 text-left shadow-sm">
-        <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-brand-black/30 mb-2">Feedback</p>
-        <p className="text-sm text-brand-black/80 leading-relaxed">{submission.feedbackText}</p>
+      {/* Feedback */}
+      <div className="mb-6" style={{ borderLeft: '2px solid #c9a227', paddingLeft: '14px' }}>
+        <p className="font-mono text-[9px] tracking-[0.2em] uppercase mb-2" style={{ color: '#8a6b0f' }}>Response</p>
+        <p className="text-[14px] leading-[1.65] text-brand-ink/78">{submission.feedbackText}</p>
       </div>
 
-      {/* Node progress */}
-      <div className={`rounded-lg border px-5 py-4 mb-8 text-left ${meta.bg} ${meta.border}`}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <i className={`fa-solid ${meta.icon} ${meta.color} text-sm`} />
-            <span className={`text-xs font-bold ${meta.color}`}>{submission.skillNode}</span>
-          </div>
-          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${meta.bg} ${meta.color} border ${meta.border}`}>
-            Level {level}{maxed ? ' — Max' : ''}
-          </span>
+      {/* Node progress bar */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between font-mono text-[9px] tracking-[0.14em] uppercase text-brand-ink/45 mb-[7px]">
+          <span>{meta.description}</span>
+          <span style={{ color: meta.hexInk }}>{maxed ? 'Maxed Out' : `${current} / ${target} to Level ${level + 1}`}</span>
         </div>
-        <div className="h-1.5 bg-white/60 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-1000 ${meta.color.replace('text-', 'bg-')}`}
-            style={{ width: `${pct}%` }}
-          />
+        <div className="h-[3px] w-full" style={{ background: 'rgba(23,25,26,0.10)' }}>
+          <div className="h-full progress-fill" style={{ width: `${pct}%`, background: meta.hexColor }} />
         </div>
-        {!maxed && (
-          <p className="text-[10px] text-brand-black/40 mt-1.5">{current} / {target} to Level {level + 1}</p>
-        )}
+        {/* Level pips */}
+        <div className="flex gap-1 mt-3">
+          {[1, 2, 3, 4, 5].map(l => (
+            <div key={l} className="flex-1 h-[2px] pip-fill" style={{ background: l <= level ? meta.hexColor : 'rgba(23,25,26,0.12)' }} />
+          ))}
+        </div>
       </div>
 
       <button
         onClick={onDone}
-        className="w-full bg-brand-black text-white font-bold text-sm py-4 rounded-lg hover:bg-zinc-800 active:scale-95 transition-all"
+        className="font-mono text-[10px] tracking-[0.2em] uppercase w-full transition-colors"
+        style={{ background: '#17191a', color: '#f4f3ef', minHeight: '44px', padding: '13px 20px' }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.color = '#17191a'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#17191a'; e.currentTarget.style.color = '#f4f3ef'; }}
       >
         Done
       </button>
     </div>
   );
 };
+
+// ── MissionBrowser ────────────────────────────────────────────────────────────
 
 const MissionBrowser: React.FC<{
   submissions: Submission[];
@@ -363,6 +433,7 @@ const MissionBrowser: React.FC<{
 }> = ({ submissions, onSelect, onBack }) => {
   const [filter, setFilter] = useState<string>('All');
   const completedIds = new Set(submissions.map(s => s.missionId));
+  const filters = ['All', 'New', 'Done', 'Composition', 'Light', 'Timing', 'Moment'];
 
   const filtered = filter === 'All' ? MISSIONS : MISSIONS.filter(m =>
     filter === 'Done' ? completedIds.has(m.id) :
@@ -372,31 +443,41 @@ const MissionBrowser: React.FC<{
 
   return (
     <div className="animate-in fade-in duration-300">
-      <header className="mb-6 flex items-center gap-4">
-        <button onClick={onBack} className="text-brand-black/40 hover:text-brand-black transition-colors">
-          <i className="fa-solid fa-arrow-left" />
+      <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }}>
+        <button
+          onClick={onBack}
+          className="font-mono text-[9px] tracking-[0.18em] uppercase text-brand-ink/40 hover:text-brand-ink/70 transition-colors mb-4 block"
+        >
+          ← Back
         </button>
-        <h3 className="text-xl font-display text-brand-black tracking-wide">ALL MISSIONS</h3>
-      </header>
+        <h1 className="font-sans font-semibold text-[30px] leading-none tracking-[-0.02em] text-brand-ink">All Missions</h1>
+      </div>
 
       {/* Filter pills */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {['All', 'New', 'Done', 'Composition', 'Light', 'Timing', 'Moment'].map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border transition-all ${
-              filter === f
-                ? 'bg-brand-black text-white border-brand-black'
-                : 'border-brand-black/10 text-brand-black/50 hover:border-brand-black/30'
-            }`}
-          >
-            {f}
-          </button>
-        ))}
+        {filters.map(f => {
+          const isActive = filter === f;
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className="font-mono text-[9px] tracking-[0.18em] uppercase transition-colors"
+              style={{
+                padding: '7px 13px',
+                border: isActive ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)',
+                background: isActive ? '#17191a' : 'transparent',
+                color: isActive ? '#f4f3ef' : 'rgba(23,25,26,0.55)',
+              }}
+              onMouseEnter={e => { if (!isActive) { e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#17191a'; } }}
+              onMouseLeave={e => { if (!isActive) { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.55)'; } }}
+            >
+              {f}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-0">
         {filtered.map(mission => {
           const meta = SKILL_NODE_META[mission.skillNode];
           const done = completedIds.has(mission.id);
@@ -404,26 +485,26 @@ const MissionBrowser: React.FC<{
             <button
               key={mission.id}
               onClick={() => onSelect(mission)}
-              className="w-full text-left bg-white border border-brand-black/5 rounded-lg p-5 hover:border-brand-blue/30 hover:shadow-sm transition-all active:scale-[0.99] group"
+              className="w-full text-left transition-colors"
+              style={{ padding: '16px 0', borderBottom: '1px solid rgba(23,25,26,0.10)' }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${meta.bg} ${meta.color} ${meta.border}`}>
+                    <span
+                      className="font-mono text-[8px] tracking-[0.14em] uppercase"
+                      style={{ border: '1px solid rgba(23,25,26,0.16)', padding: '4px 7px', color: meta.hexInk }}
+                    >
                       {mission.skillNode}
                     </span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${GENRE_COLOR[mission.genre]}`}>
-                      {mission.genre}
-                    </span>
-                    {done && <i className="fa-solid fa-check-circle text-emerald-500 text-[10px]" />}
+                    {done && (
+                      <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: '#3d5a44' }}>✓ Done</span>
+                    )}
                   </div>
-                  <p className="text-sm font-semibold text-brand-black group-hover:text-brand-blue transition-colors">{mission.title}</p>
-                  <p className="text-xs text-brand-gray/60 mt-0.5 line-clamp-1">{mission.promptDetail}</p>
+                  <p className="text-[15px] font-medium text-brand-ink">{mission.title}</p>
+                  <p className="font-mono text-[9px] tracking-[0.14em] text-brand-ink/42 mt-0.5 uppercase">{mission.genre} · {mission.timeBoxMinutes}MIN</p>
                 </div>
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  {DIFFICULTY_DOTS(mission.difficulty)}
-                  <span className="text-[9px] text-brand-black/30">{mission.timeBoxMinutes}m</span>
-                </div>
+                <span className="font-mono text-[10px] tracking-[0.12em] text-brand-ink/40 shrink-0">D{mission.difficulty}</span>
               </div>
             </button>
           );
@@ -442,8 +523,6 @@ const TodayView: React.FC<TodayViewProps> = ({ submissions, skillProgress, onSub
   const [lastSubmission, setLastSubmission] = useState<Submission | null>(null);
   const [showBrowser, setShowBrowser] = useState(false);
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  const alreadyDoneToday = submissions.some(s => new Date(s.createdAt).toISOString().split('T')[0] === todayStr);
   const totalCompleted = submissions.length;
 
   const handleSubmit = async (file: File) => {
@@ -476,47 +555,33 @@ const TodayView: React.FC<TodayViewProps> = ({ submissions, skillProgress, onSub
     );
   }
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const alreadyDoneToday = submissions.some(s => new Date(s.createdAt).toISOString().split('T')[0] === todayStr);
+
   if (phase === 'mission') {
     return (
       <MissionCard
         mission={activeMission}
         alreadyDoneToday={alreadyDoneToday}
         totalCompleted={totalCompleted}
+        submissions={submissions}
         onStart={() => setPhase('timer')}
         onPickAnother={() => setShowBrowser(true)}
+        onGoToHistory={() => {}}
       />
     );
   }
 
   if (phase === 'timer') {
-    return (
-      <TimerScreen
-        mission={activeMission}
-        onGotShot={() => setPhase('capture')}
-        onEnd={() => setPhase('mission')}
-      />
-    );
+    return <TimerScreen mission={activeMission} onGotShot={() => setPhase('capture')} onEnd={() => setPhase('mission')} />;
   }
 
   if (phase === 'capture') {
-    return (
-      <CaptureScreen
-        mission={activeMission}
-        onFileSelected={handleSubmit}
-        onBack={() => setPhase('timer')}
-        isUploading={isUploading}
-      />
-    );
+    return <CaptureScreen mission={activeMission} onFileSelected={handleSubmit} onBack={() => setPhase('timer')} isUploading={isUploading} />;
   }
 
   if (phase === 'feedback' && lastSubmission) {
-    return (
-      <FeedbackCard
-        submission={lastSubmission}
-        skillProgress={skillProgress}
-        onDone={handleDone}
-      />
-    );
+    return <FeedbackCard submission={lastSubmission} skillProgress={skillProgress} onDone={handleDone} />;
   }
 
   return null;

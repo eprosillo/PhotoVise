@@ -17,29 +17,44 @@ const MissionHistoryView: React.FC<MissionHistoryViewProps> = ({ submissions }) 
 
   return (
     <div>
-      <header className="mb-8">
-        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-black/30 mb-1">Archive</p>
-        <h2 className="text-4xl font-display text-brand-black tracking-wide">HISTORY</h2>
-      </header>
+      {/* Screen header */}
+      <div
+        style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }}
+        className="flex items-end justify-between gap-6"
+      >
+        <div>
+          <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Grow / Submissions</p>
+          <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">History</h1>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="font-mono text-[9px] tracking-[0.2em] text-brand-ink/40 uppercase">Frames Logged</p>
+          <p className="font-mono text-[30px] font-medium leading-none tracking-[-0.02em] text-brand-ink mt-1">
+            {String(submissions.length).padStart(2, '0')}
+          </p>
+        </div>
+      </div>
 
       {/* Filter pills */}
       <div className="flex flex-wrap gap-2 mb-6">
         {NODE_FILTERS.map(f => {
           const meta = f !== 'All' ? SKILL_NODE_META[f] : null;
+          const isActive = filter === f;
           return (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border transition-all ${
-                filter === f
-                  ? meta
-                    ? `${meta.bg} ${meta.color} ${meta.border}`
-                    : 'bg-brand-black text-white border-brand-black'
-                  : 'border-brand-black/10 text-brand-black/50 hover:border-brand-black/30'
-              }`}
+              className="font-mono text-[9px] tracking-[0.18em] uppercase transition-colors"
+              style={{
+                padding: '7px 13px',
+                border: isActive ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)',
+                background: isActive ? '#17191a' : 'transparent',
+                color: isActive ? '#f4f3ef' : 'rgba(23,25,26,0.55)',
+              }}
+              onMouseEnter={e => { if (!isActive) { e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#17191a'; } }}
+              onMouseLeave={e => { if (!isActive) { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.55)'; } }}
             >
-              {f !== 'All' && meta && <i className={`fa-solid ${meta.icon} mr-1.5 text-[9px]`} />}
-              {f}
+              {f !== 'All' && meta && <i className={`fa-solid ${meta.icon} mr-1.5 text-[9px]`} style={{ color: isActive ? '#f4f3ef' : meta.hexColor }} />}
+              {f.toUpperCase()} {f === 'All' ? String(submissions.length).padStart(2, '0') : String(sorted.filter(s => s.skillNode === f).length).padStart(2, '0')}
             </button>
           );
         })}
@@ -47,37 +62,38 @@ const MissionHistoryView: React.FC<MissionHistoryViewProps> = ({ submissions }) 
 
       {/* Empty state */}
       {filtered.length === 0 && (
-        <div className="text-center py-20 text-brand-black/30">
-          <i className="fa-solid fa-images text-3xl mb-3 block" />
-          <p className="text-sm font-semibold">No shots yet{filter !== 'All' ? ` for ${filter}` : ''}</p>
-          <p className="text-xs mt-1">Complete missions to build your history.</p>
+        <div className="py-16">
+          <p className="font-mono text-[9px] tracking-[0.18em] uppercase text-brand-ink/40">No Shots Yet</p>
+          <p className="text-[13px] text-brand-ink/50 mt-2">Complete missions to build your history.</p>
         </div>
       )}
 
-      {/* Grid */}
+      {/* 6-column grid */}
       {filtered.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
           {filtered.map(sub => {
             const meta = SKILL_NODE_META[sub.skillNode];
             return (
               <button
                 key={sub.id}
                 onClick={() => setSelected(sub)}
-                className="relative group rounded-xl overflow-hidden border border-brand-black/5 aspect-square hover:shadow-md transition-all active:scale-[0.98]"
+                className="relative group aspect-square overflow-hidden transition-colors"
+                style={{ border: '1px solid rgba(23,25,26,0.12)' }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#c9a227')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(23,25,26,0.12)')}
               >
-                <img
-                  src={sub.photoUrl}
-                  alt={sub.missionTitle}
-                  className="w-full h-full object-cover"
-                />
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
-                  <p className="text-[10px] font-bold text-white line-clamp-1">{sub.missionTitle}</p>
-                  <span className={`text-[9px] font-bold ${meta.color} mt-0.5`}>{sub.skillNode}</span>
-                </div>
-                {/* Node badge */}
-                <div className={`absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center ${meta.bg} border ${meta.border}`}>
-                  <i className={`fa-solid ${meta.icon} ${meta.color} text-[8px]`} />
+                <img src={sub.photoUrl} alt={sub.missionTitle} className="w-full h-full object-cover" />
+                {/* Bottom overlay */}
+                <div
+                  className="absolute bottom-0 left-0 right-0 flex flex-col justify-end p-[4px]"
+                  style={{ background: 'linear-gradient(to top, rgba(23,25,26,0.75), transparent)' }}
+                >
+                  <p className="font-mono text-[8px] tracking-[0.10em] leading-none" style={{ color: meta.hexColor }}>
+                    {sub.skillNode.toUpperCase().slice(0, 4)}
+                  </p>
+                  <p className="font-mono text-[8px] tracking-[0.06em] text-brand-ink/35 leading-none mt-0.5">
+                    {new Date(sub.createdAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })}
+                  </p>
                 </div>
               </button>
             );
@@ -85,43 +101,36 @@ const MissionHistoryView: React.FC<MissionHistoryViewProps> = ({ submissions }) 
         </div>
       )}
 
-      {/* Lightbox */}
-      {selected && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setSelected(null)}
-        >
+      {/* Detail panel (inline, replaces lightbox) */}
+      {selected && (() => {
+        const meta = SKILL_NODE_META[selected.skillNode];
+        return (
           <div
-            className="bg-white rounded-2xl overflow-hidden max-w-lg w-full shadow-2xl"
-            onClick={e => e.stopPropagation()}
+            className="flex flex-col md:flex-row gap-4 mt-[22px] p-[18px]"
+            style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)' }}
           >
-            <img src={selected.photoUrl} alt={selected.missionTitle} className="w-full object-cover max-h-72" />
-            <div className="p-6">
-              <div className="flex items-center gap-2 mb-3">
-                {(() => {
-                  const meta = SKILL_NODE_META[selected.skillNode];
-                  return (
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded border ${meta.bg} ${meta.color} ${meta.border}`}>
-                      <i className={`fa-solid ${meta.icon} mr-1`} />{selected.skillNode}
-                    </span>
-                  );
-                })()}
-                <span className="text-[10px] text-brand-black/30 ml-auto">
+            <div className="shrink-0 overflow-hidden" style={{ width: '132px', height: '132px', border: '1px solid rgba(23,25,26,0.12)' }}>
+              <img src={selected.photoUrl} alt={selected.missionTitle} className="w-full h-full object-cover" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between font-mono text-[9px] tracking-[0.18em] uppercase mb-2">
+                <span style={{ color: meta.hexInk }}>{selected.skillNode} · Selected Frame</span>
+                <span className="text-brand-ink/40">
                   {new Date(selected.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
               </div>
-              <p className="text-sm font-bold text-brand-black mb-2">{selected.missionTitle}</p>
-              <p className="text-xs text-brand-black/60 leading-relaxed">{selected.feedbackText}</p>
+              <p className="text-[15px] font-medium text-brand-ink mb-2">{selected.missionTitle}</p>
+              <p className="text-[13px] leading-[1.65] text-brand-ink/70">{selected.feedbackText}</p>
               <button
                 onClick={() => setSelected(null)}
-                className="mt-5 w-full border border-brand-black/10 text-brand-black/50 text-xs font-semibold py-3 rounded-lg hover:bg-brand-black/5 transition-all"
+                className="font-mono text-[9px] tracking-[0.18em] uppercase text-brand-ink/40 hover:text-brand-ink/70 transition-colors mt-3"
               >
-                Close
+                Close ×
               </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

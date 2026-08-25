@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FeedbackModal from './FeedbackModal';
 
 interface UserLike {
@@ -7,35 +7,76 @@ interface UserLike {
   photoURL?: string | null;
 }
 
+interface StatusReadout {
+  label: string;
+  value: string | number;
+}
+
 interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   workflowSummary?: React.ReactNode;
   isFieldMode?: boolean;
-  /** Authenticated Firebase user (optional — passed by App.tsx after auth gate) */
   user?: UserLike | null;
-  /** Called when the user clicks "Sign out" */
   onSignOut?: () => void;
+  statusReadouts?: StatusReadout[];
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, workflowSummary, isFieldMode, user, onSignOut }) => {
+const NAV_GROUPS = [
+  {
+    label: 'SHOOT',
+    items: [
+      { id: 'dashboard', label: 'Sessions',       index: '01' },
+      { id: 'scout',     label: 'Location Scout', index: '02' },
+      { id: 'history',   label: 'History',        index: '03' },
+    ],
+  },
+  {
+    label: 'PLAN',
+    items: [
+      { id: 'calendar',  label: 'Calendar',       index: '04' },
+      { id: 'cfe',       label: 'Bulletin Board', index: '05' },
+    ],
+  },
+  {
+    label: 'GROW',
+    items: [
+      { id: 'today',     label: 'Today',          index: '06' },
+      { id: 'skills',    label: 'Skill Tree',     index: '07' },
+      { id: 'askpro',    label: 'Ask a Pro',      index: '08' },
+    ],
+  },
+  {
+    label: 'YOU',
+    items: [
+      { id: 'profile',   label: 'Profile',        index: '09' },
+      { id: 'gear',      label: 'Gear Locker',    index: '10' },
+      { id: 'archive',   label: 'Archive',        index: '11' },
+    ],
+  },
+];
+
+const ALL_ITEMS = NAV_GROUPS.flatMap(g => g.items);
+
+const Layout: React.FC<LayoutProps> = ({
+  children,
+  activeTab,
+  setActiveTab,
+  isFieldMode,
+  user,
+  onSignOut,
+  statusReadouts,
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isNarrow, setIsNarrow] = useState(window.innerWidth < 820);
 
-  const navItems = [
-    { id: 'today',     label: 'Today',          icon: 'fa-crosshairs' },
-    { id: 'skills',    label: 'Skill Tree',     icon: 'fa-diagram-project' },
-    { id: 'history',   label: 'History',        icon: 'fa-images' },
-    { id: 'dashboard', label: 'Sessions',       icon: 'fa-gauge' },
-    { id: 'askpro',    label: 'Ask a Pro',      icon: 'fa-comments' },
-    { id: 'calendar',  label: 'Calendar',       icon: 'fa-calendar' },
-    { id: 'scout',     label: 'Location Scout', icon: 'fa-map-pin' },
-    { id: 'gear',      label: 'Gear Locker',    icon: 'fa-toolbox' },
-    { id: 'cfe',       label: 'Bulletin Board', icon: 'fa-trophy' },
-    { id: 'archive',   label: 'Archive',        icon: 'fa-box-archive' },
-    { id: 'profile',   label: 'Profile',        icon: 'fa-user-gear' },
-  ];
+  useEffect(() => {
+    const handler = () => setIsNarrow(window.innerWidth < 820);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   const handleTabChange = (id: string) => {
     setActiveTab(id);
@@ -47,255 +88,210 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, work
     setIsMenuOpen(false);
   };
 
-  const isCoreFieldItem = (label: string) => ['Ask a Pro', 'Today'].includes(label);
-  const isDashboard = (label: string) => label === 'Sessions';
-
-  const normalMobileLabels = [
-    'Today', 'Skill Tree', 'History', 'Sessions', 'Ask a Pro',
-    'Calendar', 'Location Scout', 'Gear Locker', 'Bulletin Board',
-    'Archive', 'Profile',
-  ];
-
-  const fieldMobileLabels = ['Today', 'Ask a Pro'];
-
-  const mobileNavItems = navItems.filter((item) =>
-    isFieldMode
-      ? fieldMobileLabels.includes(item.label)
-      : normalMobileLabels.includes(item.label)
-  );
-
-  const activeNavItem = navItems.find(item => item.id === activeTab) ||
-    navItems.find(item => activeTab.startsWith(item.id + '-')) ||
-    navItems[0];
-
-  // Derive user initials for the avatar
   const userInitials = (() => {
-    if (!user) return '';
+    if (!user) return 'PV';
     const name = user.displayName || user.email || '';
     const parts = name.trim().split(/[\s@]+/);
     if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return name.slice(0, 2).toUpperCase();
+    return (name.slice(0, 2) || 'PV').toUpperCase();
   })();
 
-  return (
-    <div className={`flex flex-col md:flex-row md:h-screen ${isFieldMode ? 'pb-20' : ''}`}>
-      {/* Mobile Navigation Header */}
-      <nav className="md:hidden bg-brand-black text-brand-white sticky top-0 z-50 border-b border-white/5">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <button onClick={handleLogoClick} className="text-left focus:outline-none">
-            <h1 className="text-2xl font-display leading-none text-brand-rose tracking-wider cursor-pointer">
-              PHOTOVISE
-            </h1>
-          </button>
+  const userName = user?.displayName || user?.email?.split('@')[0] || '';
 
-          <div className="flex items-center gap-3">
-            {/* Mobile: user avatar + sign-out */}
-            {user && onSignOut && (
-              <button
-                onClick={onSignOut}
-                title="Sign out"
-                className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-md px-3 py-1.5 text-xs font-medium text-brand-gray hover:text-brand-rose transition-all active:scale-95"
-              >
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="avatar" className="w-4 h-4 rounded-full object-cover" />
-                ) : (
-                  <span className="w-4 h-4 rounded-full bg-brand-blue flex items-center justify-center text-[7px] font-bold text-white">
-                    {userInitials}
-                  </span>
-                )}
-                <i className="fa-solid fa-arrow-right-from-bracket text-[9px]"></i>
-              </button>
-            )}
+  const activeItem = ALL_ITEMS.find(i => i.id === activeTab) || ALL_ITEMS[0];
 
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-md border border-white/10 text-sm font-medium transition-all active:scale-95 min-w-[140px] justify-between"
-            >
-              <span className="truncate max-w-[100px]">
-                {isMenuOpen ? 'Close' : activeNavItem.label}
-              </span>
-              <i className={`fa-solid ${isMenuOpen ? 'fa-xmark' : 'fa-chevron-down'} text-brand-rose`}></i>
-            </button>
+  const defaultReadouts: StatusReadout[] = statusReadouts || [];
+
+  const navItemClass = (id: string) => {
+    const isActive = activeTab === id;
+    return [
+      'flex items-center gap-3 w-full text-left px-6 py-[9px]',
+      'border-l-2 transition-colors duration-150',
+      isActive
+        ? 'border-l-brand-accent bg-[rgba(23,25,26,0.05)] text-brand-ink font-semibold'
+        : 'border-l-transparent text-brand-ink/60 hover:bg-[rgba(23,25,26,0.045)] hover:text-brand-ink/80',
+    ].join(' ');
+  };
+
+  const RAIL = (
+    <div
+      style={{ borderRight: '1px solid rgba(23,25,26,0.12)' }}
+      className={[
+        'bg-brand-panel flex flex-col flex-shrink-0',
+        isNarrow ? 'w-full' : 'w-[244px] h-screen',
+      ].join(' ')}
+    >
+      {/* Brand block */}
+      <div
+        style={{ borderBottom: '1px solid rgba(23,25,26,0.12)' }}
+        className={[
+          'flex items-center justify-between',
+          isNarrow ? 'px-[18px] py-[14px]' : 'px-6 pt-7 pb-6',
+        ].join(' ')}
+      >
+        <button onClick={handleLogoClick} className="text-left focus:outline-none">
+          <div className="font-sans font-bold text-[19px] tracking-[0.04em] text-brand-ink leading-none">
+            PHOTOVISE
           </div>
-        </div>
+          <div className="font-mono text-[9px] tracking-[0.18em] text-brand-ink/42 mt-[6px] uppercase">
+            Workflow Instrument
+          </div>
+        </button>
 
-        {/* Mobile Dropdown Menu */}
-        {isMenuOpen && (
-          <div className="bg-brand-white border-b border-brand-black/5 animate-in slide-in-from-top duration-300 max-h-[70vh] overflow-y-auto custom-scrollbar">
-            <div className="flex flex-col py-2">
-              {mobileNavItems.map((item) => {
-                // Uniform styling for all items in the mobile dropdown
-                return (
+        {isNarrow && (
+          <button
+            onClick={() => setIsMenuOpen(o => !o)}
+            style={{ border: '1px solid rgba(23,25,26,0.2)' }}
+            className="font-mono text-[9px] tracking-[0.18em] uppercase px-[14px] min-h-[44px] text-brand-ink/70 hover:text-brand-ink transition-colors"
+          >
+            {isMenuOpen ? 'CLOSE' : 'MENU'}
+          </button>
+        )}
+      </div>
+
+      {/* Nav */}
+      {(!isNarrow || isMenuOpen) && (
+        <>
+          <nav className={['flex-1 overflow-y-auto custom-scrollbar flex flex-col', isNarrow ? 'py-3' : 'py-5'].join(' ')} style={{ gap: '22px' }}>
+            {NAV_GROUPS.map(group => (
+              <div key={group.label}>
+                <div
+                  className="font-mono text-[9px] tracking-[0.22em] uppercase text-brand-ink/34 px-6 pb-2"
+                >
+                  {group.label}
+                </div>
+                {group.items.map(item => (
                   <button
                     key={item.id}
                     onClick={() => handleTabChange(item.id)}
-                    className={`flex items-center gap-4 px-8 py-4 text-sm font-medium transition-all text-left border-l-4 ${
-                      activeTab === item.id || activeTab.startsWith(item.id + '-')
-                        ? 'bg-brand-black/5 text-brand-blue border-brand-blue'
-                        : 'text-brand-black/70 border-transparent hover:bg-brand-black/5 hover:text-brand-black'
-                    }`}
+                    className={navItemClass(item.id)}
+                    style={{ minHeight: isNarrow ? '44px' : undefined }}
                   >
-                    <i className={`fa-solid ${item.icon} w-5 text-sm`}></i>
-                    {item.label}
+                    <span className="font-mono text-[9px] text-brand-ink/32 w-4 shrink-0">{item.index}</span>
+                    <span className={['text-[13px]', activeTab === item.id ? 'font-semibold' : 'font-normal'].join(' ')}>
+                      {item.label}
+                    </span>
                   </button>
-                );
-              })}
+                ))}
+              </div>
+            ))}
+          </nav>
+
+          {/* Footer chip */}
+          <div
+            style={{ borderTop: '1px solid rgba(23,25,26,0.12)' }}
+            className="flex-shrink-0 flex items-center gap-[10px] px-6 py-[18px]"
+          >
+            <div className="w-[26px] h-[26px] rounded-full bg-brand-ink flex items-center justify-center shrink-0">
+              <span className="font-mono text-[9px] font-semibold text-brand-panel">{userInitials}</span>
             </div>
-          </div>
-        )}
-      </nav>
-
-      {/* Desktop Sidebar Navigation */}
-      <nav className="hidden md:flex flex-col w-64 bg-brand-black text-brand-white flex-shrink-0 border-r border-white/5 z-20 h-screen">
-        <div className="p-10 flex-shrink-0">
-          <button onClick={handleLogoClick} className="text-left focus:outline-none">
-            <h1 className="text-4xl font-display leading-none text-brand-rose cursor-pointer">
-              PHOTOVISE
-            </h1>
-          </button>
-          <p className="text-xs text-brand-gray/60 mt-2 tracking-wider font-medium">Photography workflow assistant</p>
-        </div>
-
-        <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar mt-4">
-          {navItems.map((item) => {
-            const fieldClasses = isFieldMode
-              ? isCoreFieldItem(item.label)
-                ? 'font-bold text-white scale-105'
-                : isDashboard(item.label)
-                  ? ''
-                  : 'opacity-30'
-              : '';
-            return (
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-medium text-brand-ink truncate">{userName || 'Eduardo'}</div>
+              <div className="font-mono text-[9px] tracking-[0.14em] text-brand-ink/38 uppercase">Signed In</div>
+            </div>
+            {onSignOut && (
               <button
-                key={item.id}
-                onClick={() => handleTabChange(item.id)}
-                className={`flex items-center gap-4 px-10 py-4 text-sm font-medium transition-all border-l-4 ${
-                  activeTab === item.id || activeTab.startsWith(item.id + '-')
-                    ? 'bg-white/5 text-white border-brand-blue shadow-[inset_10px_0_15px_-10px_rgba(143,165,178,0.1)]'
-                    : 'text-brand-gray/80 border-transparent hover:text-white/80 hover:bg-white/5'
-                } ${fieldClasses}`}
+                onClick={onSignOut}
+                title="Sign out"
+                className="text-brand-ink/40 hover:text-brand-ink/70 transition-colors text-[11px]"
               >
-                <i className={`fa-solid ${item.icon} w-5 text-sm`}></i>
-                {item.label}
+                <i className="fa-solid fa-arrow-right-from-bracket"></i>
               </button>
-            );
-          })}
-        </div>
-
-        {/* Desktop-only System Status */}
-        {!isFieldMode && (
-          <div className="flex-shrink-0 p-10 space-y-4 border-t border-white/5">
-            <div className="bg-white/5 p-5 rounded-lg border border-white/5">
-              <p className="text-xs font-medium text-brand-gray/60 mb-4">System status</p>
-              <div className="space-y-3">
-                {workflowSummary ? (
-                  <div className="text-xs text-white/50 leading-relaxed">
-                    {workflowSummary}
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-3 text-xs text-white/50">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-blue animate-pulse"></span>
-                      <span>Engine idle</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-white/50">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-rose"></span>
-                      <span>Awaiting input</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* User avatar + sign-out (desktop) */}
-            {user && onSignOut && (
-              <div className="flex items-center gap-3 bg-white/5 p-4 rounded-lg border border-white/5">
-                {/* Avatar */}
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt="avatar"
-                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-brand-blue flex items-center justify-center flex-shrink-0">
-                    <span className="text-[9px] font-bold text-white">{userInitials}</span>
-                  </div>
-                )}
-
-                {/* Name / email */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-white/70 truncate">
-                    {user.displayName || user.email?.split('@')[0] || 'Signed in'}
-                  </p>
-                  <p className="text-[9px] text-brand-gray/50 truncate">
-                    {user.email || ''}
-                  </p>
-                </div>
-
-                {/* Sign out */}
-                <button
-                  onClick={onSignOut}
-                  title="Sign out"
-                  className="flex-shrink-0 text-brand-gray/50 hover:text-brand-rose transition-colors"
-                >
-                  <i className="fa-solid fa-arrow-right-from-bracket text-[11px]"></i>
-                </button>
-              </div>
             )}
           </div>
+        </>
+      )}
+    </div>
+  );
+
+  const STATUS_STRIP = (
+    <div
+      style={{
+        borderBottom: '1px solid rgba(23,25,26,0.12)',
+        minHeight: '46px',
+      }}
+      className={[
+        'bg-brand-panel2 flex-shrink-0 flex items-center justify-between flex-wrap',
+        isNarrow ? 'px-[18px] py-2 gap-[6px_18px]' : 'px-8 py-2 gap-[6px_18px]',
+      ].join(' ')}
+    >
+      <div className="flex items-center flex-wrap gap-[6px_22px]">
+        {defaultReadouts.map(r => (
+          <span key={r.label} className="font-mono text-[9px] tracking-[0.16em] text-brand-ink/50 uppercase">
+            {r.label} <span className="text-brand-ink/75">{r.value}</span>
+          </span>
+        ))}
+      </div>
+      <div className="flex items-center gap-[6px]">
+        <span className="pulse-brass w-[5px] h-[5px] rounded-full bg-brand-accent inline-block"></span>
+        <span className="font-mono text-[9px] tracking-[0.16em] text-brand-accent-ink uppercase">Engine Active</span>
+      </div>
+    </div>
+  );
+
+  if (isNarrow) {
+    return (
+      <div className="flex flex-col min-h-screen bg-brand-canvas">
+        {RAIL}
+        {STATUS_STRIP}
+        <main className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="px-[18px] py-[26px] pb-[64px]">
+            {children}
+          </div>
+        </main>
+
+        {/* Field mode bottom strip */}
+        {isFieldMode && (
+          <div
+            style={{ borderTop: '1px solid rgba(23,25,26,0.14)' }}
+            className="fixed inset-x-0 bottom-0 z-50 bg-brand-ink flex"
+          >
+            {(['today', 'askpro'] as const).map(id => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={[
+                  'flex-1 flex flex-col items-center gap-1 py-3 text-[11px] font-mono tracking-[0.12em] uppercase transition-colors',
+                  activeTab === id ? 'text-brand-accent' : 'text-white/60',
+                ].join(' ')}
+              >
+                {id === 'today' ? 'Today' : 'Ask Pro'}
+              </button>
+            ))}
+          </div>
         )}
-      </nav>
 
-      {/* Main Content Area */}
-      <main className="flex-1 bg-brand-white overflow-y-auto custom-scrollbar">
-        <div className="max-w-5xl mx-auto p-6 md:p-14">
-          {children}
-        </div>
-      </main>
+        <button
+          onClick={() => setIsFeedbackOpen(true)}
+          style={{ bottom: isFieldMode ? '4.5rem' : '1.25rem' }}
+          className="fixed right-4 z-50 font-mono text-[9px] tracking-[0.14em] uppercase bg-brand-ink text-brand-panel/80 px-3 py-2 transition-colors hover:bg-brand-accent hover:text-brand-ink"
+        >
+          Feedback
+        </button>
+        <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} currentPage={activeTab} />
+      </div>
+    );
+  }
 
-      {/* Feedback Button */}
+  return (
+    <div className="flex flex-row h-screen bg-brand-canvas overflow-hidden">
+      {RAIL}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {STATUS_STRIP}
+        <main className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="px-8 py-10 pb-[72px]" style={{ maxWidth: activeTab === 'askpro' ? '820px' : '1040px' }}>
+            {children}
+          </div>
+        </main>
+      </div>
+
       <button
         onClick={() => setIsFeedbackOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-brand-black text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg border border-white/10 hover:bg-zinc-700 transition-all active:scale-95"
-        style={isFieldMode ? { bottom: '5rem' } : undefined}
-        aria-label="Send feedback"
+        className="fixed bottom-5 right-5 z-50 font-mono text-[9px] tracking-[0.14em] uppercase bg-brand-ink text-brand-panel/80 px-3 py-2 transition-colors hover:bg-brand-accent hover:text-brand-ink"
       >
-        <i className="fa-regular fa-comment-dots text-brand-rose"></i>
         Feedback
       </button>
-
-      <FeedbackModal
-        isOpen={isFeedbackOpen}
-        onClose={() => setIsFeedbackOpen(false)}
-        currentPage={activeTab}
-      />
-
-      {/* Field Mode Quick Access Bottom Strip */}
-      {isFieldMode && (
-        <div className="fixed inset-x-0 bottom-0 z-50 bg-brand-black/95 backdrop-blur-md border-t border-white/10 px-4 py-3 animate-in slide-in-from-bottom duration-300">
-          <div className="max-w-md mx-auto flex items-center justify-between gap-3">
-            <button
-              onClick={() => setActiveTab('today')}
-              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-all ${
-                activeTab === 'today' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
-              }`}
-            >
-              <i className="fa-solid fa-crosshairs text-xs"></i>
-              <span className="text-xs font-medium">Today</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('askpro')}
-              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-all ${
-                activeTab === 'askpro' ? 'bg-brand-blue text-white' : 'bg-white/5 text-white/60'
-              }`}
-            >
-              <i className="fa-solid fa-comments text-xs"></i>
-              <span className="text-xs font-medium">Ask Pro</span>
-            </button>
-          </div>
-        </div>
-      )}
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} currentPage={activeTab} />
     </div>
   );
 };

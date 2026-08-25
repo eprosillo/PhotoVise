@@ -150,9 +150,9 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
 
   if (editing) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-brand-blue/30 overflow-hidden">
-        <div className="p-8 space-y-3">
-          <p className="text-xs font-semibold text-brand-blue/70 mb-4">Edit session</p>
+      <div className="overflow-hidden" style={{ background: '#f8f7f4', border: '1px solid #c9a227' }}>
+        <div className="p-6 space-y-3">
+          <p className="font-mono text-[9px] tracking-[0.18em] uppercase text-brand-accent-ink mb-4">Edit Session</p>
 
           <input
             type="text"
@@ -261,10 +261,22 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
           )}
 
           <div className="flex gap-2 pt-2">
-            <button onClick={handleSave} className="flex-1 bg-brand-blue text-white text-sm font-semibold py-3 rounded-md hover:bg-[#7a93a0] transition-all">
+            <button
+              onClick={handleSave}
+              className="flex-1 font-mono text-[10px] tracking-[0.2em] uppercase text-brand-ink transition-colors"
+              style={{ background: '#c9a227', minHeight: '44px' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#dab538')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#c9a227')}
+            >
               Save
             </button>
-            <button onClick={handleCancel} className="flex-1 border border-brand-black/10 text-brand-gray text-sm font-medium py-3 rounded-md hover:border-brand-black/20 transition-all">
+            <button
+              onClick={handleCancel}
+              className="flex-1 font-mono text-[10px] tracking-[0.18em] uppercase text-brand-ink/60 transition-colors"
+              style={{ border: '1px solid rgba(23,25,26,0.2)', minHeight: '44px' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#17191a'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.2)'; e.currentTarget.style.color = 'rgba(23,25,26,0.60)'; }}
+            >
               Cancel
             </button>
           </div>
@@ -273,62 +285,101 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
     );
   }
 
+  // Pipeline track helper
+  const ALL_STAGES: SessionStatus[] = ['capturing', 'shot', 'culled', 'edited', 'backed up', 'posted', 'archived'];
+  const STAGE_NAMES: Record<SessionStatus, string> = {
+    capturing: 'CAPTURING', shot: 'CULLED', culled: 'EDITED',
+    edited: 'BACKED UP', 'backed up': 'POSTED', posted: 'ARCHIVED', archived: 'ARCHIVED',
+  };
+  const currentIdx = ALL_STAGES.indexOf(session.status);
+  const nextStage = ALL_STAGES[currentIdx + 1] as SessionStatus | undefined;
+  const pipelineCaption = isArchived
+    ? 'ARCHIVED — COMPLETE'
+    : nextStage
+      ? `${STAGE_NAMES[session.status]} — NEXT: ${STAGE_NAMES[nextStage]}`
+      : '';
+
   return (
-    <div className={`bg-white rounded-lg shadow-sm border border-brand-black/5 overflow-hidden hover:shadow-md transition-all duration-500 ${isArchived ? 'opacity-80 grayscale-[0.3]' : ''}`}>
-      <div className="p-8">
+    <div
+      className={`overflow-hidden transition-all duration-500 ${isArchived ? 'opacity-80' : ''}`}
+      style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)' }}
+    >
+      <div className="p-6">
         {/* Header row */}
-        <div className="flex justify-between items-start mb-6">
+        <div className="flex justify-between items-start mb-4">
           <div className="flex-1 min-w-0">
-            {/* Status + type + deadline chips */}
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className={`text-xs font-medium px-2.5 py-1 rounded ${getStatusColor(session.status)}`}>
-                {STATUS_STAGE_LABELS[session.status]}
-              </span>
-              {typeStyle && session.type && (
-                <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded border ${typeStyle.bg} ${typeStyle.text} ${typeStyle.border}`}>
-                  <i className={`fa-solid ${typeStyle.icon} text-[9px]`} />
+            {/* Meta row */}
+            <div className="font-mono text-[9px] tracking-[0.14em] uppercase text-brand-ink/42 mb-3 flex items-center flex-wrap gap-x-3 gap-y-1">
+              <span>{session.date}</span>
+              {session.location && <><span>·</span><span>{session.location.toUpperCase()}</span></>}
+              {session.genre.length > 0 && <><span>·</span><span>{session.genre.join(' · ').toUpperCase()}</span></>}
+            </div>
+
+            <h3 className="text-[15px] font-medium text-brand-ink leading-snug">
+              {session.title || session.name.replace(/_/g, ' ')}
+            </h3>
+
+            {/* Chips row */}
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              {session.type && (
+                <span className="font-mono text-[8px] tracking-[0.16em] uppercase px-[6px] py-[3px]" style={{ background: '#17191a', color: '#f4f3ef' }}>
                   {session.type}
                 </span>
               )}
-              {session.deadline && <DeadlineChip deadline={session.deadline} />}
-            </div>
-
-            <h3 className="text-2xl font-display text-brand-black leading-none tracking-wider">
-              {session.title ? session.title.toUpperCase() : session.name.toUpperCase()}
-            </h3>
-            <div className="flex items-center gap-3 mt-3">
-              <p className="text-xs text-brand-gray font-medium flex items-center gap-2">
-                <i className="fa-solid fa-location-dot text-brand-blue"></i> {session.location}
-              </p>
-              <span className="text-brand-black/5">|</span>
-              <p className="text-xs text-brand-gray font-medium">{session.date}</p>
+              {session.deadline && (() => {
+                const days = getDaysUntil(session.deadline);
+                const color = days <= 3 ? '#8f4a3b' : 'rgba(23,25,26,0.55)';
+                return (
+                  <span className="font-mono text-[9px] tracking-[0.14em]" style={{ color }}>
+                    {days < 0 ? 'OVERDUE' : days === 0 ? 'DUE TODAY' : `${days}D LEFT`}
+                  </span>
+                );
+              })()}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button onClick={() => setEditing(true)} className="text-brand-black/10 hover:text-brand-blue transition-colors p-2" title="Edit Session">
-              <i className="fa-solid fa-pen text-sm"></i>
+          <div className="flex items-center gap-1 flex-shrink-0 ml-4">
+            <button onClick={() => setEditing(true)} className="text-brand-ink/20 hover:text-brand-ink/60 transition-colors p-2" title="Edit">
+              <i className="fa-solid fa-pen text-xs"></i>
             </button>
             <button
               onClick={() => onUpdateStatus(session.id, isArchived ? 'shot' : 'archived')}
-              className={`transition-colors p-2 text-sm ${isArchived ? 'text-brand-blue hover:text-brand-black' : 'text-brand-black/10 hover:text-brand-blue'}`}
+              className="text-brand-ink/20 hover:text-brand-ink/60 transition-colors p-2"
               title={isArchived ? 'Un-archive' : 'Archive'}
             >
-              <i className={`fa-solid ${isArchived ? 'fa-box-open' : 'fa-box-archive'}`}></i>
+              <i className={`fa-solid ${isArchived ? 'fa-box-open' : 'fa-box-archive'} text-xs`}></i>
             </button>
-            <button onClick={() => onDelete(session.id)} className="text-brand-black/10 hover:text-brand-rose transition-colors p-2" title="Delete Permanently">
-              <i className="fa-solid fa-xmark text-sm"></i>
+            <button onClick={() => onDelete(session.id)} className="text-brand-ink/20 hover:text-node-timing-ink transition-colors p-2" title="Delete">
+              <i className="fa-solid fa-xmark text-xs"></i>
             </button>
           </div>
         </div>
 
-        {/* Genre pills */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        {/* Pipeline track */}
+        <div className="mb-4">
+          <div className="flex gap-[3px]">
+            {ALL_STAGES.map((stage, i) => {
+              let barColor: string;
+              if (isArchived && stage === 'archived') barColor = '#4b6b52';
+              else if (i < currentIdx) barColor = '#17191a';
+              else if (i === currentIdx) barColor = '#c9a227';
+              else barColor = 'rgba(23,25,26,0.12)';
+              return <div key={stage} className="flex-1" style={{ height: '6px', background: barColor }} />;
+            })}
+          </div>
+          {pipelineCaption && (
+            <p className="font-mono text-[9px] tracking-[0.16em] mt-1" style={{ color: isArchived ? '#3d5a44' : '#8a6b0f' }}>
+              {pipelineCaption}
+            </p>
+          )}
+        </div>
+
+        {/* Genre tags */}
+        <div className="flex flex-wrap gap-[5px] mb-4">
           {session.genre.map((g) => (
-            <div key={g} className="flex items-center gap-2 px-3 py-2 bg-brand-white border border-brand-black/5 rounded-md text-xs font-medium text-brand-gray shadow-sm">
-              <span className="text-brand-blue text-[11px]">{GENRE_ICONS[g]}</span>
+            <span key={g} className="font-mono text-[8px] tracking-[0.14em] uppercase px-[7px] py-[4px]" style={{ border: '1px solid rgba(23,25,26,0.16)' }}>
               {g}
-            </div>
+            </span>
           ))}
         </div>
 
@@ -504,20 +555,22 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
           </div>
         )}
 
-        {/* Progress pipeline */}
+        {/* Stage advance buttons */}
         {!isArchived && (
-          <div className="space-y-4 pt-6 border-t border-brand-black/5">
-            <p className="text-xs font-medium text-brand-black/40">Progress</p>
+          <div className="pt-4" style={{ borderTop: '1px solid rgba(23,25,26,0.10)' }}>
+            <p className="font-mono text-[9px] tracking-[0.14em] uppercase text-brand-ink/40 mb-2">Advance Stage</p>
             <div className="flex flex-wrap gap-1.5">
               {statuses.map((s) => (
                 <button
                   key={s}
                   onClick={() => onUpdateStatus(session.id, s)}
-                  className={`text-xs font-medium px-3 py-2 rounded-md transition-all border ${
-                    session.status === s
-                      ? 'bg-brand-blue text-white border-brand-blue shadow-md'
-                      : 'bg-white text-brand-gray border-brand-black/5 hover:border-brand-blue/30 hover:text-brand-blue'
-                  }`}
+                  className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors"
+                  style={{
+                    padding: '4px 8px',
+                    border: session.status === s ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.16)',
+                    background: session.status === s ? '#17191a' : 'transparent',
+                    color: session.status === s ? '#f4f3ef' : 'rgba(23,25,26,0.55)',
+                  }}
                 >
                   {STATUS_STAGE_LABELS[s]}
                 </button>

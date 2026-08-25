@@ -1329,12 +1329,12 @@ const App: React.FC = () => {
 
   // ── Auth gate ────────────────────────────────────────────────────────────────
   if (authLoading) {
-    // Brief splash while Firebase resolves the auth state
     return (
-      <div className="min-h-screen bg-brand-black flex items-center justify-center">
+      <div className="min-h-screen bg-brand-canvas flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-5xl font-display text-brand-rose tracking-wider leading-none mb-4">PHOTOVISE</h1>
-          <i className="fa-solid fa-circle-notch animate-spin text-brand-gray text-lg"></i>
+          <div className="font-sans font-bold text-[32px] tracking-[0.04em] text-brand-ink mb-3">PHOTOVISE</div>
+          <div className="font-mono text-[9px] tracking-[0.22em] text-brand-ink/40 uppercase mb-6">Workflow Instrument</div>
+          <span className="pulse-brass inline-block w-[6px] h-[6px] rounded-full bg-brand-accent"></span>
         </div>
       </div>
     );
@@ -1344,8 +1344,14 @@ const App: React.FC = () => {
     return <LoginScreen />;
   }
 
+  const statusReadouts = [
+    { label: 'DAY', value: `${Math.floor(Date.now() / 86400000) % 365 + 1}` },
+    { label: 'SESSIONS', value: sessions.filter(s => s.status !== 'archived').length },
+    { label: 'SHOTS LOGGED', value: submissions.length },
+  ];
+
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} workflowSummary={conciseWorkflowLabel} isFieldMode={isFieldMode} user={user} onSignOut={signOut}>
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab} statusReadouts={statusReadouts} isFieldMode={isFieldMode} user={user} onSignOut={signOut}>
       {activeTab === 'dashboard' && (
         <div className="animate-in fade-in duration-700">
           <header className="mb-10 flex justify-between items-start">
@@ -2338,6 +2344,7 @@ const App: React.FC = () => {
           <SkillTreeView
             skillProgress={skillProgress}
             totalSubmissions={submissions.length}
+            submissions={submissions}
           />
         </ErrorBoundary>
       )}
