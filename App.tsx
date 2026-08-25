@@ -2083,6 +2083,7 @@ const App: React.FC = () => {
             submissions={submissions}
             skillProgress={skillProgress}
             onSubmit={handleMissionSubmit}
+            dailyQuote={dailyQuote}
           />
         </ErrorBoundary>
       )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mission, Submission, SkillNodeProgress } from '../types';
+import { Mission, Submission, SkillNodeProgress, PhotoQuote } from '../types';
 import {
   getDailyMission,
   getLevel,
@@ -14,6 +14,7 @@ interface TodayViewProps {
   submissions: Submission[];
   skillProgress: SkillNodeProgress[];
   onSubmit: (missionId: string, missionTitle: string, skillNode: Submission['skillNode'], photoFile: File) => Promise<Submission>;
+  dailyQuote: PhotoQuote;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -71,10 +72,11 @@ const MissionCard: React.FC<{
   alreadyDoneToday: boolean;
   totalCompleted: number;
   submissions: Submission[];
+  dailyQuote: PhotoQuote;
   onStart: () => void;
   onPickAnother: () => void;
   onGoToHistory: () => void;
-}> = ({ mission, alreadyDoneToday, totalCompleted, submissions, onStart, onPickAnother }) => {
+}> = ({ mission, alreadyDoneToday, totalCompleted, submissions, dailyQuote, onStart, onPickAnother }) => {
   const meta = SKILL_NODE_META[mission.skillNode];
   const missionNumber = MISSIONS.findIndex(m => m.id === mission.id) + 1;
   const recentSubs = submissions.slice(-6).reverse();
@@ -202,6 +204,12 @@ const MissionCard: React.FC<{
           </div>
         </div>
       )}
+
+      {/* Daily quote */}
+      <div style={{ borderLeft: '2px solid #c9a227', paddingLeft: '14px', marginTop: '28px' }}>
+        <p className="font-serif italic" style={{ fontSize: '14px', color: 'rgba(23,25,26,0.55)', lineHeight: 1.6 }}>"{dailyQuote.text}"</p>
+        <p className="font-mono text-[8px] tracking-[0.14em] uppercase mt-1" style={{ color: 'rgba(23,25,26,0.35)' }}>— {dailyQuote.author}</p>
+      </div>
     </div>
   );
 };
@@ -516,7 +524,7 @@ const MissionBrowser: React.FC<{
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-const TodayView: React.FC<TodayViewProps> = ({ submissions, skillProgress, onSubmit }) => {
+const TodayView: React.FC<TodayViewProps> = ({ submissions, skillProgress, onSubmit, dailyQuote }) => {
   const [phase, setPhase] = useState<Phase>('mission');
   const [activeMission, setActiveMission] = useState<Mission>(getDailyMission);
   const [isUploading, setIsUploading] = useState(false);
@@ -565,6 +573,7 @@ const TodayView: React.FC<TodayViewProps> = ({ submissions, skillProgress, onSub
         alreadyDoneToday={alreadyDoneToday}
         totalCompleted={totalCompleted}
         submissions={submissions}
+        dailyQuote={dailyQuote}
         onStart={() => setPhase('timer')}
         onPickAnother={() => setShowBrowser(true)}
         onGoToHistory={() => {}}
