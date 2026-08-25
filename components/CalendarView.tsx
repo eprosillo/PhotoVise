@@ -13,52 +13,39 @@ interface CalendarViewProps {
   onGoToSession: (sessionId: string) => void;
 }
 
-// ── Shared constants ──────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-const STATUS_DOT: Record<SessionStatus, string> = {
-  capturing:   'bg-amber-400',
-  shot:        'bg-brand-rose',
-  culled:      'bg-brand-blue',
-  edited:      'bg-amber-400',
-  'backed up': 'bg-emerald-500',
-  posted:      'bg-purple-500',
-  archived:    'bg-brand-gray/40',
+const STATUS_COLOR: Record<SessionStatus, string> = {
+  capturing:   '#4a6b7c',
+  shot:        '#c9a227',
+  culled:      '#a35a4a',
+  edited:      '#4b6b52',
+  'backed up': '#4b6b52',
+  posted:      '#4a6b7c',
+  archived:    'rgba(23,25,26,0.28)',
 };
 
-const STATUS_CHIP: Record<SessionStatus, string> = {
-  capturing:   'bg-amber-50 text-amber-700 border-amber-200',
-  shot:        'bg-brand-rose/10 text-brand-rose border-brand-rose/20',
-  culled:      'bg-brand-blue/10 text-brand-blue border-brand-blue/20',
-  edited:      'bg-amber-50 text-amber-700 border-amber-200',
-  'backed up': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  posted:      'bg-purple-50 text-purple-700 border-purple-200',
-  archived:    'bg-zinc-100 text-zinc-400 border-zinc-200',
-};
-
-const GRID_DAYS  = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-const WEEK_DAYS  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const TIME_SLOTS = ['Morning', 'Afternoon', 'Evening'] as const;
-type  TimeSlot   = typeof TIME_SLOTS[number];
-const MONTHS     = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const GRID_DAYS   = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const WEEK_DAYS   = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const TIME_SLOTS  = ['Morning', 'Afternoon', 'Evening'] as const;
+type  TimeSlot    = typeof TIME_SLOTS[number];
+const MONTHS      = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const toYMD = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-const shortDate = (d: Date) =>
-  `${SHORT_MONTHS[d.getMonth()]} ${d.getDate()}`;
+const shortDate = (d: Date) => `${SHORT_MONTHS[d.getMonth()]} ${d.getDate()}`;
 
-/** Returns the Monday of the week containing `date` */
 const getMondayOf = (date: Date): Date => {
   const d = new Date(date);
-  const dow = d.getDay(); // 0=Sun
+  const dow = d.getDay();
   const diff = dow === 0 ? -6 : 1 - dow;
   d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
   return d;
 };
 
-/** Returns an array of 7 dates Mon–Sun for the week starting at monday */
 const weekDates = (monday: Date): Date[] =>
   Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
@@ -71,33 +58,37 @@ const weekLabel = (monday: Date): string => {
   sunday.setDate(monday.getDate() + 6);
   const sameYear  = monday.getFullYear() === sunday.getFullYear();
   const sameMonth = monday.getMonth()    === sunday.getMonth();
-  if (sameMonth)  return `${SHORT_MONTHS[monday.getMonth()]} ${monday.getDate()} – ${sunday.getDate()}, ${sunday.getFullYear()}`;
-  if (sameYear)   return `${shortDate(monday)} – ${shortDate(sunday)}, ${sunday.getFullYear()}`;
-  return `${shortDate(monday)}, ${monday.getFullYear()} – ${shortDate(sunday)}, ${sunday.getFullYear()}`;
+  if (sameMonth) return `${SHORT_MONTHS[monday.getMonth()]} ${monday.getDate()}–${sunday.getDate()}, ${sunday.getFullYear()}`;
+  if (sameYear)  return `${shortDate(monday)}–${shortDate(sunday)}, ${sunday.getFullYear()}`;
+  return `${shortDate(monday)}, ${monday.getFullYear()}–${shortDate(sunday)}, ${sunday.getFullYear()}`;
 };
 
 // ── Simple markdown renderer ──────────────────────────────────────────────────
+
 const MarkdownBlock: React.FC<{ text: string }> = ({ text }) => (
-  <div className="space-y-1.5">
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
     {text.split('\n').map((line, i) => {
-      if (!line.trim()) return <div key={i} className="h-2" />;
+      if (!line.trim()) return <div key={i} style={{ height: '6px' }} />;
       if (/^###\s/.test(line))
-        return <p key={i} className="text-xs font-bold tracking-wide text-brand-gray mt-4 mb-1">{line.replace(/^###\s/, '')}</p>;
+        return <p key={i} className="font-mono text-[9px] tracking-[0.18em] uppercase mt-3 mb-1" style={{ color: 'rgba(23,25,26,0.45)' }}>{line.replace(/^###\s/, '')}</p>;
       if (/^##\s/.test(line))
-        return <p key={i} className="text-sm font-bold tracking-wide text-brand-black mt-5 mb-1">{line.replace(/^##\s/, '')}</p>;
+        return <p key={i} className="font-mono text-[10px] tracking-[0.16em] uppercase mt-4 mb-1" style={{ color: '#17191a', fontWeight: 600 }}>{line.replace(/^##\s/, '')}</p>;
       if (/^#\s/.test(line))
-        return <p key={i} className="text-base font-bold text-brand-black mt-5 mb-2">{line.replace(/^#\s/, '')}</p>;
+        return <p key={i} style={{ fontSize: '14px', fontWeight: 600, color: '#17191a', marginTop: '16px' }}>{line.replace(/^#\s/, '')}</p>;
       const boldParsed = line.split(/\*\*([^*]+)\*\*/g).map((part, j) =>
-        j % 2 === 1 ? <strong key={j} className="font-bold text-brand-black">{part}</strong> : part
+        j % 2 === 1 ? <strong key={j} style={{ fontWeight: 600, color: '#17191a' }}>{part}</strong> : part
       );
       if (/^[-•]\s/.test(line))
-        return <p key={i} className="text-sm text-brand-gray leading-relaxed flex gap-2"><span className="text-brand-rose flex-shrink-0">—</span><span>{boldParsed}</span></p>;
-      return <p key={i} className="text-sm text-brand-gray leading-relaxed">{boldParsed}</p>;
+        return <p key={i} style={{ fontSize: '13px', lineHeight: 1.65, color: 'rgba(23,25,26,0.65)', display: 'flex', gap: '8px' }}>
+          <span style={{ color: '#c9a227', flexShrink: 0 }}>—</span><span>{boldParsed}</span>
+        </p>;
+      return <p key={i} style={{ fontSize: '13px', lineHeight: 1.65, color: 'rgba(23,25,26,0.65)' }}>{boldParsed}</p>;
     })}
   </div>
 );
 
 // ── Highlight matched text ────────────────────────────────────────────────────
+
 const Highlight: React.FC<{ text: string; query: string }> = ({ text, query }) => {
   if (!query.trim()) return <>{text}</>;
   const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
@@ -105,19 +96,43 @@ const Highlight: React.FC<{ text: string; query: string }> = ({ text, query }) =
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === query.toLowerCase()
-          ? <mark key={i} className="bg-brand-rose/20 text-brand-rose rounded px-0.5">{part}</mark>
+          ? <mark key={i} style={{ background: 'rgba(201,162,39,0.20)', color: '#8a6b0f', padding: '0 2px' }}>{part}</mark>
           : part
       )}
     </>
   );
 };
 
-// ── Day availability ──────────────────────────────────────────────────────────
+// ── DayAvailability ───────────────────────────────────────────────────────────
+
 interface DayAvailability { enabled: boolean; times: Set<TimeSlot> }
 const defaultAvailability = (): Record<string, DayAvailability> =>
   Object.fromEntries(WEEK_DAYS.map(d => [d, { enabled: false, times: new Set<TimeSlot>() }]));
 
+// ── Tab button ────────────────────────────────────────────────────────────────
+
+function TabBtn({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="font-mono text-[9px] tracking-[0.18em] uppercase transition-colors"
+      style={{
+        padding: '9px 18px',
+        background: active ? '#17191a' : 'transparent',
+        color: active ? '#f4f3ef' : 'rgba(23,25,26,0.50)',
+        border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)',
+        cursor: 'pointer',
+      }}
+      onMouseEnter={e => { if (!active) { e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#17191a'; } }}
+      onMouseLeave={e => { if (!active) { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.50)'; } }}
+    >
+      {label}
+    </button>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
+
 const CalendarView: React.FC<CalendarViewProps> = ({
   sessions, weekPlans, scoutLocations, profile, gear,
   onSaveWeekPlan, onDeleteWeekPlan, onGoToSession,
@@ -136,26 +151,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const [planResult, setPlanResult]             = useState('');
   const [isGenerating, setIsGenerating]         = useState(false);
   const [pinnedThisResult, setPinnedThisResult] = useState(false);
-  // "Week of" — defaults to current week's Monday
-  const [weekMonday, setWeekMonday] = useState<Date>(() => getMondayOf(today));
+  const [weekMonday, setWeekMonday]             = useState<Date>(() => getMondayOf(today));
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Derived week info
-  const currentWeekDates  = useMemo(() => weekDates(weekMonday), [weekMonday]);
-  const currentWeekLabel  = useMemo(() => weekLabel(weekMonday), [weekMonday]);
+  const currentWeekDates = useMemo(() => weekDates(weekMonday), [weekMonday]);
+  const currentWeekLabel = useMemo(() => weekLabel(weekMonday), [weekMonday]);
 
-  const prevWeek = () => setWeekMonday(prev => { const d = new Date(prev); d.setDate(d.getDate() - 7); return d; });
-  const nextWeek = () => setWeekMonday(prev => { const d = new Date(prev); d.setDate(d.getDate() + 7); return d; });
-
-  // Calendar helpers
+  const prevWeek  = () => setWeekMonday(prev => { const d = new Date(prev); d.setDate(d.getDate() - 7); return d; });
+  const nextWeek  = () => setWeekMonday(prev => { const d = new Date(prev); d.setDate(d.getDate() + 7); return d; });
   const prevMonth = () => setCurrent(new Date(current.getFullYear(), current.getMonth() - 1, 1));
   const nextMonth = () => setCurrent(new Date(current.getFullYear(), current.getMonth() + 1, 1));
-  const goToday   = () => {
-    setCurrent(new Date(today.getFullYear(), today.getMonth(), 1));
-    setSelectedDate(toYMD(today));
-  };
+  const goToday   = () => { setCurrent(new Date(today.getFullYear(), today.getMonth(), 1)); setSelectedDate(toYMD(today)); };
 
   const cells = useMemo(() => {
     const year = current.getFullYear(), month = current.getMonth();
@@ -176,7 +184,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const sessionsByDate = useMemo(() => {
     const map: Record<string, Session[]> = {};
-    sessions.forEach(s => { if (!s.date) return; const k = s.date.slice(0,10); (map[k] ??= []).push(s); });
+    sessions.forEach(s => { if (!s.date) return; const k = s.date.slice(0, 10); (map[k] ??= []).push(s); });
     return map;
   }, [sessions]);
 
@@ -184,7 +192,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const selectedSessions = selectedDate ? (sessionsByDate[selectedDate] ?? []) : [];
   const activeSessions   = sessions.filter(s => s.status !== 'archived');
 
-  // Search
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return { sessions: [] };
@@ -195,7 +202,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     };
   }, [searchQuery, sessions]);
 
-  // Planner helpers
   const togglePlannerSession = (id: string) =>
     setPlannerSessions(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
@@ -211,9 +217,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const canGenerate = plannerSessions.size > 0 && WEEK_DAYS.some(d => availability[d].enabled);
 
-  // Maps each session status to what the photographer needs to do NEXT
   const STATUS_NEXT_TASK: Record<SessionStatus, string> = {
-    capturing:   'NEXT: Shoot day — plan the shoot, location scout, and gear prep. The shutter has not been pressed yet.',
+    capturing:   'NEXT: Shoot day — plan the shoot, location scout, and gear prep.',
     shot:        'NEXT: Cull — review and select the best frames from the shoot.',
     culled:      'NEXT: Edit — process and retouch the selected images.',
     edited:      'NEXT: Back up — export finals and back up all files.',
@@ -222,7 +227,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     archived:    'NEXT: Complete — no remaining tasks.',
   };
 
-  // ── Context formatters (mirrors App.tsx) ─────────────────────────────────
   const formatProfileForContext = (): string => {
     const genres    = profile.primaryGenres.join(', ') || 'None specified';
     const style     = profile.styleKeywords.join(', ') || 'None specified';
@@ -230,22 +234,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const tethering = profile.tetheringApps.join(', ') || 'None specified';
     return [
       'PHOTOGRAPHER PROFILE:',
-      profile.name          ? `Name: ${profile.name}`                               : null,
-      profile.yearsShooting ? `Years Shooting: ${profile.yearsShooting}`             : null,
+      profile.name          ? `Name: ${profile.name}`                                 : null,
+      profile.yearsShooting ? `Years Shooting: ${profile.yearsShooting}`               : null,
       `Primary Genres: ${genres}`,
       `Typical Work: ${profile.typicalWork || 'Not specified'}`,
       `Style Keywords: ${style}`,
       `Software Workflow: ${editing}`,
       `Tethering Apps: ${tethering}`,
-      profile.otherEditingAppNote   ? `Note on Editing: ${profile.otherEditingAppNote}`   : null,
+      profile.otherEditingAppNote   ? `Note on Editing: ${profile.otherEditingAppNote}`     : null,
       profile.otherTetheringAppNote ? `Note on Tethering: ${profile.otherTetheringAppNote}` : null,
       `Risk Profile: ${profile.riskProfile}`,
-      profile.strengths          ? `Strengths: ${profile.strengths}`                   : null,
-      profile.struggles          ? `Struggles: ${profile.struggles}`                   : null,
-      profile.physicalConstraints? `Physical Constraints: ${profile.physicalConstraints}` : null,
-      profile.accessReality      ? `Access Reality: ${profile.accessReality}`           : null,
-      profile.timeBudget         ? `Time Budget: ${profile.timeBudget}`                 : null,
-      profile.growthGoals        ? `Growth Goals: ${profile.growthGoals}`               : null,
+      profile.strengths           ? `Strengths: ${profile.strengths}`                   : null,
+      profile.struggles           ? `Struggles: ${profile.struggles}`                   : null,
+      profile.physicalConstraints ? `Physical Constraints: ${profile.physicalConstraints}` : null,
+      profile.accessReality       ? `Access Reality: ${profile.accessReality}`           : null,
+      profile.timeBudget          ? `Time Budget: ${profile.timeBudget}`                 : null,
+      profile.growthGoals         ? `Growth Goals: ${profile.growthGoals}`               : null,
     ].filter(Boolean).join('\n');
   };
 
@@ -254,8 +258,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     if (available.length === 0) return '';
     const lines = available.map(g =>
       `- ${g.name} | ${g.category}` +
-      (g.details             ? ` | Details: ${g.details}`       : '') +
-      (g.tags?.length        ? ` | Tags: ${g.tags.join(', ')}`  : '')
+      (g.details          ? ` | Details: ${g.details}`      : '') +
+      (g.tags?.length     ? ` | Tags: ${g.tags.join(', ')}` : '')
     );
     return 'AVAILABLE GEAR LOCKER:\n' + lines.join('\n');
   };
@@ -279,8 +283,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         ];
         if (s.strategy) lines.push(`  Existing strategy notes: ${s.strategy.slice(0, 400)}`);
         if (s.dayPlan)  lines.push(`  Existing day plan notes: ${s.dayPlan.slice(0, 400)}`);
-
-        // Include rich scout location data if one is linked to this session
         const scout = scoutLocations.find(sl => sl.sessionId === s.id);
         if (scout) {
           lines.push(`  Scouted location:`);
@@ -295,14 +297,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           if (scout.safetyNotes)   lines.push(`    Safety: ${scout.safetyNotes}`);
           if (scout.backupSpot)    lines.push(`    Backup spot: ${scout.backupSpot}`);
         } else if (s.scoutNotes) {
-          // Fall back to legacy plain-text scout notes
-          lines.push(`  Scouted location:\n${s.scoutNotes.split('\n').map(l => `    ${l}`).join('\n')}`);
+          lines.push(`  Scouted location:\n${s.scoutNotes.split('\n').map((l: string) => `    ${l}`).join('\n')}`);
         }
-
         return lines.join('\n');
       }).join('\n\n');
 
-    // Build availability text using real dates
     const availableDaysText = WEEK_DAYS
       .map((day, i) => ({ day, date: currentWeekDates[i] }))
       .filter(({ day }) => availability[day].enabled)
@@ -332,18 +331,13 @@ ${limitations.trim() || 'None provided.'}
 TODAY'S DATE: ${toYMD(today)}
 
 INSTRUCTIONS:
-- For each session, schedule ONLY the tasks that come NEXT based on its current status. Do not describe or summarise what has already been done.
-- Use the "NEXT" task label as your guide for what to assign this week.
-- A session with status "capturing" needs a shoot day — assign gear prep, scouting, and the shoot itself.
-- A session with status "shot" needs culling time — assign a focused review/selection block.
-- A session with status "culled" needs editing time — assign an editing block.
-- A session with status "edited" needs backup/export — assign a short backup block.
-- Use the exact dates provided (e.g. "Monday Apr 28") as headings for each day.
-- Respect existing strategy and day plan notes to inform timing and approach.
-- Avoid scheduling full shoot days back-to-back; spread heavy tasks across the week.
+- For each session, schedule ONLY the tasks that come NEXT based on its current status.
+- Use the exact dates provided as headings for each day.
+- Respect existing strategy and day plan notes.
+- Avoid scheduling full shoot days back-to-back.
 - Include one sentence of reasoning per day explaining why that task fits that day.
 - End with a short prep checklist of things to do before the week starts.
-- Be concise and action-oriented. Do not add filler text.`;
+- Be concise and action-oriented.`;
 
     const result = await generateWeeklyPlan(prompt);
     setPlanResult(result);
@@ -363,141 +357,163 @@ INSTRUCTIONS:
     setPinnedThisResult(true);
   };
 
-  // ── Calendar render ───────────────────────────────────────────────────────
+  // ── Calendar view ─────────────────────────────────────────────────────────
+
   const renderCalendar = () => (
-    <div className="space-y-8">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <h2 className="text-4xl font-display text-brand-black tracking-wide">CALENDAR</h2>
-          <p className="text-brand-gray mt-2 text-sm font-medium">Sessions mapped by date.</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <button onClick={goToday} className="text-xs font-medium px-4 py-2 border border-brand-black/10 rounded-md hover:border-brand-rose hover:text-brand-rose transition-all">Today</button>
-          <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-md hover:border-brand-rose hover:text-brand-rose transition-all">
-            <i className="fa-solid fa-chevron-left text-[10px]"></i>
-          </button>
-          <span className="text-sm font-semibold text-brand-black min-w-[160px] text-center">
+    <div>
+      {/* Month navigation */}
+      <div className="flex items-center justify-between mb-5" style={{ borderBottom: '1px solid rgba(23,25,26,0.12)', paddingBottom: '14px' }}>
+        <div className="flex items-center gap-3">
+          <button onClick={prevMonth} style={{ padding: '6px 10px', border: '1px solid rgba(23,25,26,0.16)', background: 'transparent', cursor: 'pointer', color: 'rgba(23,25,26,0.55)' }}>‹</button>
+          <span className="font-mono text-[11px] tracking-[0.16em] uppercase font-medium" style={{ color: '#17191a', minWidth: '160px', textAlign: 'center' }}>
             {MONTHS[current.getMonth()]} {current.getFullYear()}
           </span>
-          <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-md hover:border-brand-rose hover:text-brand-rose transition-all">
-            <i className="fa-solid fa-chevron-right text-[10px]"></i>
-          </button>
+          <button onClick={nextMonth} style={{ padding: '6px 10px', border: '1px solid rgba(23,25,26,0.16)', background: 'transparent', cursor: 'pointer', color: 'rgba(23,25,26,0.55)' }}>›</button>
         </div>
-      </header>
+        <button
+          onClick={goToday}
+          className="font-mono text-[8px] tracking-[0.16em] uppercase transition-colors"
+          style={{ padding: '6px 12px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', cursor: 'pointer', color: 'rgba(23,25,26,0.55)' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#8a6b0f'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.55)'; }}
+        >
+          Today
+        </button>
+      </div>
 
-      <div className="bg-white border border-brand-black/5 rounded-lg shadow-sm overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-brand-black/5">
-          {GRID_DAYS.map(d => <div key={d} className="py-3 text-center text-xs font-semibold text-brand-gray">{d}</div>)}
+      {/* Grid */}
+      <div style={{ border: '1px solid rgba(23,25,26,0.14)' }}>
+        {/* Day headers */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid rgba(23,25,26,0.14)' }}>
+          {GRID_DAYS.map(d => (
+            <div key={d} className="font-mono text-[8px] tracking-[0.18em] uppercase text-center py-2" style={{ color: 'rgba(23,25,26,0.38)', borderRight: '1px solid rgba(23,25,26,0.08)' }}>{d}</div>
+          ))}
         </div>
-        <div className="grid grid-cols-7">
+        {/* Cells */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
           {cells.map(({ date, inMonth }) => {
             const daySessions = sessionsByDate[date] ?? [];
             const isToday     = date === todayStr;
             const isSelected  = date === selectedDate;
             return (
-              <button key={date} onClick={() => setSelectedDate(date === selectedDate ? null : date)}
-                className={`min-h-[80px] md:min-h-[100px] p-2 md:p-3 text-left border-b border-r border-brand-black/5 transition-all
-                  ${isSelected ? 'bg-brand-blue/5 ring-1 ring-inset ring-brand-blue/30' : 'hover:bg-brand-black/[0.02]'}
-                  ${!inMonth ? 'bg-brand-black/[0.015]' : ''}
-                `}>
-                <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold mb-1
-                  ${isToday ? 'bg-brand-rose text-white' : inMonth ? 'text-brand-black' : 'text-brand-gray/30'}`}>
+              <button
+                key={date}
+                onClick={() => setSelectedDate(date === selectedDate ? null : date)}
+                style={{
+                  minHeight: '80px',
+                  padding: '6px 5px',
+                  textAlign: 'left',
+                  borderRight: '1px solid rgba(23,25,26,0.08)',
+                  borderBottom: '1px solid rgba(23,25,26,0.08)',
+                  background: isSelected ? 'rgba(201,162,39,0.06)' : inMonth ? 'transparent' : 'rgba(23,25,26,0.02)',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                  outline: 'none',
+                }}
+                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(23,25,26,0.02)'; }}
+                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = inMonth ? 'transparent' : 'rgba(23,25,26,0.02)'; }}
+              >
+                {/* Date number */}
+                <span
+                  className="font-mono text-[10px] inline-flex items-center justify-center mb-1"
+                  style={{
+                    width: '20px', height: '20px',
+                    background: isToday ? '#c9a227' : 'transparent',
+                    color: isToday ? '#17191a' : inMonth ? '#17191a' : 'rgba(23,25,26,0.25)',
+                    fontWeight: isToday ? 600 : 400,
+                  }}
+                >
                   {new Date(date + 'T12:00:00').getDate()}
                 </span>
-                <div className="space-y-1 hidden md:block">
-                  {daySessions.slice(0, 2).map(s => (
-                    <div key={s.id} className={`text-[9px] font-medium px-1.5 py-0.5 rounded border truncate leading-tight ${STATUS_CHIP[s.status]}`}>
+                {/* Session rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  {daySessions.slice(0, 3).map(s => (
+                    <div
+                      key={s.id}
+                      className="font-mono text-[8px] truncate"
+                      style={{
+                        padding: '1px 4px',
+                        borderLeft: `2px solid ${STATUS_COLOR[s.status]}`,
+                        color: 'rgba(23,25,26,0.65)',
+                        background: 'rgba(23,25,26,0.04)',
+                      }}
+                    >
                       {s.title || s.location || 'Untitled'}
                     </div>
                   ))}
-                  {daySessions.length > 4 && (
-                    <div className="text-[8px] font-bold text-brand-gray/50 pl-1">+{daySessions.length - 4} more</div>
+                  {daySessions.length > 3 && (
+                    <p className="font-mono text-[7px] tracking-[0.10em]" style={{ color: 'rgba(23,25,26,0.38)', paddingLeft: '4px' }}>+{daySessions.length - 3}</p>
                   )}
                 </div>
-                {daySessions.length > 0 && (
-                  <div className="flex gap-0.5 flex-wrap mt-1 md:hidden">
-                    {daySessions.slice(0, 3).map(s => <span key={s.id} className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status]}`}></span>)}
-                  </div>
-                )}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 items-center">
-        {(Object.keys(STATUS_DOT) as SessionStatus[]).filter(s => s !== 'archived').map(s => (
-          <div key={s} className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${STATUS_DOT[s]}`}></span>
-            <span className="text-xs text-brand-gray/70">{s}</span>
+      {/* Status legend */}
+      <div className="flex flex-wrap gap-4 mt-4">
+        {(Object.entries(STATUS_COLOR) as [SessionStatus, string][]).map(([s, color]) => (
+          <div key={s} className="flex items-center gap-1.5">
+            <span style={{ width: '8px', height: '8px', background: color, display: 'inline-block' }} />
+            <span className="font-mono text-[8px] tracking-[0.12em] uppercase" style={{ color: 'rgba(23,25,26,0.50)' }}>{s}</span>
           </div>
         ))}
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-brand-rose/50"></span>
-          <span className="text-xs text-brand-gray/70">Journal</span>
-        </div>
       </div>
 
+      {/* Selected date panel */}
       {selectedDate && (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-medium text-brand-black/50">
+        <div style={{ marginTop: '20px', borderTop: '1px solid rgba(23,25,26,0.12)', paddingTop: '18px' }}>
+          <div className="flex items-center justify-between mb-4">
+            <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.50)' }}>
               {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-            </h3>
-            <button onClick={() => setSelectedDate(null)} className="text-brand-gray/40 hover:text-brand-rose transition-colors">
-              <i className="fa-solid fa-xmark text-sm"></i>
+            </p>
+            <button
+              onClick={() => setSelectedDate(null)}
+              className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors"
+              style={{ color: 'rgba(23,25,26,0.40)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#17191a')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(23,25,26,0.40)')}
+            >
+              × Close
             </button>
           </div>
-          {selectedSessions.length === 0 && (
-            <div className="py-12 text-center border border-dashed border-brand-black/10 rounded-lg">
-              <p className="text-sm text-brand-gray/40">Nothing logged on this day</p>
-            </div>
-          )}
-          {selectedSessions.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-brand-black/40 mb-3">Sessions</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {selectedSessions.map(s => {
-                  const cardScout = scoutLocations.find(sl => sl.sessionId === s.id);
-                  return (
-                    <div key={s.id} className="bg-white border border-brand-black/5 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
-                      <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
-                        <p className="text-base font-semibold text-white leading-snug truncate">{s.title || s.location || 'Untitled'}</p>
-                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${STATUS_DOT[s.status]}`}></span>
-                      </div>
-                      <div className="px-5 py-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-xs font-medium px-2 py-1 rounded border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
-                          {s.genre && s.genre.length > 0 && <span className="text-xs text-brand-gray/70">{s.genre.join(' · ')}</span>}
-                        </div>
-                        {s.notes && <p className="text-xs text-brand-gray leading-relaxed line-clamp-2">{s.notes}</p>}
-                        {/* Scout location — mirrors the Strategy display pattern */}
-                        {(cardScout || s.scoutNotes) && (
-                          <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-100 rounded-md px-3 py-2">
-                            <i className="fa-solid fa-location-dot text-emerald-500 text-xs mt-0.5 flex-shrink-0"></i>
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold text-emerald-700 truncate">
-                                {cardScout ? cardScout.name : 'Scouted location'}
-                              </p>
-                              {cardScout?.area && (
-                                <p className="text-[10px] text-emerald-600/70 truncate">{cardScout.area}</p>
-                              )}
-                              {cardScout?.bestTime && cardScout.bestTime !== 'Any Time' && (
-                                <p className="text-[10px] text-emerald-600/70 truncate">
-                                  <i className="fa-regular fa-clock mr-0.5"></i>{cardScout.bestTime}
-                                </p>
-                              )}
-                            </div>
-                          </div>
+          {selectedSessions.length === 0 ? (
+            <p className="font-mono text-[9px] tracking-[0.16em] uppercase" style={{ color: 'rgba(23,25,26,0.35)', padding: '20px 0' }}>
+              Nothing logged on this day
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {selectedSessions.map(s => {
+                const cardScout = scoutLocations.find(sl => sl.sessionId === s.id);
+                return (
+                  <div key={s.id} style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderLeft: `3px solid ${STATUS_COLOR[s.status]}`, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '14px', fontWeight: 500, color: '#17191a', marginBottom: '4px' }}>{s.title || s.location || 'Untitled'}</p>
+                      <div className="flex flex-wrap gap-3 items-center">
+                        <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: STATUS_COLOR[s.status] }}>{s.status}</span>
+                        {s.genre && s.genre.length > 0 && (
+                          <span className="font-mono text-[8px] tracking-[0.10em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>{s.genre.join(' · ')}</span>
                         )}
-                        <button onClick={() => onGoToSession(s.id)} className="w-full text-xs font-medium py-2.5 bg-brand-black/5 hover:bg-brand-blue hover:text-white text-brand-black rounded-md transition-all">
-                          Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
-                        </button>
+                        {(cardScout || s.scoutNotes) && (
+                          <span className="font-mono text-[8px] tracking-[0.10em] uppercase" style={{ color: '#4b6b52' }}>
+                            {cardScout ? cardScout.name : 'Scouted'}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                    <button
+                      onClick={() => onGoToSession(s.id)}
+                      className="font-mono text-[8px] tracking-[0.14em] uppercase shrink-0 transition-colors"
+                      style={{ padding: '6px 12px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', cursor: 'pointer', color: 'rgba(23,25,26,0.55)' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#8a6b0f'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.55)'; }}
+                    >
+                      Open ↗
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -505,323 +521,404 @@ INSTRUCTIONS:
     </div>
   );
 
-  // ── Search render ─────────────────────────────────────────────────────────
+  // ── Search view ───────────────────────────────────────────────────────────
+
   const renderSearch = () => (
-    <div className="space-y-8">
-      <header>
-        <h2 className="text-4xl font-display text-brand-black tracking-wide">SEARCH</h2>
-        <p className="text-brand-gray mt-2 text-sm font-medium">Find sessions by keyword.</p>
-      </header>
-      <div className="relative">
-        <i className="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-brand-gray/40 text-sm"></i>
-        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Search by title, location, genre, notes, tags, strategy..." autoFocus
-          className="w-full pl-12 pr-5 py-4 bg-white border border-brand-black/10 rounded-md focus:ring-2 focus:ring-brand-blue outline-none text-sm text-brand-black placeholder:text-brand-gray/40 shadow-sm" />
+    <div>
+      <div style={{ position: 'relative', marginBottom: '18px' }}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search by title, location, genre, notes…"
+          autoFocus
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            padding: '11px 40px 11px 14px',
+            fontSize: '13px', color: '#17191a',
+            background: 'rgba(23,25,26,0.04)',
+            border: '1px solid rgba(23,25,26,0.14)',
+            outline: 'none', fontFamily: 'inherit',
+          }}
+        />
         {searchQuery && (
-          <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-gray/40 hover:text-brand-rose transition-colors">
-            <i className="fa-solid fa-xmark"></i>
+          <button
+            onClick={() => setSearchQuery('')}
+            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(23,25,26,0.40)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}
+          >
+            ×
           </button>
         )}
       </div>
       {!searchQuery.trim() ? (
-        <div className="py-20 text-center border border-dashed border-brand-black/10 rounded-lg">
-          <i className="fa-solid fa-magnifying-glass text-brand-gray/20 text-3xl mb-4 block"></i>
-          <p className="text-sm text-brand-gray/50 font-normal">Type to search your sessions and journal</p>
-        </div>
-      ) : searchResults.sessions.length === 0 && searchResults.journal.length === 0 ? (
-        <div className="py-20 text-center border border-dashed border-brand-black/10 rounded-lg">
-          <p className="text-sm text-brand-gray/50 font-normal">No results for "{searchQuery}"</p>
-        </div>
+        <p className="font-mono text-[9px] tracking-[0.18em] uppercase py-10" style={{ color: 'rgba(23,25,26,0.35)' }}>
+          Type to search sessions
+        </p>
+      ) : searchResults.sessions.length === 0 ? (
+        <p className="font-mono text-[9px] tracking-[0.18em] uppercase py-10" style={{ color: 'rgba(23,25,26,0.35)' }}>
+          No results for "{searchQuery}"
+        </p>
       ) : (
-        <div className="space-y-10">
-          {searchResults.sessions.length > 0 && (
-            <section>
-              <p className="text-xs font-medium text-brand-black/40 mb-4 flex items-center gap-2">
-                <i className="fa-solid fa-camera"></i> Sessions
-                <span className="bg-brand-blue/10 text-brand-blue px-2 py-0.5 rounded">{searchResults.sessions.length}</span>
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {searchResults.sessions.map(s => (
-                  <div key={s.id} className="bg-white border border-brand-black/5 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
-                    <div className="bg-brand-black px-5 py-4 flex items-center justify-between">
-                      <div>
-                        <p className="text-base font-semibold text-white leading-snug"><Highlight text={s.title || s.location || 'Untitled'} query={searchQuery} /></p>
-                        <p className="text-xs text-brand-gray/60 mt-1">{s.date}</p>
-                      </div>
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${STATUS_DOT[s.status]}`}></span>
-                    </div>
-                    <div className="px-5 py-4 space-y-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-xs font-medium px-2 py-1 rounded border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
-                        {s.genre?.map(g => <span key={g} className="text-xs text-brand-gray/70">{g}</span>)}
-                      </div>
-                      {s.notes && <p className="text-xs text-brand-gray leading-relaxed line-clamp-2"><Highlight text={s.notes} query={searchQuery} /></p>}
-                      <button onClick={() => onGoToSession(s.id)} className="w-full text-xs font-medium py-2.5 bg-brand-black/5 hover:bg-brand-blue hover:text-white text-brand-black rounded-md transition-all mt-2">
-                        Open Session <i className="fa-solid fa-arrow-right text-[8px] ml-1"></i>
-                      </button>
-                    </div>
-                  </div>
-                ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+          {searchResults.sessions.map((s, i) => (
+            <div
+              key={s.id}
+              style={{
+                background: '#f8f7f4',
+                borderTop: i === 0 ? '1px solid rgba(23,25,26,0.14)' : 'none',
+                borderBottom: '1px solid rgba(23,25,26,0.14)',
+                borderLeft: `3px solid ${STATUS_COLOR[s.status]}`,
+                borderRight: '1px solid rgba(23,25,26,0.14)',
+                padding: '12px 16px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: '#17191a', marginBottom: '3px' }}>
+                  <Highlight text={s.title || s.location || 'Untitled'} query={searchQuery} />
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <span className="font-mono text-[8px] tracking-[0.12em] uppercase" style={{ color: STATUS_COLOR[s.status] }}>{s.status}</span>
+                  <span className="font-mono text-[8px] tracking-[0.10em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>{s.date}</span>
+                  {s.genre?.map(g => (
+                    <span key={g} className="font-mono text-[8px] tracking-[0.10em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>{g}</span>
+                  ))}
+                </div>
+                {s.notes && (
+                  <p style={{ fontSize: '12px', color: 'rgba(23,25,26,0.55)', marginTop: '4px', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                    <Highlight text={s.notes} query={searchQuery} />
+                  </p>
+                )}
               </div>
-            </section>
-          )}
+              <button
+                onClick={() => onGoToSession(s.id)}
+                className="font-mono text-[8px] tracking-[0.14em] uppercase shrink-0 transition-colors"
+                style={{ padding: '6px 12px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', cursor: 'pointer', color: 'rgba(23,25,26,0.55)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#8a6b0f'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.55)'; }}
+              >
+                Open ↗
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 
-  // ── Week Planner render ───────────────────────────────────────────────────
-  const renderPlanner = () => (
-    <div className="space-y-10">
-      <header>
-        <h2 className="text-4xl font-display text-brand-black tracking-wide">WEEK PLANNER</h2>
-        <p className="text-brand-gray mt-2 text-sm font-medium">AI schedules your sessions around your availability.</p>
-      </header>
+  // ── Planner view ──────────────────────────────────────────────────────────
 
+  const renderPlanner = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
       {activeSessions.length === 0 ? (
-        <div className="py-24 text-center border border-dashed border-brand-black/10 rounded-lg">
-          <i className="fa-solid fa-calendar-days text-brand-gray/20 text-3xl mb-4 block"></i>
-          <p className="text-sm text-brand-gray/50 font-normal">No active sessions to schedule</p>
+        <div style={{ borderLeft: '2px solid rgba(23,25,26,0.18)', paddingLeft: '16px', padding: '16px', marginTop: '8px' }}>
+          <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No Active Sessions</p>
+          <p style={{ fontSize: '13px', color: 'rgba(23,25,26,0.55)', marginTop: '4px' }}>Add sessions on the Dashboard to start planning your week.</p>
         </div>
       ) : (
         <>
           {/* Step 1 — Sessions */}
-          <section className="bg-white border border-brand-black/5 rounded-lg shadow-sm p-8 space-y-6">
-            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-brand-black/50 border-b border-brand-black/5 pb-4">
-              <span className="text-brand-rose mr-2">01</span> SELECT SESSIONS TO SCHEDULE
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {activeSessions.map(s => {
+          <div style={{ border: '1px solid rgba(23,25,26,0.14)', background: '#f8f7f4', padding: '20px' }}>
+            <p className="font-mono text-[9px] tracking-[0.22em] uppercase mb-4" style={{ borderBottom: '1px solid rgba(23,25,26,0.10)', paddingBottom: '10px', color: 'rgba(23,25,26,0.45)' }}>
+              <span style={{ color: '#c9a227' }}>01</span> — Select Sessions
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+              {activeSessions.map((s, i) => {
                 const selected = plannerSessions.has(s.id);
                 const linkedScout = scoutLocations.find(sl => sl.sessionId === s.id);
                 return (
-                  <button key={s.id} onClick={() => togglePlannerSession(s.id)}
-                    className={`flex items-center gap-4 p-4 rounded-md border text-left transition-all ${selected ? 'border-brand-blue bg-brand-blue/5' : 'border-brand-black/5 hover:border-brand-black/15'}`}>
-                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected ? 'bg-brand-blue border-brand-blue' : 'border-brand-gray/30'}`}>
-                      {selected && <i className="fa-solid fa-check text-white text-[8px]"></i>}
+                  <button
+                    key={s.id}
+                    onClick={() => togglePlannerSession(s.id)}
+                    className="w-full flex items-center gap-4 text-left transition-colors"
+                    style={{
+                      padding: '10px 0',
+                      borderBottom: i < activeSessions.length - 1 ? '1px solid rgba(23,25,26,0.08)' : 'none',
+                      background: selected ? 'rgba(201,162,39,0.04)' : 'transparent',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{
+                      width: '12px', height: '12px', flexShrink: 0,
+                      border: selected ? '1px solid #c9a227' : '1px solid rgba(23,25,26,0.25)',
+                      background: selected ? '#c9a227' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {selected && <span style={{ fontSize: '8px', color: '#17191a' }}>✓</span>}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-brand-black truncate">{s.title || s.location || 'Untitled'}</p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${STATUS_CHIP[s.status]}`}>{s.status}</span>
-                        <span className="text-xs text-brand-gray/60">{s.date}</span>
-                        {s.strategy && <span className="text-xs text-brand-blue font-medium"><i className="fa-solid fa-bolt mr-0.5"></i>Strategy</span>}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '13px', fontWeight: 500, color: '#17191a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {s.title || s.location || 'Untitled'}
+                      </p>
+                      <div className="flex items-center gap-3 flex-wrap mt-1">
+                        <span className="font-mono text-[8px] tracking-[0.12em] uppercase" style={{ color: STATUS_COLOR[s.status] }}>{s.status}</span>
+                        <span className="font-mono text-[8px] tracking-[0.10em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>{s.date}</span>
                         {(linkedScout || s.scoutNotes) && (
-                          <span className="text-xs text-emerald-600 font-medium">
-                            <i className="fa-solid fa-location-dot mr-0.5"></i>
+                          <span className="font-mono text-[8px] tracking-[0.10em] uppercase" style={{ color: '#4b6b52' }}>
                             {linkedScout ? linkedScout.name : 'Scout'}
                           </span>
                         )}
                       </div>
-                      {s.genre && s.genre.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {s.genre.map(g => (
-                            <span key={g} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-brand-black/5 text-brand-gray/70">
-                              {g}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </button>
                 );
               })}
             </div>
-          </section>
+          </div>
 
           {/* Step 2 — Week of */}
-          <section className="bg-white border border-brand-black/5 rounded-lg shadow-sm p-8 space-y-6">
-            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-brand-black/50 border-b border-brand-black/5 pb-4">
-              <span className="text-brand-rose mr-2">02</span> CHOOSE WEEK
-            </h3>
-            <div className="flex items-center gap-3 flex-wrap">
-              <button onClick={prevWeek} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-md hover:border-brand-rose hover:text-brand-rose transition-all">
-                <i className="fa-solid fa-chevron-left text-[10px]"></i>
-              </button>
-              <div className="flex items-center gap-3 bg-brand-black/[0.03] px-5 py-2.5 rounded-md border border-brand-black/5">
-                <i className="fa-solid fa-calendar text-brand-rose text-[10px]"></i>
-                <span className="text-sm font-semibold text-brand-black">Week of {currentWeekLabel}</span>
-              </div>
-              <button onClick={nextWeek} className="w-8 h-8 flex items-center justify-center border border-brand-black/10 rounded-md hover:border-brand-rose hover:text-brand-rose transition-all">
-                <i className="fa-solid fa-chevron-right text-[10px]"></i>
-              </button>
-              {/* Jump to date */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-brand-gray/50">Jump to:</span>
-                <input
-                  type="date"
-                  onChange={e => { if (e.target.value) setWeekMonday(getMondayOf(new Date(e.target.value + 'T12:00:00'))); }}
-                  className="text-xs font-medium border border-brand-black/10 rounded-md px-3 py-2 focus:ring-1 focus:ring-brand-blue outline-none bg-white"
-                />
-              </div>
+          <div style={{ border: '1px solid rgba(23,25,26,0.14)', background: '#f8f7f4', padding: '20px' }}>
+            <p className="font-mono text-[9px] tracking-[0.22em] uppercase mb-4" style={{ borderBottom: '1px solid rgba(23,25,26,0.10)', paddingBottom: '10px', color: 'rgba(23,25,26,0.45)' }}>
+              <span style={{ color: '#c9a227' }}>02</span> — Choose Week
+            </p>
+            <div className="flex items-center gap-3 flex-wrap mb-4">
+              <button onClick={prevWeek} style={{ padding: '6px 10px', border: '1px solid rgba(23,25,26,0.16)', background: 'transparent', cursor: 'pointer', color: 'rgba(23,25,26,0.55)' }}>‹</button>
+              <span className="font-mono text-[10px] tracking-[0.14em] uppercase" style={{ color: '#17191a', padding: '6px 14px', border: '1px solid rgba(23,25,26,0.14)', background: 'rgba(23,25,26,0.04)' }}>
+                Week of {currentWeekLabel}
+              </span>
+              <button onClick={nextWeek} style={{ padding: '6px 10px', border: '1px solid rgba(23,25,26,0.16)', background: 'transparent', cursor: 'pointer', color: 'rgba(23,25,26,0.55)' }}>›</button>
+              <input
+                type="date"
+                onChange={e => { if (e.target.value) setWeekMonday(getMondayOf(new Date(e.target.value + 'T12:00:00'))); }}
+                style={{ padding: '6px 10px', border: '1px solid rgba(23,25,26,0.16)', background: 'transparent', fontSize: '11px', color: '#17191a', outline: 'none', cursor: 'pointer' }}
+              />
             </div>
-            {/* Mini week preview */}
-            <div className="grid grid-cols-7 gap-1">
-              {currentWeekDates.map((d, i) => (
-                <div key={i} className={`text-center p-2 rounded-md border ${toYMD(d) === todayStr ? 'border-brand-rose bg-brand-rose/5' : 'border-brand-black/5 bg-brand-black/[0.01]'}`}>
-                  <p className="text-xs font-semibold text-brand-gray">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</p>
-                  <p className={`text-xs font-bold mt-0.5 ${toYMD(d) === todayStr ? 'text-brand-rose' : 'text-brand-black'}`}>{d.getDate()}</p>
-                  <p className="text-[9px] text-brand-gray/50">{SHORT_MONTHS[d.getMonth()]}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Step 3 — Availability */}
-          <section className="bg-white border border-brand-black/5 rounded-lg shadow-sm p-8 space-y-6">
-            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-brand-black/50 border-b border-brand-black/5 pb-4">
-              <span className="text-brand-rose mr-2">03</span> SET YOUR AVAILABILITY
-            </h3>
-            <div className="space-y-2">
-              {WEEK_DAYS.map((day, i) => {
-                const { enabled, times } = availability[day];
-                const realDate = currentWeekDates[i];
+            {/* Mini week strip */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+              {currentWeekDates.map((d, i) => {
+                const isT = toYMD(d) === todayStr;
                 return (
-                  <div key={day} className={`rounded-md border transition-all ${enabled ? 'border-brand-black/10 bg-brand-black/[0.015]' : 'border-brand-black/5'}`}>
-                    <div className="flex items-center gap-4 px-5 py-3 flex-wrap">
-                      <button onClick={() => toggleDay(day)}
-                        className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${enabled ? 'bg-brand-blue border-brand-blue' : 'border-brand-gray/30'}`}>
-                        {enabled && <i className="fa-solid fa-check text-white text-[8px]"></i>}
-                      </button>
-                      <div className="flex items-baseline gap-2 w-44 flex-shrink-0">
-                        <span className={`text-xs font-semibold ${enabled ? 'text-brand-black' : 'text-brand-gray/40'}`}>{day.slice(0,3)}</span>
-                        <span className={`text-xs ${toYMD(realDate) === todayStr ? 'text-brand-rose font-semibold' : 'text-brand-gray/50'}`}>
-                          {shortDate(realDate)}{toYMD(realDate) === todayStr ? ' · Today' : ''}
-                        </span>
-                      </div>
-                      {enabled ? (
-                        <div className="flex gap-2 flex-wrap">
-                          {TIME_SLOTS.map(slot => (
-                            <button key={slot} onClick={() => toggleTime(day, slot)}
-                              className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${times.has(slot) ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-brand-gray border-brand-black/10 hover:border-brand-black/30'}`}>
-                              {slot === 'Morning' ? '🌅' : slot === 'Afternoon' ? '☀️' : '🌙'} {slot}
-                            </button>
-                          ))}
-                          {times.size === 0 && <span className="text-[9px] text-brand-gray/40 italic self-center">Any time</span>}
-                        </div>
-                      ) : (
-                        <span className="text-[9px] text-brand-gray/25 italic">Not available</span>
-                      )}
-                    </div>
+                  <div key={i} style={{ textAlign: 'center', padding: '6px 2px', border: isT ? '1px solid #c9a227' : '1px solid rgba(23,25,26,0.10)', background: isT ? 'rgba(201,162,39,0.06)' : 'transparent' }}>
+                    <p className="font-mono text-[7px] tracking-[0.12em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>{['M','T','W','T','F','S','S'][i]}</p>
+                    <p className="font-mono text-[10px] font-medium" style={{ color: isT ? '#c9a227' : '#17191a', marginTop: '2px' }}>{d.getDate()}</p>
                   </div>
                 );
               })}
             </div>
-          </section>
+          </div>
+
+          {/* Step 3 — Availability */}
+          <div style={{ border: '1px solid rgba(23,25,26,0.14)', background: '#f8f7f4', padding: '20px' }}>
+            <p className="font-mono text-[9px] tracking-[0.22em] uppercase mb-4" style={{ borderBottom: '1px solid rgba(23,25,26,0.10)', paddingBottom: '10px', color: 'rgba(23,25,26,0.45)' }}>
+              <span style={{ color: '#c9a227' }}>03</span> — Set Availability
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+              {WEEK_DAYS.map((day, i) => {
+                const { enabled, times } = availability[day];
+                const realDate = currentWeekDates[i];
+                const isT = toYMD(realDate) === todayStr;
+                return (
+                  <div
+                    key={day}
+                    className="flex items-center gap-4 flex-wrap"
+                    style={{
+                      padding: '9px 0',
+                      borderBottom: i < WEEK_DAYS.length - 1 ? '1px solid rgba(23,25,26,0.08)' : 'none',
+                      background: enabled ? 'rgba(201,162,39,0.02)' : 'transparent',
+                    }}
+                  >
+                    <button
+                      onClick={() => toggleDay(day)}
+                      style={{
+                        width: '12px', height: '12px', flexShrink: 0,
+                        border: enabled ? '1px solid #c9a227' : '1px solid rgba(23,25,26,0.25)',
+                        background: enabled ? '#c9a227' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {enabled && <span style={{ fontSize: '8px', color: '#17191a' }}>✓</span>}
+                    </button>
+                    <div style={{ width: '120px', flexShrink: 0 }}>
+                      <span className="font-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: enabled ? '#17191a' : 'rgba(23,25,26,0.35)' }}>{day.slice(0, 3)}</span>
+                      <span className="font-mono text-[8px] tracking-[0.10em] uppercase ml-2" style={{ color: isT ? '#c9a227' : 'rgba(23,25,26,0.40)' }}>
+                        {shortDate(realDate)}{isT ? ' · Today' : ''}
+                      </span>
+                    </div>
+                    {enabled ? (
+                      <div className="flex gap-2 flex-wrap">
+                        {TIME_SLOTS.map(slot => (
+                          <button
+                            key={slot}
+                            onClick={() => toggleTime(day, slot)}
+                            className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors"
+                            style={{
+                              padding: '4px 10px',
+                              border: times.has(slot) ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)',
+                              background: times.has(slot) ? '#17191a' : 'transparent',
+                              color: times.has(slot) ? '#f4f3ef' : 'rgba(23,25,26,0.50)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {slot}
+                          </button>
+                        ))}
+                        {times.size === 0 && <span className="font-mono text-[8px] tracking-[0.12em] uppercase" style={{ color: 'rgba(23,25,26,0.30)' }}>Any time</span>}
+                      </div>
+                    ) : (
+                      <span className="font-mono text-[8px] tracking-[0.10em] uppercase" style={{ color: 'rgba(23,25,26,0.22)' }}>Not available</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Step 4 — Limitations */}
-          <section className="bg-white border border-brand-black/5 rounded-lg shadow-sm p-8 space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-brand-black/50 border-b border-brand-black/5 pb-4">
-              <span className="text-brand-rose mr-2">04</span> ADDITIONAL CONSTRAINTS (OPTIONAL)
-            </h3>
-            <textarea value={limitations} onChange={e => setLimitations(e.target.value)}
-              placeholder="e.g. I have a job interview on Tuesday afternoon, golden hour only for outdoor shoots, avoid back-to-back editing days..."
-              className="w-full h-28 p-4 bg-brand-white border border-brand-black/5 rounded-md focus:ring-1 focus:ring-brand-blue outline-none text-sm leading-relaxed text-brand-black placeholder:text-brand-gray/40 resize-none" />
-          </section>
+          <div style={{ border: '1px solid rgba(23,25,26,0.14)', background: '#f8f7f4', padding: '20px' }}>
+            <p className="font-mono text-[9px] tracking-[0.22em] uppercase mb-4" style={{ borderBottom: '1px solid rgba(23,25,26,0.10)', paddingBottom: '10px', color: 'rgba(23,25,26,0.45)' }}>
+              <span style={{ color: '#c9a227' }}>04</span> — Constraints (Optional)
+            </p>
+            <textarea
+              value={limitations}
+              onChange={e => setLimitations(e.target.value)}
+              placeholder="e.g. Job interview Tuesday afternoon, golden hour only for outdoor shoots…"
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                height: '90px', padding: '10px 12px',
+                fontSize: '12px', color: '#17191a',
+                background: 'rgba(23,25,26,0.04)',
+                border: '1px solid rgba(23,25,26,0.14)',
+                outline: 'none', resize: 'none', fontFamily: 'inherit',
+              }}
+            />
+          </div>
 
           {/* Generate button */}
-          <div className="flex justify-end">
-            <button disabled={!canGenerate || isGenerating} onClick={handleGenerate}
-              className={`flex items-center gap-3 px-10 py-4 rounded-md text-sm font-semibold transition-all ${!canGenerate || isGenerating ? 'bg-brand-white text-brand-gray border border-brand-black/5 cursor-not-allowed' : 'bg-brand-blue text-white hover:bg-[#7a93a0] hover:shadow-md active:scale-95 shadow-sm'}`}>
-              {isGenerating ? <><i className="fa-solid fa-circle-notch animate-spin"></i> Building schedule...</> : <><i className="fa-solid fa-calendar-check"></i> Generate week schedule</>}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              disabled={!canGenerate || isGenerating}
+              onClick={handleGenerate}
+              className="font-mono text-[9px] tracking-[0.20em] uppercase transition-colors"
+              style={{
+                padding: '12px 28px',
+                background: !canGenerate || isGenerating ? 'rgba(23,25,26,0.08)' : '#17191a',
+                border: !canGenerate || isGenerating ? '1px solid rgba(23,25,26,0.14)' : '1px solid #17191a',
+                color: !canGenerate || isGenerating ? 'rgba(23,25,26,0.30)' : '#f4f3ef',
+                cursor: !canGenerate || isGenerating ? 'not-allowed' : 'pointer',
+              }}
+              onMouseEnter={e => { if (canGenerate && !isGenerating) { e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#17191a'; } }}
+              onMouseLeave={e => { if (canGenerate && !isGenerating) { e.currentTarget.style.background = '#17191a'; e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#f4f3ef'; } }}
+            >
+              {isGenerating ? 'Building Schedule…' : 'Generate Week Schedule'}
             </button>
           </div>
 
           {/* Result */}
           {(planResult || isGenerating) && (
-            <section className="bg-white border border-brand-black/5 rounded-lg shadow-sm overflow-hidden animate-in fade-in duration-500">
-              <div className="bg-brand-black px-8 py-5 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-brand-rose mb-1">PHOTOVISE SCHEDULING AI</p>
-                  <p className="text-base font-semibold text-white">Week of {currentWeekLabel}</p>
-                </div>
-                <i className="fa-solid fa-calendar-week text-brand-rose/40 text-xl"></i>
+            <div style={{ borderTop: '2px solid #c9a227', background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTopWidth: '2px', borderTopColor: '#c9a227' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(23,25,26,0.10)' }}>
+                <p className="font-mono text-[8px] tracking-[0.22em] uppercase mb-1" style={{ color: '#c9a227' }}>Photovise Scheduling AI</p>
+                <p className="font-mono text-[10px] tracking-[0.14em] uppercase" style={{ color: '#17191a' }}>Week of {currentWeekLabel}</p>
               </div>
-              <div className="p-8">
+              <div style={{ padding: '20px' }}>
                 {isGenerating && !planResult ? (
-                  <div className="py-12 text-center">
-                    <i className="fa-solid fa-circle-notch animate-spin text-brand-rose text-xl mb-3 block"></i>
-                    <p className="text-sm text-brand-gray/50">Building your schedule...</p>
+                  <div style={{ padding: '32px 0', textAlign: 'center' }}>
+                    <p className="font-mono text-[9px] tracking-[0.18em] uppercase pulse-brass" style={{ color: '#c9a227' }}>Building schedule…</p>
                   </div>
                 ) : (
                   <>
                     <MarkdownBlock text={planResult} />
-                    <div className="mt-8 pt-6 border-t border-brand-black/5 flex justify-end">
-                      <button onClick={handlePin} disabled={pinnedThisResult}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-md text-xs font-medium transition-all ${pinnedThisResult ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 cursor-default' : 'bg-brand-black text-white hover:bg-zinc-700 active:scale-95 shadow-sm'}`}>
-                        <i className={`fa-solid ${pinnedThisResult ? 'fa-circle-check' : 'fa-thumbtack'}`}></i>
-                        {pinnedThisResult ? 'Pinned!' : 'Pin This Schedule'}
+                    <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(23,25,26,0.10)', display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={handlePin}
+                        disabled={pinnedThisResult}
+                        className="font-mono text-[9px] tracking-[0.18em] uppercase transition-colors"
+                        style={{
+                          padding: '9px 18px',
+                          background: pinnedThisResult ? 'rgba(75,107,82,0.10)' : 'transparent',
+                          border: pinnedThisResult ? '1px solid rgba(75,107,82,0.30)' : '1px solid rgba(23,25,26,0.20)',
+                          color: pinnedThisResult ? '#3d5a44' : 'rgba(23,25,26,0.60)',
+                          cursor: pinnedThisResult ? 'default' : 'pointer',
+                        }}
+                        onMouseEnter={e => { if (!pinnedThisResult) { e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#8a6b0f'; } }}
+                        onMouseLeave={e => { if (!pinnedThisResult) { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.20)'; e.currentTarget.style.color = 'rgba(23,25,26,0.60)'; } }}
+                      >
+                        {pinnedThisResult ? '✓ Pinned' : 'Pin This Schedule'}
                       </button>
                     </div>
                   </>
                 )}
               </div>
-            </section>
+            </div>
           )}
 
           {/* Pinned plans */}
           {weekPlans.length > 0 && (
-            <section className="pt-10 border-t border-brand-black/5 space-y-6">
-              <h3 className="text-xs font-medium text-brand-black/40 flex items-center gap-2">
-                <i className="fa-solid fa-thumbtack text-brand-rose"></i> Pinned schedules ({weekPlans.length})
-              </h3>
-              <div className="space-y-4">
-                {weekPlans.map(plan => (
-                  <PinnedPlanCard key={plan.id} plan={plan} onDelete={onDeleteWeekPlan} />
-                ))}
-              </div>
-            </section>
+            <div style={{ borderTop: '1px solid rgba(23,25,26,0.12)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p className="font-mono text-[9px] tracking-[0.18em] uppercase mb-2" style={{ color: 'rgba(23,25,26,0.40)' }}>
+                Pinned Schedules ({weekPlans.length})
+              </p>
+              {weekPlans.map(plan => (
+                <PinnedPlanCard key={plan.id} plan={plan} onDelete={onDeleteWeekPlan} />
+              ))}
+            </div>
           )}
         </>
       )}
     </div>
   );
 
+  // ── Root render ───────────────────────────────────────────────────────────
+
   return (
-    <div className="animate-in fade-in duration-700 space-y-8">
-      <div className="flex gap-1 bg-brand-black/5 p-1 rounded-lg w-fit">
-        {([
-          { key: 'calendar', icon: 'fa-calendar',         label: 'Calendar'     },
-          { key: 'planner',  icon: 'fa-calendar-week',    label: 'Week Planner' },
-          { key: 'search',   icon: 'fa-magnifying-glass', label: 'Search'       },
-        ] as const).map(({ key, icon, label }) => (
-          <button key={key} onClick={() => setView(key)}
-            className={`px-6 py-2 text-sm font-medium rounded-md transition-all ${view === key ? 'bg-brand-black text-white shadow-sm' : 'text-brand-gray hover:text-brand-black'}`}>
-            <i className={`fa-solid ${icon} mr-2`}></i>{label}
-          </button>
-        ))}
+    <div>
+      {/* Screen header */}
+      <div
+        style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }}
+        className="flex items-end justify-between gap-6"
+      >
+        <div>
+          <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Plan / Timeline</p>
+          <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Calendar</h1>
+        </div>
+        {/* View tabs */}
+        <div className="flex items-center gap-1">
+          <TabBtn active={view === 'calendar'} onClick={() => setView('calendar')} label="Calendar" />
+          <TabBtn active={view === 'planner'}  onClick={() => setView('planner')}  label="Planner"  />
+          <TabBtn active={view === 'search'}   onClick={() => setView('search')}   label="Search"   />
+        </div>
       </div>
+
       {view === 'calendar' ? renderCalendar() : view === 'planner' ? renderPlanner() : renderSearch()}
     </div>
   );
 };
 
-// ── Pinned plan card (collapsible) ────────────────────────────────────────────
+// ── PinnedPlanCard ────────────────────────────────────────────────────────────
+
 const PinnedPlanCard: React.FC<{ plan: WeekPlan; onDelete: (id: string) => void }> = ({ plan, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="bg-white border border-brand-black/5 rounded-lg shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-brand-black/[0.02] transition-all" onClick={() => setExpanded(p => !p)}>
-        <div className="flex items-center gap-4">
-          <i className="fa-solid fa-thumbtack text-brand-rose text-[10px]"></i>
-          <div>
-            <p className="text-sm font-semibold text-brand-black">Week of {plan.weekLabel}</p>
-            <p className="text-xs text-brand-gray/60 mt-0.5">
-              {plan.sessionTitles.slice(0, 3).join(' · ')}{plan.sessionTitles.length > 3 ? ` +${plan.sessionTitles.length - 3} more` : ''}
-              {' · '}Saved {new Date(plan.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </p>
-          </div>
+    <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)' }}>
+      <div
+        className="flex items-center justify-between cursor-pointer transition-colors"
+        style={{ padding: '12px 16px', borderBottom: expanded ? '1px solid rgba(23,25,26,0.10)' : 'none' }}
+        onClick={() => setExpanded(p => !p)}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p className="font-mono text-[9px] tracking-[0.14em] uppercase font-medium" style={{ color: '#17191a' }}>Week of {plan.weekLabel}</p>
+          <p className="font-mono text-[8px] tracking-[0.10em] uppercase mt-0.5" style={{ color: 'rgba(23,25,26,0.40)' }}>
+            {plan.sessionTitles.slice(0, 3).join(' · ')}{plan.sessionTitles.length > 3 ? ` +${plan.sessionTitles.length - 3}` : ''}
+            {' · '}{new Date(plan.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={e => { e.stopPropagation(); if (confirm('Delete this pinned schedule?')) onDelete(plan.id); }}
-            className="text-brand-gray/30 hover:text-brand-rose transition-colors p-1" title="Delete">
-            <i className="fa-solid fa-trash text-[10px]"></i>
+          <button
+            onClick={e => { e.stopPropagation(); if (confirm('Delete this pinned schedule?')) onDelete(plan.id); }}
+            className="font-mono text-[8px] tracking-[0.12em] uppercase transition-colors"
+            style={{ color: 'rgba(23,25,26,0.30)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#a35a4a')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(23,25,26,0.30)')}
+            title="Delete"
+          >
+            ×
           </button>
-          <i className={`fa-solid fa-chevron-${expanded ? 'up' : 'down'} text-brand-gray/40 text-[10px]`}></i>
+          <span className="font-mono text-[9px]" style={{ color: 'rgba(23,25,26,0.35)' }}>{expanded ? '▲' : '▼'}</span>
         </div>
       </div>
       {expanded && (
-        <div className="px-6 pb-6 pt-2 border-t border-brand-black/5 animate-in fade-in duration-300">
+        <div style={{ padding: '16px 20px' }}>
           <MarkdownBlock text={plan.result} />
         </div>
       )}
