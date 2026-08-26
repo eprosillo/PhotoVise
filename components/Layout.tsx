@@ -30,30 +30,31 @@ const NAV_GROUPS = [
     items: [
       { id: 'dashboard', label: 'Sessions',       index: '01' },
       { id: 'scout',     label: 'Location Scout', index: '02' },
-      { id: 'history',   label: 'History',        index: '03' },
+      { id: 'journal',   label: 'Journal',        index: '03' },
+      { id: 'history',   label: 'History',        index: '04' },
     ],
   },
   {
     label: 'PLAN',
     items: [
-      { id: 'calendar',  label: 'Calendar',       index: '04' },
-      { id: 'cfe',       label: 'Bulletin Board', index: '05' },
+      { id: 'calendar',  label: 'Calendar',       index: '05' },
+      { id: 'cfe',       label: 'Bulletin Board', index: '06' },
     ],
   },
   {
     label: 'GROW',
     items: [
-      { id: 'today',     label: 'Today',          index: '06' },
-      { id: 'skills',    label: 'Skill Tree',     index: '07' },
-      { id: 'askpro',    label: 'Ask a Pro',      index: '08' },
+      { id: 'today',     label: 'Today',          index: '07' },
+      { id: 'skills',    label: 'Skill Tree',     index: '08' },
+      { id: 'askpro',    label: 'Ask a Pro',      index: '09' },
     ],
   },
   {
     label: 'YOU',
     items: [
-      { id: 'profile',   label: 'Profile',        index: '09' },
-      { id: 'gear',      label: 'Gear Locker',    index: '10' },
-      { id: 'archive',   label: 'Archive',        index: '11' },
+      { id: 'profile',   label: 'Profile',        index: '10' },
+      { id: 'gear',      label: 'Gear Locker',    index: '11' },
+      { id: 'archive',   label: 'Archive',        index: '12' },
     ],
   },
 ];

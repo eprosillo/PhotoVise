@@ -6,7 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import SessionCard from './components/SessionCard';
 import SessionSelector from './components/SessionSelector';
 import LocationAutocomplete from './components/LocationAutocomplete';
-import { Session, SessionStatus, SessionType, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan, ScoutLocation, Submission, SkillNodeProgress, SkillNodeType } from './types';
+import { Session, SessionStatus, SessionType, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan, ScoutLocation, Submission, SkillNodeProgress, SkillNodeType, JournalEntry, JournalImage } from './types';
 import TodayView from './components/TodayView';
 import SkillTreeView from './components/SkillTreeView';
 import MissionHistoryView from './components/MissionHistoryView';
@@ -689,6 +689,20 @@ const App: React.FC = () => {
     loadFromStorage<ScoutLocation[]>('pingstudio_scout', SCOUT_SEED_LOCATIONS)
   );
 
+  // Journal state
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(() =>
+    loadFromStorage<JournalEntry[]>('pingstudio_journal', [])
+  );
+  const [journalSearch, setJournalSearch] = useState('');
+  const [journalForm, setJournalForm] = useState<{
+    date: string; sessionIds: string[]; title: string; notes: string;
+    tags: string; resultRating: string; processRating: string; images: JournalImage[];
+  }>({
+    date: new Date().toISOString().split('T')[0],
+    sessionIds: [], title: '', notes: '', tags: '',
+    resultRating: '5', processRating: '5', images: [],
+  });
+
   const [submissions, setSubmissions] = useState<Submission[]>(() =>
     loadFromStorage<Submission[]>('pv_submissions', [])
   );
@@ -748,6 +762,7 @@ const App: React.FC = () => {
       if (cancelled || !data) return;
       if (data.sessions)         setSessions(data.sessions);
       if (data.gear)             setGear(data.gear);
+      if (data.journal)          setJournalEntries(data.journal);
       if (data.profile)          setProfile(data.profile);
       if (data.bulletinState)    setBulletinState(data.bulletinState);
       if (data.bulletinItems)    setAiBulletinItems(data.bulletinItems);
@@ -773,6 +788,12 @@ const App: React.FC = () => {
     localStorage.setItem('pingstudio_gear', JSON.stringify(gear));
     saveUserData({ gear });
   }, [gear]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist journal entries (localStorage + Firestore)
+  useEffect(() => {
+    localStorage.setItem('pingstudio_journal', JSON.stringify(journalEntries));
+    saveUserData({ journal: journalEntries });
+  }, [journalEntries]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist profile (localStorage + Firestore — only when applied)
   useEffect(() => {
@@ -1015,6 +1036,98 @@ const App: React.FC = () => {
   const deleteGearItem = (id: string) => {
     setGear(prev => prev.filter(item => item.id !== id));
   };
+
+  // Journal handlers
+  const handleCreateJournalEntry = (e: React.FormEvent) => {
+    e.preventDefault();
+    const tagsArr = journalForm.tags.split(',').map(t => t.trim()).filter(t => t !== '');
+    const newEntry: JournalEntry = {
+      id: Date.now().toString(),
+      date: journalForm.date,
+      sessionIds: journalForm.sessionIds,
+      title: journalForm.title,
+      notes: journalForm.notes,
+      tags: tagsArr,
+      resultRating: parseInt(journalForm.resultRating, 10) || 5,
+      processRating: parseInt(journalForm.processRating, 10) || 5,
+      images: journalForm.images,
+    };
+    setJournalEntries(prev => [newEntry, ...prev]);
+    setJournalForm({ date: new Date().toISOString().split('T')[0], sessionIds: [], title: '', notes: '', tags: '', resultRating: '5', processRating: '5', images: [] });
+  };
+
+  const compressImage = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onloadend = () => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          const MAX = 800;
+          let { width, height } = img;
+          if (width > MAX || height > MAX) {
+            if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
+            else { width = Math.round((width * MAX) / height); height = MAX; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = reader.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+
+  const handleJournalImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const fileArray = Array.from(files) as File[];
+    e.target.value = '';
+    fileArray.forEach((file: File) => {
+      const imageId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+      compressImage(file)
+        .catch(() => new Promise<string>((resolve, reject) => {
+          const r = new FileReader(); r.onerror = reject;
+          r.onloadend = () => resolve(r.result as string);
+          r.readAsDataURL(file);
+        }))
+        .then(async (dataUrl) => {
+          if (user?.uid) {
+            const path = `journal/${user.uid}/${imageId}`;
+            const imgRef = storageRef(storage, path);
+            await uploadString(imgRef, dataUrl, 'data_url');
+            const url = await getDownloadURL(imgRef);
+            setJournalForm(prev => ({ ...prev, images: [...prev.images, { id: imageId, name: file.name, dataUrl: url }] }));
+          } else {
+            setJournalForm(prev => ({ ...prev, images: [...prev.images, { id: imageId, name: file.name, dataUrl }] }));
+          }
+        })
+        .catch(err => console.error('Journal image upload failed:', err));
+    });
+  };
+
+  const deleteJournalEntry = (id: string) => {
+    if (confirm('Permanently delete this journal entry?')) {
+      const entry = journalEntries.find(e => e.id === id);
+      if (entry && user?.uid) {
+        entry.images.forEach(img => {
+          deleteObject(storageRef(storage, `journal/${user.uid}/${img.id}`)).catch(() => {});
+        });
+      }
+      setJournalEntries(prev => prev.filter(e => e.id !== id));
+    }
+  };
+
+  const filteredJournalEntries = React.useMemo(() => {
+    const query = journalSearch.trim().toLowerCase();
+    if (!query) return journalEntries;
+    return journalEntries.filter(entry =>
+      entry.title.toLowerCase().includes(query) ||
+      entry.tags.some(tag => tag.toLowerCase().includes(query))
+    );
+  }, [journalEntries, journalSearch]);
 
   const updateBulletinStatus = (id: string, status: BulletinStatus) => {
     setBulletinState(prev => ({ ...prev, [id]: status }));
@@ -2101,6 +2214,191 @@ const App: React.FC = () => {
         <ErrorBoundary>
           <MissionHistoryView submissions={submissions} />
         </ErrorBoundary>
+      )}
+
+      {activeTab === 'journal' && (
+        <div>
+          {/* Screen header */}
+          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '28px' }} className="flex items-end justify-between gap-4 flex-wrap">
+            <div>
+              <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.24em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.38)', marginBottom: '6px' }}>YOU / DAILY PRACTICE</p>
+              <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: '42px', lineHeight: 1, color: '#17191a', margin: 0 }}>Photo Journal</h1>
+            </div>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.38)' }}>
+              {filteredJournalEntries.length} {filteredJournalEntries.length === 1 ? 'ENTRY' : 'ENTRIES'}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '28px', alignItems: 'start' }}>
+            {/* Entry list */}
+            <div>
+              {/* Search */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Search</label>
+                <input
+                  type="text"
+                  placeholder="title or tag…"
+                  value={journalSearch}
+                  onChange={e => setJournalSearch(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {filteredJournalEntries.length === 0 ? (
+                <div style={{ border: '1px solid rgba(23,25,26,0.10)', padding: '40px 24px', textAlign: 'center' }}>
+                  <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.35)' }}>No entries yet — add your first below</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {filteredJournalEntries.map(entry => (
+                    <div key={entry.id} style={{ border: '1px solid rgba(23,25,26,0.14)', background: '#f8f7f4' }}>
+                      <div style={{ borderBottom: '1px solid rgba(23,25,26,0.08)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                        <div>
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)' }}>{entry.date}</span>
+                          <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: '15px', color: '#17191a', margin: '3px 0 0' }}>{entry.title || 'Untitled'}</h3>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+                          {entry.resultRating !== undefined && (
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)' }}>
+                              RESULT <span style={{ color: '#c9a227', fontWeight: 700 }}>{entry.resultRating}</span>/10
+                            </span>
+                          )}
+                          <button
+                            onClick={() => deleteJournalEntry(entry.id)}
+                            title="Delete entry"
+                            style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.35)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                      {entry.notes && (
+                        <div style={{ padding: '12px 16px', borderBottom: entry.images.length > 0 || entry.tags.length > 0 ? '1px solid rgba(23,25,26,0.08)' : 'none' }}>
+                          <p style={{ fontSize: '13px', color: 'rgba(23,25,26,0.75)', lineHeight: 1.6, margin: 0, borderLeft: '2px solid rgba(23,25,26,0.14)', paddingLeft: '10px' }}>{entry.notes}</p>
+                        </div>
+                      )}
+                      {entry.images.length > 0 && (
+                        <div style={{ padding: '12px 16px', display: 'flex', gap: '8px', flexWrap: 'wrap', borderBottom: entry.tags.length > 0 ? '1px solid rgba(23,25,26,0.08)' : 'none' }}>
+                          {entry.images.map(img => (
+                            <img key={img.id} src={img.dataUrl} alt={img.name} style={{ width: '80px', height: '80px', objectFit: 'cover', border: '1px solid rgba(23,25,26,0.14)' }} />
+                          ))}
+                        </div>
+                      )}
+                      {entry.tags.length > 0 && (
+                        <div style={{ padding: '8px 16px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {entry.tags.map(tag => (
+                            <span key={tag} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '8px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8a6b0f', background: 'rgba(201,162,39,0.10)', padding: '3px 7px', border: '1px solid rgba(201,162,39,0.25)' }}>{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* New entry form */}
+            <div style={{ border: '1px solid rgba(23,25,26,0.14)', background: '#f8f7f4', position: 'sticky', top: '16px' }}>
+              <div style={{ borderBottom: '1px solid rgba(23,25,26,0.10)', padding: '12px 16px' }}>
+                <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.20em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', margin: 0 }}>New Entry</p>
+              </div>
+              <form onSubmit={handleCreateJournalEntry} style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Date</label>
+                  <input
+                    type="date"
+                    value={journalForm.date}
+                    onChange={e => setJournalForm(prev => ({ ...prev, date: e.target.value }))}
+                    required
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Title</label>
+                  <input
+                    type="text"
+                    placeholder="What did you shoot?"
+                    value={journalForm.title}
+                    onChange={e => setJournalForm(prev => ({ ...prev, title: e.target.value }))}
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Notes</label>
+                  <textarea
+                    placeholder="Conditions, learnings, reflections…"
+                    value={journalForm.notes}
+                    onChange={e => setJournalForm(prev => ({ ...prev, notes: e.target.value }))}
+                    rows={4}
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical' }}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Result /10</label>
+                    <input
+                      type="number"
+                      min="1" max="10"
+                      value={journalForm.resultRating}
+                      onChange={e => setJournalForm(prev => ({ ...prev, resultRating: e.target.value }))}
+                      style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Process /10</label>
+                    <input
+                      type="number"
+                      min="1" max="10"
+                      value={journalForm.processRating}
+                      onChange={e => setJournalForm(prev => ({ ...prev, processRating: e.target.value }))}
+                      style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Tags (comma-separated)</label>
+                  <input
+                    type="text"
+                    placeholder="street, golden hour, portrait…"
+                    value={journalForm.tags}
+                    onChange={e => setJournalForm(prev => ({ ...prev, tags: e.target.value }))}
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Photos</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: '1px dashed rgba(23,25,26,0.22)', padding: '10px 12px', fontSize: '11px', color: 'rgba(23,25,26,0.50)', fontFamily: 'inherit' }}>
+                    <i className="fa-solid fa-camera" style={{ fontSize: '11px', color: 'rgba(23,25,26,0.35)' }}></i>
+                    Add photos
+                    <input type="file" accept="image/*" multiple onChange={handleJournalImageUpload} style={{ display: 'none' }} />
+                  </label>
+                  {journalForm.images.length > 0 && (
+                    <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {journalForm.images.map(img => (
+                        <div key={img.id} style={{ position: 'relative' }}>
+                          <img src={img.dataUrl} alt={img.name} style={{ width: '60px', height: '60px', objectFit: 'cover', border: '1px solid rgba(23,25,26,0.14)' }} />
+                          <button
+                            type="button"
+                            onClick={() => setJournalForm(prev => ({ ...prev, images: prev.images.filter(i => i.id !== img.id) }))}
+                            style={{ position: 'absolute', top: '-6px', right: '-6px', width: '16px', height: '16px', background: '#17191a', color: '#f8f7f4', border: 'none', cursor: 'pointer', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                          >✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  style={{ width: '100%', padding: '11px', fontFamily: "'IBM Plex Mono', monospace", fontSize: '10px', letterSpacing: '0.20em', textTransform: 'uppercase', background: '#17191a', color: '#f8f7f4', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#c9a227')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '#17191a')}
+                >
+                  Save Entry
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   );
