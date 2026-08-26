@@ -28,7 +28,7 @@ const NAV_GROUPS = [
   {
     label: 'SHOOT',
     items: [
-      { id: 'dashboard', label: 'Sessions',       index: '01' },
+      { id: 'dashboard', label: 'Assignments',     index: '01' },
       { id: 'scout',     label: 'Location Scout', index: '02' },
       { id: 'journal',   label: 'Journal',        index: '03' },
       { id: 'history',   label: 'History',        index: '04' },
