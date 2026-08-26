@@ -2572,11 +2572,20 @@ const App: React.FC = () => {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Photos</label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: '1px dashed rgba(23,25,26,0.22)', padding: '10px 12px', fontSize: '11px', color: 'rgba(23,25,26,0.50)', fontFamily: 'inherit' }}>
-                    <i className="fa-solid fa-camera" style={{ fontSize: '11px', color: 'rgba(23,25,26,0.35)' }}></i>
-                    Add photos
-                    <input type="file" accept="image/*" multiple onChange={handleJournalImageUpload} style={{ display: 'none' }} />
-                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    {/* Camera — opens device camera directly on mobile/tablet */}
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', cursor: 'pointer', border: '1px dashed rgba(23,25,26,0.22)', padding: '10px 12px', fontSize: '11px', color: 'rgba(23,25,26,0.55)', fontFamily: 'inherit', textAlign: 'center' }}>
+                      <i className="fa-solid fa-camera" style={{ fontSize: '11px', color: 'rgba(23,25,26,0.40)' }}></i>
+                      Camera
+                      <input type="file" accept="image/*" capture="environment" onChange={handleJournalImageUpload} style={{ display: 'none' }} />
+                    </label>
+                    {/* Files — gallery, SD card, any file source */}
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', cursor: 'pointer', border: '1px dashed rgba(23,25,26,0.22)', padding: '10px 12px', fontSize: '11px', color: 'rgba(23,25,26,0.55)', fontFamily: 'inherit', textAlign: 'center' }}>
+                      <i className="fa-solid fa-folder-open" style={{ fontSize: '11px', color: 'rgba(23,25,26,0.40)' }}></i>
+                      Attach Files
+                      <input type="file" accept="image/*" multiple onChange={handleJournalImageUpload} style={{ display: 'none' }} />
+                    </label>
+                  </div>
                   {journalForm.images.length > 0 && (
                     <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       {journalForm.images.map(img => (
