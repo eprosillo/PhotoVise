@@ -132,10 +132,10 @@ const Layout: React.FC<LayoutProps> = ({
         ].join(' ')}
       >
         <button onClick={handleLogoClick} className="text-left focus:outline-none">
-          <div className="font-sans font-bold text-[19px] tracking-[0.04em] text-brand-ink leading-none">
+          <div className="font-sans font-bold text-[26px] tracking-[0.04em] text-brand-ink leading-none">
             PHOTOVISE
           </div>
-          <div className="font-mono text-[9px] tracking-[0.18em] text-brand-ink/42 mt-[6px] uppercase">
+          <div className="font-mono text-[9px] tracking-[0.18em] text-brand-ink/42 mt-[7px] uppercase">
             Workflow Instrument
           </div>
         </button>
