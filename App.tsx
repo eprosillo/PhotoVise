@@ -694,6 +694,7 @@ const App: React.FC = () => {
     loadFromStorage<JournalEntry[]>('pingstudio_journal', [])
   );
   const [journalSearch, setJournalSearch] = useState('');
+  const [collageWeek, setCollageWeek] = useState<string | null>(null);
   const [journalForm, setJournalForm] = useState<{
     date: string; sessionIds: string[]; title: string; notes: string;
     tags: string; resultRating: string; processRating: string; images: JournalImage[];
@@ -1128,6 +1129,129 @@ const App: React.FC = () => {
       entry.tags.some(tag => tag.toLowerCase().includes(query))
     );
   }, [journalEntries, journalSearch]);
+
+  // Returns Monday of the week containing dateStr as "YYYY-MM-DD"
+  const getWeekKey = (dateStr: string): string => {
+    const d = new Date(dateStr + 'T00:00:00');
+    const day = d.getDay(); // 0=Sun
+    const diff = (day === 0 ? -6 : 1 - day);
+    d.setDate(d.getDate() + diff);
+    return d.toISOString().split('T')[0];
+  };
+
+  const getWeekLabel = (weekKey: string): string => {
+    const mon = new Date(weekKey + 'T00:00:00');
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${fmt(mon)} – ${fmt(sun)}, ${sun.getFullYear()}`;
+  };
+
+  // Groups entries by week key, only weeks that have at least one photo
+  const journalWeeks = React.useMemo(() => {
+    const map: Record<string, JournalEntry[]> = {};
+    journalEntries.forEach(e => {
+      const key = getWeekKey(e.date);
+      if (!map[key]) map[key] = [];
+      map[key].push(e);
+    });
+    return Object.entries(map)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([key, entries]) => ({ key, entries }));
+  }, [journalEntries]);
+
+  const downloadCollage = async (weekKey: string) => {
+    const weekEntries = journalEntries.filter(e => getWeekKey(e.date) === weekKey);
+    const allPhotos: { dataUrl: string; title: string; date: string }[] = [];
+    weekEntries.forEach(e => {
+      e.images.forEach(img => allPhotos.push({ dataUrl: img.dataUrl, title: e.title || e.date, date: e.date }));
+    });
+    if (allPhotos.length === 0) {
+      alert('No photos in this week\'s entries.');
+      return;
+    }
+
+    const COLS = Math.min(allPhotos.length, 3);
+    const CELL = 380;
+    const GAP = 10;
+    const HEADER = 80;
+    const ROWS = Math.ceil(allPhotos.length / COLS);
+    const W = COLS * CELL + (COLS - 1) * GAP + GAP * 2;
+    const H = HEADER + ROWS * CELL + (ROWS - 1) * GAP + GAP * 2;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+
+    // Background
+    ctx.fillStyle = '#f8f7f4';
+    ctx.fillRect(0, 0, W, H);
+
+    // Header bar
+    ctx.fillStyle = '#17191a';
+    ctx.fillRect(0, 0, W, HEADER);
+    // Brass accent line
+    ctx.fillStyle = '#c9a227';
+    ctx.fillRect(0, HEADER - 3, W, 3);
+
+    ctx.fillStyle = '#f8f7f4';
+    ctx.font = 'bold 13px "IBM Plex Mono", monospace';
+    ctx.letterSpacing = '2px';
+    ctx.fillText('PHOTO JOURNAL', 28, 34);
+    ctx.fillStyle = 'rgba(248,247,244,0.55)';
+    ctx.font = '11px "IBM Plex Mono", monospace';
+    ctx.fillText(getWeekLabel(weekKey).toUpperCase(), 28, 58);
+
+    // Load and draw images
+    await Promise.all(
+      allPhotos.map(async (photo, i) => {
+        const col = i % COLS;
+        const row = Math.floor(i / COLS);
+        const x = GAP + col * (CELL + GAP);
+        const y = HEADER + GAP + row * (CELL + GAP);
+
+        await new Promise<void>((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            // Cover-fit into cell
+            const scale = Math.max(CELL / img.width, CELL / img.height);
+            const sw = CELL / scale;
+            const sh = CELL / scale;
+            const sx = (img.width - sw) / 2;
+            const sy = (img.height - sh) / 2;
+            ctx.drawImage(img, sx, sy, sw, sh, x, y, CELL, CELL);
+
+            // Date label overlay at bottom of cell
+            ctx.fillStyle = 'rgba(23,25,26,0.55)';
+            ctx.fillRect(x, y + CELL - 24, CELL, 24);
+            ctx.fillStyle = '#f8f7f4';
+            ctx.font = '9px "IBM Plex Mono", monospace';
+            ctx.fillText(photo.date, x + 8, y + CELL - 8);
+
+            resolve();
+          };
+          img.onerror = () => {
+            ctx.fillStyle = 'rgba(23,25,26,0.08)';
+            ctx.fillRect(x, y, CELL, CELL);
+            resolve();
+          };
+          img.src = photo.dataUrl;
+        });
+      })
+    );
+
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `journal-collage-${weekKey}.jpg`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }, 'image/jpeg', 0.92);
+  };
 
   const updateBulletinStatus = (id: string, status: BulletinStatus) => {
     setBulletinState(prev => ({ ...prev, [id]: status }));
@@ -2228,6 +2352,82 @@ const App: React.FC = () => {
               {filteredJournalEntries.length} {filteredJournalEntries.length === 1 ? 'ENTRY' : 'ENTRIES'}
             </div>
           </div>
+
+          {/* Weekly Collage section */}
+          {journalWeeks.length > 0 && (
+            <div style={{ border: '1px solid rgba(23,25,26,0.14)', marginBottom: '28px' }}>
+              <div style={{ borderBottom: '1px solid rgba(23,25,26,0.10)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.20em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', margin: 0 }}>Weekly Collage</p>
+                <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.32)', margin: 0 }}>Select a week → download</p>
+              </div>
+              <div style={{ padding: '14px 16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {journalWeeks.map(({ key, entries }) => {
+                  const photoCount = entries.reduce((n, e) => n + e.images.length, 0);
+                  const isSelected = collageWeek === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setCollageWeek(isSelected ? null : key)}
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.14em',
+                        textTransform: 'uppercase', padding: '7px 12px',
+                        border: isSelected ? '1px solid #c9a227' : '1px solid rgba(23,25,26,0.18)',
+                        background: isSelected ? 'rgba(201,162,39,0.08)' : 'transparent',
+                        color: isSelected ? '#8a6b0f' : 'rgba(23,25,26,0.55)',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}
+                    >
+                      {getWeekLabel(key)}
+                      <span style={{ marginLeft: '8px', color: isSelected ? '#c9a227' : 'rgba(23,25,26,0.30)' }}>
+                        {photoCount} {photoCount === 1 ? 'photo' : 'photos'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {collageWeek && (() => {
+                const weekEntries = journalEntries.filter(e => getWeekKey(e.date) === collageWeek);
+                const allPhotos = weekEntries.flatMap(e => e.images.map(img => ({ img, entry: e })));
+                return (
+                  <div style={{ borderTop: '1px solid rgba(23,25,26,0.10)', padding: '16px' }}>
+                    {allPhotos.length === 0 ? (
+                      <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.35)', margin: 0 }}>
+                        No photos in this week — add photos to your entries to generate a collage.
+                      </p>
+                    ) : (
+                      <>
+                        {/* Photo preview grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '6px', marginBottom: '14px' }}>
+                          {allPhotos.map(({ img, entry }) => (
+                            <div key={img.id} style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', border: '1px solid rgba(23,25,26,0.12)' }}>
+                              <img src={img.dataUrl} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(23,25,26,0.50)', padding: '3px 6px' }}>
+                                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '7px', letterSpacing: '0.10em', color: 'rgba(248,247,244,0.80)', textTransform: 'uppercase' }}>{entry.date}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => downloadCollage(collageWeek)}
+                          style={{
+                            fontFamily: "'IBM Plex Mono', monospace", fontSize: '10px', letterSpacing: '0.20em',
+                            textTransform: 'uppercase', padding: '11px 24px',
+                            background: '#17191a', color: '#f8f7f4', border: 'none', cursor: 'pointer',
+                            transition: 'background 0.15s',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#c9a227')}
+                          onMouseLeave={e => (e.currentTarget.style.background = '#17191a')}
+                        >
+                          ↓ Download Collage ({allPhotos.length} photos)
+                        </button>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '28px', alignItems: 'start' }}>
             {/* Entry list */}
