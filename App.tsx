@@ -698,11 +698,11 @@ const App: React.FC = () => {
   const [collageTo, setCollageTo] = useState<string>('');
   const [journalForm, setJournalForm] = useState<{
     date: string; sessionIds: string[]; title: string; notes: string;
-    tags: string; resultRating: string; processRating: string; images: JournalImage[];
+    tags: string; images: JournalImage[];
   }>({
     date: new Date().toISOString().split('T')[0],
     sessionIds: [], title: '', notes: '', tags: '',
-    resultRating: '5', processRating: '5', images: [],
+    images: [],
   });
 
   const [submissions, setSubmissions] = useState<Submission[]>(() =>
@@ -1050,12 +1050,10 @@ const App: React.FC = () => {
       title: journalForm.title,
       notes: journalForm.notes,
       tags: tagsArr,
-      resultRating: parseInt(journalForm.resultRating, 10) || 5,
-      processRating: parseInt(journalForm.processRating, 10) || 5,
       images: journalForm.images,
     };
     setJournalEntries(prev => [newEntry, ...prev]);
-    setJournalForm({ date: new Date().toISOString().split('T')[0], sessionIds: [], title: '', notes: '', tags: '', resultRating: '5', processRating: '5', images: [] });
+    setJournalForm({ date: new Date().toISOString().split('T')[0], sessionIds: [], title: '', notes: '', tags: '', images: [] });
   };
 
   const compressImage = (file: File): Promise<string> =>
@@ -2492,11 +2490,6 @@ const App: React.FC = () => {
                           <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: '15px', color: '#17191a', margin: '3px 0 0' }}>{entry.title || 'Untitled'}</h3>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
-                          {entry.resultRating !== undefined && (
-                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)' }}>
-                              RESULT <span style={{ color: '#c9a227', fontWeight: 700 }}>{entry.resultRating}</span>/10
-                            </span>
-                          )}
                           <button
                             onClick={() => deleteJournalEntry(entry.id)}
                             title="Delete entry"
@@ -2566,28 +2559,6 @@ const App: React.FC = () => {
                     rows={4}
                     style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical' }}
                   />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Result /10</label>
-                    <input
-                      type="number"
-                      min="1" max="10"
-                      value={journalForm.resultRating}
-                      onChange={e => setJournalForm(prev => ({ ...prev, resultRating: e.target.value }))}
-                      style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Process /10</label>
-                    <input
-                      type="number"
-                      min="1" max="10"
-                      value={journalForm.processRating}
-                      onChange={e => setJournalForm(prev => ({ ...prev, processRating: e.target.value }))}
-                      style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                    />
-                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Tags (comma-separated)</label>
