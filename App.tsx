@@ -129,10 +129,10 @@ const AskProPage: React.FC<{
   return (
     <div className="animate-in fade-in duration-700">
       {/* Screen header */}
-      <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-6">
+      <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Grow / Guidance</p>
-          <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Ask a Pro</h1>
+          <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Ask a Pro</h1>
         </div>
       </div>
 
@@ -505,6 +505,12 @@ const App: React.FC = () => {
   // ── Local state ─────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState('today');
   const [isFieldMode, setIsFieldMode] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 820);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 820);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
   const [feedbackLog, setFeedbackLog] = useState<FeedbackEntry[]>(() =>
     loadFromStorage<FeedbackEntry[]>('pingstudio_feedback', [])
   );
@@ -1563,10 +1569,10 @@ const App: React.FC = () => {
       {activeTab === 'dashboard' && (
         <div className="animate-in fade-in duration-700">
           {/* Screen header */}
-          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-6">
+          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-4 flex-wrap">
             <div>
               <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Shoot / Pipeline</p>
-              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Sessions</h1>
+              <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Sessions</h1>
             </div>
             <div className="flex items-center gap-4">
               {/* Field mode toggle */}
@@ -1812,7 +1818,7 @@ const App: React.FC = () => {
           <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-4">
             <div>
               <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">You / Identity</p>
-              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Profile</h1>
+              <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Profile</h1>
             </div>
             <div className="flex items-center gap-3">
               {profileSuccessMsg && <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: '#4b6b52' }}>Saved ✓</span>}
@@ -2022,10 +2028,10 @@ const App: React.FC = () => {
       {activeTab === 'cfe' && (
         <div className="animate-in fade-in duration-700">
           {/* Screen header */}
-          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-6">
+          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-4 flex-wrap">
             <div>
               <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Plan / Calls for Entry</p>
-              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Bulletin Board</h1>
+              <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Bulletin Board</h1>
             </div>
             <button
               onClick={refreshBulletinEvents}
@@ -2133,7 +2139,7 @@ const App: React.FC = () => {
             <div>
               <button onClick={() => setActiveTab('cfe')} className="font-mono text-[8px] tracking-[0.14em] uppercase mb-2 transition-colors" style={{ color: 'rgba(23,25,26,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>← Bulletin Board</button>
               <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Plan / Shortlist</p>
-              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Shortlist</h1>
+              <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Shortlist</h1>
             </div>
             <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: '#c9a227' }}>{consideringItems.length} items</p>
           </div>
@@ -2156,7 +2162,7 @@ const App: React.FC = () => {
             <div>
               <button onClick={() => setActiveTab('cfe')} className="font-mono text-[8px] tracking-[0.14em] uppercase mb-2 transition-colors" style={{ color: 'rgba(23,25,26,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>← Bulletin Board</button>
               <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Plan / Applications</p>
-              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Applied</h1>
+              <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Applied</h1>
             </div>
             <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: '#4b6b52' }}>{appliedItems.length} submitted</p>
           </div>
@@ -2195,10 +2201,10 @@ const App: React.FC = () => {
 
       {activeTab === 'archive' && (
         <div className="animate-in fade-in duration-700">
-          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-6">
+          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-4 flex-wrap">
             <div>
               <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">You / Closed Work</p>
-              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Archive</h1>
+              <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Archive</h1>
             </div>
             <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>{sessions.filter(s => s.status === 'archived').length} sessions</p>
           </div>
@@ -2218,10 +2224,10 @@ const App: React.FC = () => {
 
       {activeTab === 'gear' && (
         <div className="animate-in fade-in duration-700">
-          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-6">
+          <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-4 flex-wrap">
             <div>
               <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">You / Kit</p>
-              <h1 className="font-sans font-semibold text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Gear Locker</h1>
+              <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Gear Locker</h1>
             </div>
             <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>{gear.length} items</p>
           </div>
@@ -2346,7 +2352,7 @@ const App: React.FC = () => {
           <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '28px' }} className="flex items-end justify-between gap-4 flex-wrap">
             <div>
               <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.24em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.38)', marginBottom: '6px' }}>YOU / DAILY PRACTICE</p>
-              <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: '42px', lineHeight: 1, color: '#17191a', margin: 0 }}>Photo Journal</h1>
+              <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: isMobile ? '28px' : '42px', lineHeight: 1, color: '#17191a', margin: 0 }}>Photo Journal</h1>
             </div>
             <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.38)' }}>
               {filteredJournalEntries.length} {filteredJournalEntries.length === 1 ? 'ENTRY' : 'ENTRIES'}
@@ -2395,7 +2401,7 @@ const App: React.FC = () => {
             )}
 
             {/* Date range inputs */}
-            <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', borderBottom: '1px solid rgba(23,25,26,0.08)' }}>
+            <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', borderBottom: '1px solid rgba(23,25,26,0.08)' }}>
               <div>
                 <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>From</label>
                 <input
@@ -2461,7 +2467,7 @@ const App: React.FC = () => {
             })()}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '28px', alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: '28px', alignItems: 'start' }}>
             {/* Entry list */}
             <div>
               {/* Search */}
@@ -2525,7 +2531,7 @@ const App: React.FC = () => {
             </div>
 
             {/* New entry form */}
-            <div style={{ border: '1px solid rgba(23,25,26,0.14)', background: '#f8f7f4', position: 'sticky', top: '16px' }}>
+            <div style={{ border: '1px solid rgba(23,25,26,0.14)', background: '#f8f7f4', position: isMobile ? 'static' : 'sticky', top: '16px' }}>
               <div style={{ borderBottom: '1px solid rgba(23,25,26,0.10)', padding: '12px 16px' }}>
                 <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.20em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', margin: 0 }}>New Entry</p>
               </div>

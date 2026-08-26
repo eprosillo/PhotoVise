@@ -224,7 +224,7 @@ const Layout: React.FC<LayoutProps> = ({
           <span style={{ flexShrink: 0, width: '3px', height: '28px', background: '#c9a227', display: 'inline-block', alignSelf: 'center' }} />
           <p className="font-serif italic" style={{ fontSize: '13px', color: 'rgba(23,25,26,0.70)', lineHeight: 1.5, flex: 1, minWidth: 0 }}>
             "{dailyQuote.text}"
-            <span className="font-mono not-italic" style={{ fontSize: '8px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.38)', marginLeft: '10px', whiteSpace: 'nowrap' }}>
+            <span className="font-mono not-italic" style={{ fontSize: '8px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.38)', marginLeft: '10px', whiteSpace: 'normal' }}>
               — {dailyQuote.author}
             </span>
           </p>
