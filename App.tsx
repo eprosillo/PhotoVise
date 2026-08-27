@@ -1572,7 +1572,7 @@ const App: React.FC = () => {
           <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '22px' }} className="flex items-end justify-between gap-4 flex-wrap">
             <div>
               <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Shoot / Pipeline</p>
-              <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Sessions</h1>
+              <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Assignments</h1>
             </div>
             <div className="flex items-center gap-4">
               {/* Field mode toggle */}
@@ -1761,7 +1761,7 @@ const App: React.FC = () => {
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="font-mono text-[8px] tracking-[0.12em] uppercase" style={{ color: 'rgba(23,25,26,0.38)' }}>
-                        {filtered.length} / {activeSessions.length} Sessions
+                        {filtered.length} / {activeSessions.length} Assignments
                       </p>
                       {hasFilters && (
                         <button
@@ -1781,11 +1781,11 @@ const App: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {activeSessions.length === 0 ? (
                     <div className="col-span-full py-10" style={{ borderLeft: '2px solid rgba(23,25,26,0.14)', paddingLeft: '14px' }}>
-                      <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No Active Sessions</p>
+                      <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No Active Assignments</p>
                     </div>
                   ) : filtered.length === 0 ? (
                     <div className="col-span-full py-8" style={{ borderLeft: '2px solid rgba(23,25,26,0.14)', paddingLeft: '14px' }}>
-                      <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No Sessions Match</p>
+                      <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No Assignments Match</p>
                       <button onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); setDashboardTypeFilter('All'); }}
                         className="font-mono text-[8px] tracking-[0.14em] uppercase mt-2 transition-colors"
                         style={{ color: '#c9a227', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
@@ -2211,7 +2211,7 @@ const App: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {sessions.filter(s => s.status === 'archived').length === 0 ? (
               <div className="col-span-full" style={{ borderLeft: '2px solid rgba(23,25,26,0.14)', padding: '14px' }}>
-                <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No Archived Sessions</p>
+                <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No Archived Assignments</p>
               </div>
             ) : (
               sessions.filter(s => s.status === 'archived').map(session => (

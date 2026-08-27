@@ -281,7 +281,7 @@ const Layout: React.FC<LayoutProps> = ({
 
         <button
           onClick={() => setIsFeedbackOpen(true)}
-          style={{ bottom: isFieldMode ? '4.5rem' : '1.25rem' }}
+          style={{ bottom: isFieldMode ? '4.5rem' : '5.5rem' }}
           className="fixed right-4 z-50 font-mono text-[9px] tracking-[0.14em] uppercase bg-brand-ink text-brand-panel/80 px-3 py-2 transition-colors hover:bg-brand-accent hover:text-brand-ink"
         >
           Feedback
