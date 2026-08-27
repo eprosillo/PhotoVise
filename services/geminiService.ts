@@ -106,6 +106,23 @@ export async function suggestScoutLocations(
   }
 }
 
+export interface ParsedAssignment {
+  title: string | null;
+  category: 'Personal' | 'Professional' | 'School' | null;
+  priority: 'high' | 'medium' | 'low' | null;
+  dueDate: string | null;
+  genre: string | null;
+  location: string | null;
+  brief: string | null;
+  notes: string | null;
+}
+
+export async function parseAssignment(text: string): Promise<ParsedAssignment> {
+  const fn = getFn<{ text: string }, { assignment: ParsedAssignment }>('parseAssignment', 60_000);
+  const result = await fn({ text });
+  return result.data.assignment;
+}
+
 export async function fetchBulletinEvents(
   genre: string,
   region: string,

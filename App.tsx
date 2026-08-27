@@ -11,7 +11,7 @@ import TodayView from './components/TodayView';
 import SkillTreeView from './components/SkillTreeView';
 import MissionHistoryView from './components/MissionHistoryView';
 import { getEncouragement } from './data/missions';
-import { generateWeeklyPlan, generateAssignmentGuide, askProQuestion, fetchBulletinEvents } from './services/geminiService';
+import { generateWeeklyPlan, generateAssignmentGuide, askProQuestion, fetchBulletinEvents, parseAssignment } from './services/geminiService';
 import { createCalendarEventForSession } from './services/calendarService';
 import { GENRE_ICONS } from './constants';
 import { PHOTO_QUOTES } from './quotes';
@@ -544,6 +544,14 @@ const App: React.FC = () => {
   const [dashboardTypeFilter, setDashboardTypeFilter] = useState<SessionType | 'All'>('All');
   const [dashboardPriorityFilter, setDashboardPriorityFilter] = useState<'high' | 'medium' | 'low' | 'All'>('All');
   const [dashboardDateSort, setDashboardDateSort] = useState<'deadline' | 'newest' | 'oldest'>('deadline');
+  const [pasteMode, setPasteMode] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
+  const [parseError, setParseError] = useState('');
+  const [parsedDraft, setParsedDraft] = useState<{
+    title: string; category: string; priority: string; dueDate: string;
+    genre: string; location: string; brief: string; notes: string;
+  } | null>(null);
 
   // Persistence for sessions
   const [sessions, setSessions] = useState<Session[]>(() => {
@@ -1610,86 +1618,247 @@ const App: React.FC = () => {
             <p className="font-mono text-[8px] tracking-[0.14em] uppercase mt-1" style={{ color: 'rgba(23,25,26,0.35)' }}>— {dailyQuote.author}</p>
           </div>
 
-          {/* New session form */}
+          {/* New assignment form */}
           <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', padding: '20px', marginBottom: '22px' }}>
-            <p className="font-mono text-[9px] tracking-[0.22em] uppercase mb-4" style={{ color: 'rgba(23,25,26,0.40)' }}>New Assignment</p>
-            <form onSubmit={addSession} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <input
-                name="title"
-                type="text"
-                placeholder="Assignment title (optional)"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
-              />
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+            {/* Header + mode toggle */}
+            <div className="flex items-center justify-between mb-4">
+              <p className="font-mono text-[9px] tracking-[0.22em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>New Assignment</p>
+              <button
+                onClick={() => { setPasteMode(p => !p); setParsedDraft(null); setPasteText(''); setParseError(''); }}
+                className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors flex items-center gap-1.5"
+                style={{ background: pasteMode ? '#17191a' : 'transparent', color: pasteMode ? '#f4f3ef' : 'rgba(23,25,26,0.45)', border: '1px solid rgba(23,25,26,0.18)', padding: '4px 10px', cursor: 'pointer' }}
+                onMouseEnter={e => { if (!pasteMode) { e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#8a6b0f'; } }}
+                onMouseLeave={e => { if (!pasteMode) { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.45)'; } }}
+              >
+                <i className="fa-solid fa-wand-magic-sparkles text-[9px]" />
+                AI Parse
+              </button>
+            </div>
+
+            {/* Paste & Parse mode */}
+            {pasteMode && !parsedDraft && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
+                <textarea
+                  value={pasteText}
+                  onChange={e => { setPasteText(e.target.value); setParseError(''); }}
+                  placeholder="Paste your assignment description here — syllabus text, email, brief, anything. AI will extract the details."
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.18)', outline: 'none', minHeight: '110px', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }}
+                />
+                {parseError && (
+                  <p className="font-mono text-[9px] tracking-[0.12em]" style={{ color: '#8f4a3b' }}>{parseError}</p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    disabled={isParsing || !pasteText.trim()}
+                    onClick={async () => {
+                      setIsParsing(true);
+                      setParseError('');
+                      try {
+                        const result = await parseAssignment(pasteText);
+                        setParsedDraft({
+                          title: result.title || '',
+                          category: result.category || '',
+                          priority: result.priority || '',
+                          dueDate: result.dueDate || '',
+                          genre: result.genre || genreOptions[0],
+                          location: result.location || '',
+                          brief: result.brief || '',
+                          notes: result.notes || '',
+                        });
+                      } catch {
+                        setParseError('Could not parse the assignment. Please fill in the fields manually.');
+                      } finally {
+                        setIsParsing(false);
+                      }
+                    }}
+                    className="flex-1 font-mono text-[9px] tracking-[0.18em] uppercase transition-colors"
+                    style={{ padding: '10px', background: isParsing || !pasteText.trim() ? 'rgba(23,25,26,0.12)' : '#17191a', color: isParsing || !pasteText.trim() ? 'rgba(23,25,26,0.30)' : '#f4f3ef', border: 'none', cursor: isParsing || !pasteText.trim() ? 'not-allowed' : 'pointer' }}
+                    onMouseEnter={e => { if (!isParsing && pasteText.trim()) { e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.color = '#17191a'; } }}
+                    onMouseLeave={e => { if (!isParsing && pasteText.trim()) { e.currentTarget.style.background = '#17191a'; e.currentTarget.style.color = '#f4f3ef'; } }}
+                  >
+                    {isParsing ? 'Parsing…' : 'Parse with AI'}
+                  </button>
+                  <button
+                    onClick={() => { setPasteMode(false); setPasteText(''); setParseError(''); }}
+                    className="font-mono text-[9px] tracking-[0.14em] uppercase"
+                    style={{ padding: '10px 16px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', color: 'rgba(23,25,26,0.45)', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Parsed draft — review & confirm */}
+            {pasteMode && parsedDraft && (
+              <div style={{ marginBottom: '10px' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-mono text-[8px] tracking-[0.16em] uppercase" style={{ color: '#4b6b52' }}>
+                    <i className="fa-solid fa-check mr-1" />
+                    Parsed — review &amp; save
+                  </p>
+                  <button
+                    onClick={() => setParsedDraft(null)}
+                    className="font-mono text-[8px] tracking-[0.12em] uppercase"
+                    style={{ color: 'rgba(23,25,26,0.40)', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    ← Re-paste
+                  </button>
+                </div>
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    const fd = new FormData(e.currentTarget);
+                    const date = fd.get('date') as string;
+                    const location = (fd.get('location') as string) || '';
+                    const genre = fd.get('genre') as Genre;
+                    const title = ((fd.get('title') as string) || '').trim();
+                    const type = (fd.get('type') as string) || undefined;
+                    const priority = (fd.get('priority') as string) || undefined;
+                    const dueDate = (fd.get('dueDate') as string) || undefined;
+                    const brief = ((fd.get('brief') as string) || '').trim() || undefined;
+                    const notes = (fd.get('notes') as string) || '';
+                    const name = `${date}_${location.replace(/\s+/g, '_')}_${genre}`;
+                    const newSession: Session = {
+                      id: Date.now().toString(), name,
+                      title: title || undefined, date, location, genre: [genre],
+                      status: 'todo', notes,
+                      type: type as SessionType | undefined,
+                      priority: priority as Session['priority'],
+                      dueDate, brief,
+                    };
+                    setSessions(prev => [newSession, ...prev]);
+                    setParsedDraft(null); setPasteText(''); setPasteMode(false);
+                    createCalendarEventForSession(newSession).catch(() => {});
+                  }}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}
+                >
+                  <input name="title" type="text" defaultValue={parsedDraft.title} placeholder="Assignment title"
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]}
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }} />
+                    <input name="location" type="text" defaultValue={parsedDraft.location} placeholder="Location"
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <select name="type" defaultValue={parsedDraft.category}
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+                      <option value="">Category</option>
+                      <option value="Personal">Personal</option>
+                      <option value="Professional">Professional</option>
+                      <option value="School">School</option>
+                    </select>
+                    <select name="priority" defaultValue={parsedDraft.priority}
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+                      <option value="">Priority</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                    <input name="dueDate" type="date" defaultValue={parsedDraft.dueDate}
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }} title="Due date" />
+                  </div>
+                  <select name="genre" defaultValue={parsedDraft.genre || genreOptions[0]} required
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+                    {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                  <textarea name="brief" defaultValue={parsedDraft.brief} placeholder="Brief"
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', minHeight: '70px', resize: 'vertical', fontFamily: 'inherit' }} />
+                  <textarea name="notes" defaultValue={parsedDraft.notes} placeholder="Notes"
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', minHeight: '50px', resize: 'vertical', fontFamily: 'inherit' }} />
+                  <button type="submit"
+                    className="w-full font-mono text-[9px] tracking-[0.20em] uppercase transition-colors"
+                    style={{ padding: '11px 0', background: '#4b6b52', border: 'none', color: '#f4f3ef', cursor: 'pointer' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#c9a227')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#4b6b52')}
+                  >
+                    Save Assignment
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Manual form (shown when not in paste mode) */}
+            {!pasteMode && (
+              <form onSubmit={addSession} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <input
-                  name="date"
-                  type="date"
-                  required
+                  name="title"
+                  type="text"
+                  placeholder="Assignment title (optional)"
                   style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
                 />
-                <LocationAutocomplete
-                  name="location"
-                  placeholder="Location (e.g. Austin)"
-                  required
-                  className="w-full"
-                  style={{ padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                  <input
+                    name="date"
+                    type="date"
+                    required
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
+                  />
+                  <LocationAutocomplete
+                    name="location"
+                    placeholder="Location (e.g. Austin)"
+                    required
+                    className="w-full"
+                    style={{ padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
+                  />
+                  <select
+                    name="genre"
+                    required
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
+                  >
+                    {genreOptions.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="submit"
+                    className="font-mono text-[9px] tracking-[0.20em] uppercase transition-colors"
+                    style={{ padding: '9px 0', background: '#17191a', border: '1px solid #17191a', color: '#f4f3ef', cursor: 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#17191a'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#17191a'; e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#f4f3ef'; }}
+                  >
+                    + Add
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <select
+                    name="type"
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
+                  >
+                    <option value="">Category</option>
+                    <option value="Personal">Personal</option>
+                    <option value="Professional">Professional</option>
+                    <option value="School">School</option>
+                  </select>
+                  <select
+                    name="priority"
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
+                  >
+                    <option value="">Priority</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                  <input
+                    name="dueDate"
+                    type="date"
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
+                    title="Due date"
+                  />
+                </div>
+                <textarea
+                  name="brief"
+                  placeholder="Assignment brief / requirements (optional)"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
                 />
-                <select
-                  name="genre"
-                  required
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
-                >
-                  {genreOptions.map(g => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-                <button
-                  type="submit"
-                  className="font-mono text-[9px] tracking-[0.20em] uppercase transition-colors"
-                  style={{ padding: '9px 0', background: '#17191a', border: '1px solid #17191a', color: '#f4f3ef', cursor: 'pointer' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#17191a'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#17191a'; e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#f4f3ef'; }}
-                >
-                  + Add
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <select
-                  name="type"
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
-                >
-                  <option value="">Category</option>
-                  <option value="Personal">Personal</option>
-                  <option value="Professional">Professional</option>
-                  <option value="School">School</option>
-                </select>
-                <select
-                  name="priority"
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
-                >
-                  <option value="">Priority</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
-                <input
-                  name="dueDate"
-                  type="date"
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
-                  title="Due date"
+                <textarea
+                  name="notes"
+                  placeholder="Notes"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
                 />
-              </div>
-              <textarea
-                name="brief"
-                placeholder="Assignment brief / requirements (optional)"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
-              />
-              <textarea
-                name="notes"
-                placeholder="Notes"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
-              />
-            </form>
+              </form>
+            )}
           </div>
 
           {/* ── Dashboard filters ── */}
