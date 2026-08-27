@@ -1187,7 +1187,7 @@ const App: React.FC = () => {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('Collage download failed:', err);
-      alert(`Could not generate collage: ${msg}`);
+      alert(`Could not generate collage. Please try again.\n\n(${msg})`);
     } finally {
       setIsCollageDownloading(false);
     }
@@ -1313,28 +1313,36 @@ const App: React.FC = () => {
         const x = startX + col * (CELL + GAP);
         const y = cursorY + row * (CELL + GAP);
 
-        await new Promise<void>(resolve => {
-          const el = new Image();
-          el.onload = () => {
-            const scale = Math.max(CELL / el.width, CELL / el.height);
-            const sw = CELL / scale;
-            const sh = CELL / scale;
-            const sx = (el.width - sw) / 2;
-            const sy = (el.height - sh) / 2;
-            ctx.drawImage(el, sx, sy, sw, sh, x, y, CELL, CELL);
-            resolve();
-          };
-          el.onerror = () => {
-            ctx.fillStyle = 'rgba(23,25,26,0.10)';
-            ctx.fillRect(x, y, CELL, CELL);
-            ctx.fillStyle = 'rgba(23,25,26,0.25)';
-            ctx.font = '10px "IBM Plex Mono", monospace';
-            ctx.fillText('NO IMAGE', x + 10, y + CELL / 2);
-            resolve();
-          };
-          // No crossOrigin for data URLs — that's what broke it
-          el.src = imgData.dataUrl;
-        });
+        try {
+          // If src is an HTTP URL (Firebase Storage), fetch as blob first.
+          // Drawing an HTTP URL directly taints the canvas; a same-origin
+          // blob URL does not.
+          let src = imgData.dataUrl;
+          let blobUrl: string | null = null;
+          if (!src.startsWith('data:')) {
+            const res = await fetch(src);
+            if (!res.ok) throw new Error(`fetch ${res.status}`);
+            blobUrl = URL.createObjectURL(await res.blob());
+            src = blobUrl;
+          }
+
+          await new Promise<void>(resolve => {
+            const el = new Image();
+            el.onload = () => {
+              if (blobUrl) URL.revokeObjectURL(blobUrl);
+              const scale = Math.max(CELL / el.width, CELL / el.height);
+              const sw = CELL / scale, sh = CELL / scale;
+              const sx = (el.width - sw) / 2, sy = (el.height - sh) / 2;
+              ctx.drawImage(el, sx, sy, sw, sh, x, y, CELL, CELL);
+              resolve();
+            };
+            el.onerror = () => { if (blobUrl) URL.revokeObjectURL(blobUrl); resolve(); };
+            el.src = src;
+          });
+        } catch {
+          ctx.fillStyle = 'rgba(23,25,26,0.10)';
+          ctx.fillRect(x, y, CELL, CELL);
+        }
       }));
 
       const rows = Math.ceil(entry.images.length / cols);
