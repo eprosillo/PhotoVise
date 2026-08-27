@@ -16,13 +16,10 @@ interface CalendarViewProps {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const STATUS_COLOR: Record<SessionStatus, string> = {
-  capturing:   '#4a6b7c',
-  shot:        '#c9a227',
-  culled:      '#a35a4a',
-  edited:      '#4b6b52',
-  'backed up': '#4b6b52',
-  posted:      '#4a6b7c',
-  archived:    'rgba(23,25,26,0.28)',
+  'todo':        'rgba(23,25,26,0.30)',
+  'in-progress': '#c9a227',
+  'done':        '#4b6b52',
+  archived:      'rgba(23,25,26,0.18)',
 };
 
 const GRID_DAYS   = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -218,13 +215,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const canGenerate = plannerSessions.size > 0 && WEEK_DAYS.some(d => availability[d].enabled);
 
   const STATUS_NEXT_TASK: Record<SessionStatus, string> = {
-    capturing:   'NEXT: Shoot day — plan the shoot, location scout, and gear prep.',
-    shot:        'NEXT: Cull — review and select the best frames from the shoot.',
-    culled:      'NEXT: Edit — process and retouch the selected images.',
-    edited:      'NEXT: Back up — export finals and back up all files.',
-    'backed up': 'NEXT: Deliver / post — send to client or publish online.',
-    posted:      'NEXT: Archive — organise and store the completed project.',
-    archived:    'NEXT: Complete — no remaining tasks.',
+    'todo':        'NEXT: Start working on this assignment.',
+    'in-progress': 'NEXT: Finish and submit the assignment.',
+    'done':        'Complete — no remaining tasks.',
+    archived:      'Archived — stored for reference.',
   };
 
   const formatProfileForContext = (): string => {

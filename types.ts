@@ -21,9 +21,11 @@ export type Genre =
   | 'Travel'
   | 'Other';
 
-export type SessionStatus = 'capturing' | 'shot' | 'culled' | 'edited' | 'backed up' | 'posted' | 'archived';
+export type SessionStatus = 'todo' | 'in-progress' | 'done' | 'archived';
 
-export type SessionType = 'Class' | 'Internship' | 'Personal';
+export type SessionType = 'Personal' | 'Professional' | 'School';
+
+export type AssignmentPriority = 'high' | 'medium' | 'low';
 
 export interface WeekPlan {
   id: string;
@@ -47,7 +49,9 @@ export interface Session {
   dayPlan?: string;
   scoutNotes?: string;
   type?: SessionType;
-  deadline?: string;   // ISO date YYYY-MM-DD
+  priority?: AssignmentPriority;
+  deadline?: string;   // ISO date YYYY-MM-DD — submission due date
+  dueDate?: string;    // ISO date YYYY-MM-DD — separate due date field
   brief?: string;      // assignment brief / requirements
 }
 

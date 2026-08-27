@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Session, SessionStatus, Genre, SessionType, AssignmentTimeframe } from '../types';
+import { Session, SessionStatus, Genre, SessionType, AssignmentPriority, AssignmentTimeframe } from '../types';
 import { GENRE_ICONS } from '../constants';
 import LocationAutocomplete from './LocationAutocomplete';
 
@@ -11,7 +11,9 @@ const GENRE_OPTIONS: Genre[] = [
   'Travel', 'Other',
 ];
 
-const SESSION_TYPES: SessionType[] = ['Class', 'Internship', 'Personal'];
+const SESSION_TYPES: SessionType[] = ['Personal', 'Professional', 'School'];
+
+const PRIORITY_OPTIONS: AssignmentPriority[] = ['high', 'medium', 'low'];
 
 interface SessionCardProps {
   session: Session;
@@ -21,20 +23,29 @@ interface SessionCardProps {
   onGenerateStrategy?: (sessionId: string, input: string, timeframe: AssignmentTimeframe) => Promise<void>;
 }
 
-const STATUS_STAGE_LABELS: Record<SessionStatus, string> = {
-  'capturing': 'Capturing',
-  'shot': 'Culling',
-  'culled': 'Editing',
-  'edited': 'Backing Up',
-  'backed up': 'Posting',
-  'posted': 'Complete',
-  'archived': 'Archived',
+const STATUS_LABELS: Record<Exclude<SessionStatus, 'archived'>, string> = {
+  'todo':        'To Do',
+  'in-progress': 'In Progress',
+  'done':        'Done',
 };
 
-const TYPE_STYLE: Record<SessionType, { bg: string; text: string; border: string; icon: string }> = {
-  Class:      { bg: 'bg-brand-blue/10',  text: 'text-brand-blue',  border: 'border-brand-blue/20',  icon: 'fa-graduation-cap' },
-  Internship: { bg: 'bg-amber-50',       text: 'text-amber-700',   border: 'border-amber-200',      icon: 'fa-briefcase' },
-  Personal:   { bg: 'bg-emerald-50',     text: 'text-emerald-700', border: 'border-emerald-200',    icon: 'fa-person' },
+const STATUS_STYLE: Record<SessionStatus, { bar: string; text: string }> = {
+  'todo':        { bar: 'rgba(23,25,26,0.15)', text: 'rgba(23,25,26,0.50)' },
+  'in-progress': { bar: '#c9a227',             text: '#8a6b0f' },
+  'done':        { bar: '#4b6b52',             text: '#3d5a44' },
+  'archived':    { bar: 'rgba(23,25,26,0.12)', text: 'rgba(23,25,26,0.35)' },
+};
+
+const PRIORITY_STYLE: Record<AssignmentPriority, { bg: string; text: string; dot: string }> = {
+  high:   { bg: 'rgba(163,90,74,0.10)',  text: '#8f4a3b', dot: '#a35a4a' },
+  medium: { bg: 'rgba(201,162,39,0.10)', text: '#8a6b0f', dot: '#c9a227' },
+  low:    { bg: 'rgba(23,25,26,0.07)',   text: 'rgba(23,25,26,0.50)', dot: 'rgba(23,25,26,0.30)' },
+};
+
+const TYPE_STYLE: Record<SessionType, { bg: string; text: string }> = {
+  Personal:     { bg: 'rgba(75,107,82,0.10)',  text: '#3d5a44' },
+  Professional: { bg: 'rgba(74,107,124,0.10)', text: '#3f5d6d' },
+  School:       { bg: 'rgba(201,162,39,0.10)', text: '#8a6b0f' },
 };
 
 function getDaysUntil(deadline: string): number {
@@ -44,32 +55,32 @@ function getDaysUntil(deadline: string): number {
   return Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function DeadlineChip({ deadline }: { deadline: string }) {
-  const days = getDaysUntil(deadline);
+function DueDateChip({ date }: { date: string }) {
+  const days = getDaysUntil(date);
   let label: string;
-  let cls: string;
+  let color: string;
 
   if (days < 0) {
     label = 'Overdue';
-    cls = 'bg-brand-rose/15 text-brand-rose border-brand-rose/30';
+    color = '#8f4a3b';
   } else if (days === 0) {
     label = 'Due today';
-    cls = 'bg-brand-rose/15 text-brand-rose border-brand-rose/30';
+    color = '#8f4a3b';
   } else if (days <= 2) {
     label = `${days}d left`;
-    cls = 'bg-brand-rose/10 text-brand-rose border-brand-rose/20';
+    color = '#8f4a3b';
   } else if (days <= 7) {
     label = `${days}d left`;
-    cls = 'bg-amber-50 text-amber-700 border-amber-200';
+    color = '#8a6b0f';
   } else {
-    const fmt = new Date(deadline + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const fmt = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     label = `Due ${fmt}`;
-    cls = 'bg-brand-black/5 text-brand-black/50 border-brand-black/10';
+    color = 'rgba(23,25,26,0.45)';
   }
 
   return (
-    <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded border ${cls}`}>
-      <i className="fa-regular fa-clock text-[9px]" />
+    <span className="font-mono text-[9px] tracking-[0.14em] uppercase" style={{ color }}>
+      <i className="fa-regular fa-clock mr-1 text-[8px]" />
       {label}
     </span>
   );
@@ -80,8 +91,6 @@ const TIMEFRAME_LABELS: Record<AssignmentTimeframe, string> = {
 };
 
 const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUpdate, onDelete, onGenerateStrategy }) => {
-  const statuses: SessionStatus[] = ['capturing', 'shot', 'culled', 'edited', 'backed up', 'posted'];
-
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(session.title || '');
   const [editDate, setEditDate] = useState(session.date);
@@ -89,7 +98,9 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
   const [editGenre, setEditGenre] = useState(session.genre[0]);
   const [editNotes, setEditNotes] = useState(session.notes);
   const [editType, setEditType] = useState<SessionType | ''>(session.type || '');
+  const [editPriority, setEditPriority] = useState<AssignmentPriority | ''>(session.priority || '');
   const [editDeadline, setEditDeadline] = useState(session.deadline || '');
+  const [editDueDate, setEditDueDate] = useState(session.dueDate || '');
   const [editBrief, setEditBrief] = useState(session.brief || '');
 
   const [strategyExpanded, setStrategyExpanded] = useState(false);
@@ -97,27 +108,12 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
   const [scoutExpanded, setScoutExpanded] = useState(false);
   const [briefExpanded, setBriefExpanded] = useState(false);
 
-  // Inline strategy generation form
   const [showStrategyForm, setShowStrategyForm] = useState(false);
   const [strategyInput, setStrategyInput] = useState(session.brief || '');
   const [strategyTimeframe, setStrategyTimeframe] = useState<AssignmentTimeframe>('2hr');
   const [isGeneratingStrategy, setIsGeneratingStrategy] = useState(false);
 
-  const getStatusColor = (status: SessionStatus) => {
-    switch (status) {
-      case 'capturing': return 'bg-amber-100 text-amber-700';
-      case 'shot': return 'bg-brand-rose/10 text-brand-rose';
-      case 'culled': return 'bg-brand-blue/10 text-brand-blue';
-      case 'edited': return 'bg-brand-black/5 text-brand-black';
-      case 'backed up': return 'bg-brand-gray/10 text-brand-gray';
-      case 'posted': return 'bg-emerald-100 text-emerald-700';
-      case 'archived': return 'bg-zinc-800 text-zinc-300';
-      default: return 'bg-zinc-100 text-zinc-600';
-    }
-  };
-
   const isArchived = session.status === 'archived';
-  const typeStyle = session.type ? TYPE_STYLE[session.type] : null;
 
   const handleSave = () => {
     const trimmedTitle = editTitle.trim();
@@ -130,7 +126,9 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
       notes: editNotes,
       name: newName,
       type: editType || undefined,
+      priority: editPriority || undefined,
       deadline: editDeadline || undefined,
+      dueDate: editDueDate || undefined,
       brief: editBrief.trim() || undefined,
     });
     setEditing(false);
@@ -143,7 +141,9 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
     setEditGenre(session.genre[0]);
     setEditNotes(session.notes);
     setEditType(session.type || '');
+    setEditPriority(session.priority || '');
     setEditDeadline(session.deadline || '');
+    setEditDueDate(session.dueDate || '');
     setEditBrief(session.brief || '');
     setEditing(false);
   };
@@ -154,9 +154,9 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
     return (
       <div style={{ background: '#f8f7f4', border: '1px solid #c9a227' }}>
         <div className="p-5 space-y-2">
-          <p className="font-mono text-[9px] tracking-[0.18em] uppercase mb-3" style={{ color: '#8a6b0f' }}>Edit Session</p>
+          <p className="font-mono text-[9px] tracking-[0.18em] uppercase mb-3" style={{ color: '#8a6b0f' }}>Edit Assignment</p>
 
-          <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Session title (optional)" style={FIELD} />
+          <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Assignment title (optional)" style={FIELD} />
 
           <div className="grid grid-cols-2 gap-2">
             <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} style={FIELD} />
@@ -168,13 +168,19 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
             {GENRE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
           </select>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <select value={editType} onChange={e => setEditType(e.target.value as SessionType | '')} style={FIELD}>
-              <option value="">Type (optional)</option>
+              <option value="">Category</option>
               {SESSION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <input type="date" value={editDeadline} onChange={e => setEditDeadline(e.target.value)} style={FIELD} />
+            <select value={editPriority} onChange={e => setEditPriority(e.target.value as AssignmentPriority | '')} style={FIELD}>
+              <option value="">Priority</option>
+              {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+            </select>
+            <input type="date" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} style={FIELD} title="Due date" />
           </div>
+
+          <input type="date" value={editDeadline} onChange={e => setEditDeadline(e.target.value)} style={FIELD} title="Submission deadline (optional)" placeholder="Submission deadline" />
 
           <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Notes" style={{ ...FIELD, minHeight: '70px', resize: 'vertical' }} />
           <textarea value={editBrief} onChange={e => setEditBrief(e.target.value)} placeholder="Assignment brief / requirements (optional)" style={{ ...FIELD, minHeight: '70px', resize: 'vertical' }} />
@@ -228,31 +234,23 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
     );
   }
 
-  // Pipeline track helper
-  const ALL_STAGES: SessionStatus[] = ['capturing', 'shot', 'culled', 'edited', 'backed up', 'posted', 'archived'];
-  const STAGE_NAMES: Record<SessionStatus, string> = {
-    capturing: 'CAPTURING', shot: 'CULLED', culled: 'EDITED',
-    edited: 'BACKED UP', 'backed up': 'POSTED', posted: 'ARCHIVED', archived: 'ARCHIVED',
-  };
-  const currentIdx = ALL_STAGES.indexOf(session.status);
-  const nextStage = ALL_STAGES[currentIdx + 1] as SessionStatus | undefined;
-  const pipelineCaption = isArchived
-    ? 'ARCHIVED — COMPLETE'
-    : nextStage
-      ? `${STAGE_NAMES[session.status]} — NEXT: ${STAGE_NAMES[nextStage]}`
-      : '';
+  const activeStatuses: Exclude<SessionStatus, 'archived'>[] = ['todo', 'in-progress', 'done'];
+  const currentStyle = STATUS_STYLE[session.status];
 
   return (
     <div
-      className={`overflow-hidden transition-all duration-500 ${isArchived ? 'opacity-80' : ''}`}
+      className={`overflow-hidden transition-all duration-500 ${isArchived ? 'opacity-75' : ''}`}
       style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)' }}
     >
+      {/* Status bar strip */}
+      <div style={{ height: '4px', background: currentStyle.bar }} />
+
       <div className="p-6">
         {/* Header row */}
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1 min-w-0">
             {/* Meta row */}
-            <div className="font-mono text-[9px] tracking-[0.14em] uppercase text-brand-ink/42 mb-3 flex items-center flex-wrap gap-x-3 gap-y-1">
+            <div className="font-mono text-[9px] tracking-[0.14em] uppercase text-brand-ink/42 mb-2 flex items-center flex-wrap gap-x-3 gap-y-1">
               <span>{session.date}</span>
               {session.location && <><span>·</span><span>{session.location.toUpperCase()}</span></>}
               {session.genre.length > 0 && <><span>·</span><span>{session.genre.join(' · ').toUpperCase()}</span></>}
@@ -263,21 +261,29 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
             </h3>
 
             {/* Chips row */}
-            <div className="flex flex-wrap items-center gap-2 mt-3">
-              {session.type && (
-                <span className="font-mono text-[8px] tracking-[0.16em] uppercase px-[6px] py-[3px]" style={{ background: '#17191a', color: '#f4f3ef' }}>
-                  {session.type}
-                </span>
-              )}
-              {session.deadline && (() => {
-                const days = getDaysUntil(session.deadline);
-                const color = days <= 3 ? '#8f4a3b' : 'rgba(23,25,26,0.55)';
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {session.type && (() => {
+                const ts = TYPE_STYLE[session.type];
                 return (
-                  <span className="font-mono text-[9px] tracking-[0.14em]" style={{ color }}>
-                    {days < 0 ? 'OVERDUE' : days === 0 ? 'DUE TODAY' : `${days}D LEFT`}
+                  <span className="font-mono text-[8px] tracking-[0.16em] uppercase px-[7px] py-[3px]"
+                    style={{ background: ts.bg, color: ts.text }}>
+                    {session.type}
                   </span>
                 );
               })()}
+              {session.priority && (() => {
+                const ps = PRIORITY_STYLE[session.priority!];
+                return (
+                  <span className="font-mono text-[8px] tracking-[0.14em] uppercase px-[7px] py-[3px] flex items-center gap-1"
+                    style={{ background: ps.bg, color: ps.text }}>
+                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: ps.dot, display: 'inline-block' }} />
+                    {session.priority}
+                  </span>
+                );
+              })()}
+              {(session.dueDate || session.deadline) && (
+                <DueDateChip date={(session.dueDate || session.deadline)!} />
+              )}
             </div>
           </div>
 
@@ -286,7 +292,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
               <i className="fa-solid fa-pen text-xs"></i>
             </button>
             <button
-              onClick={() => onUpdateStatus(session.id, isArchived ? 'shot' : 'archived')}
+              onClick={() => onUpdateStatus(session.id, isArchived ? 'todo' : 'archived')}
               className="text-brand-ink/20 hover:text-brand-ink/60 transition-colors p-2"
               title={isArchived ? 'Un-archive' : 'Archive'}
             >
@@ -296,25 +302,6 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
               <i className="fa-solid fa-xmark text-xs"></i>
             </button>
           </div>
-        </div>
-
-        {/* Pipeline track */}
-        <div className="mb-4">
-          <div className="flex gap-[3px]">
-            {ALL_STAGES.map((stage, i) => {
-              let barColor: string;
-              if (isArchived && stage === 'archived') barColor = '#4b6b52';
-              else if (i < currentIdx) barColor = '#17191a';
-              else if (i === currentIdx) barColor = '#c9a227';
-              else barColor = 'rgba(23,25,26,0.12)';
-              return <div key={stage} className="flex-1" style={{ height: '6px', background: barColor }} />;
-            })}
-          </div>
-          {pipelineCaption && (
-            <p className="font-mono text-[9px] tracking-[0.16em] mt-1" style={{ color: isArchived ? '#3d5a44' : '#8a6b0f' }}>
-              {pipelineCaption}
-            </p>
-          )}
         </div>
 
         {/* Genre tags */}
@@ -456,26 +443,31 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
           </div>
         )}
 
-        {/* Stage advance buttons */}
+        {/* Status toggle */}
         {!isArchived && (
           <div className="pt-4" style={{ borderTop: '1px solid rgba(23,25,26,0.10)' }}>
-            <p className="font-mono text-[9px] tracking-[0.14em] uppercase text-brand-ink/40 mb-2">Advance Stage</p>
-            <div className="flex flex-wrap gap-1.5">
-              {statuses.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => onUpdateStatus(session.id, s)}
-                  className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors"
-                  style={{
-                    padding: '4px 8px',
-                    border: session.status === s ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.16)',
-                    background: session.status === s ? '#17191a' : 'transparent',
-                    color: session.status === s ? '#f4f3ef' : 'rgba(23,25,26,0.55)',
-                  }}
-                >
-                  {STATUS_STAGE_LABELS[s]}
-                </button>
-              ))}
+            <p className="font-mono text-[9px] tracking-[0.14em] uppercase text-brand-ink/40 mb-2">Status</p>
+            <div className="flex gap-2">
+              {activeStatuses.map((s) => {
+                const isActive = session.status === s;
+                const style = STATUS_STYLE[s];
+                return (
+                  <button
+                    key={s}
+                    onClick={() => onUpdateStatus(session.id, s)}
+                    className="flex-1 font-mono text-[8px] tracking-[0.14em] uppercase transition-colors"
+                    style={{
+                      padding: '8px 6px',
+                      border: isActive ? `1px solid ${style.bar}` : '1px solid rgba(23,25,26,0.14)',
+                      background: isActive ? style.bar : 'transparent',
+                      color: isActive ? (s === 'todo' ? 'rgba(23,25,26,0.70)' : '#f4f3ef') : 'rgba(23,25,26,0.45)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {STATUS_LABELS[s]}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

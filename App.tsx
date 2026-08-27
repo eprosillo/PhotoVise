@@ -542,6 +542,7 @@ const App: React.FC = () => {
   const [dashboardGenreFilter, setDashboardGenreFilter] = useState<Genre | 'All'>('All');
   const [dashboardStatusFilter, setDashboardStatusFilter] = useState<SessionStatus | 'All'>('All');
   const [dashboardTypeFilter, setDashboardTypeFilter] = useState<SessionType | 'All'>('All');
+  const [dashboardPriorityFilter, setDashboardPriorityFilter] = useState<'high' | 'medium' | 'low' | 'All'>('All');
   const [dashboardDateSort, setDashboardDateSort] = useState<'deadline' | 'newest' | 'oldest'>('deadline');
 
   // Persistence for sessions
@@ -561,7 +562,7 @@ const App: React.FC = () => {
         date: '2024-03-20',
         location: 'Seattle Downtown',
         genre: ['Architecture', 'Street'],
-        status: 'shot',
+        status: 'in-progress',
         notes: 'Focus on brutalist structures near public library.'
       },
       {
@@ -570,7 +571,7 @@ const App: React.FC = () => {
         date: '2024-03-15',
         location: 'Mt. Rainier',
         genre: ['Landscape'],
-        status: 'culled',
+        status: 'done',
         notes: 'Sunrise hike for blue hour lake reflections.'
       }
     ];
@@ -970,6 +971,9 @@ const App: React.FC = () => {
 
     const name = `${date}_${location.replace(/\s+/g, '_')}_${genre}`;
 
+    const priority = (formData.get('priority') as string) || undefined;
+    const dueDate = (formData.get('dueDate') as string) || undefined;
+
     const newSession: Session = {
       id: Date.now().toString(),
       name,
@@ -977,10 +981,12 @@ const App: React.FC = () => {
       date,
       location,
       genre: [genre],
-      status: 'capturing',
+      status: 'todo',
       notes: notes || '',
       type: type as SessionType | undefined,
+      priority: priority as Session['priority'],
       deadline,
+      dueDate,
       brief,
     };
     
@@ -1606,12 +1612,12 @@ const App: React.FC = () => {
 
           {/* New session form */}
           <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', padding: '20px', marginBottom: '22px' }}>
-            <p className="font-mono text-[9px] tracking-[0.22em] uppercase mb-4" style={{ color: 'rgba(23,25,26,0.40)' }}>New Session</p>
+            <p className="font-mono text-[9px] tracking-[0.22em] uppercase mb-4" style={{ color: 'rgba(23,25,26,0.40)' }}>New Assignment</p>
             <form onSubmit={addSession} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <input
                 name="title"
                 type="text"
-                placeholder="Session title (optional)"
+                placeholder="Assignment title (optional)"
                 style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
               />
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
@@ -1644,24 +1650,33 @@ const App: React.FC = () => {
                   onMouseEnter={e => { e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#17191a'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = '#17191a'; e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#f4f3ef'; }}
                 >
-                  + Add Session
+                  + Add
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <select
                   name="type"
                   style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
                 >
-                  <option value="">Type (optional)</option>
-                  <option value="Class">Class</option>
-                  <option value="Internship">Internship</option>
+                  <option value="">Category</option>
                   <option value="Personal">Personal</option>
+                  <option value="Professional">Professional</option>
+                  <option value="School">School</option>
+                </select>
+                <select
+                  name="priority"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
+                >
+                  <option value="">Priority</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
                 </select>
                 <input
-                  name="deadline"
+                  name="dueDate"
                   type="date"
                   style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
-                  title="Submission deadline (optional)"
+                  title="Due date"
                 />
               </div>
               <textarea
@@ -1685,21 +1700,23 @@ const App: React.FC = () => {
               .filter(s =>
                 (dashboardGenreFilter === 'All' || (s.genre ?? []).includes(dashboardGenreFilter)) &&
                 (dashboardStatusFilter === 'All' || s.status === dashboardStatusFilter) &&
-                (dashboardTypeFilter === 'All' || s.type === dashboardTypeFilter)
+                (dashboardTypeFilter === 'All' || s.type === dashboardTypeFilter) &&
+                (dashboardPriorityFilter === 'All' || s.priority === dashboardPriorityFilter)
               )
               .sort((a, b) => {
                 if (dashboardDateSort === 'deadline') {
-                  // Sessions with deadlines first, sorted ascending; no-deadline sessions go last
-                  if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
-                  if (a.deadline) return -1;
-                  if (b.deadline) return 1;
+                  const da = a.dueDate || a.deadline || '';
+                  const db = b.dueDate || b.deadline || '';
+                  if (da && db) return da.localeCompare(db);
+                  if (da) return -1;
+                  if (db) return 1;
                   return (b.date || '').localeCompare(a.date || '');
                 }
                 const da = a.date || '', db = b.date || '';
                 return dashboardDateSort === 'newest' ? db.localeCompare(da) : da.localeCompare(db);
               });
 
-            const hasFilters = dashboardGenreFilter !== 'All' || dashboardStatusFilter !== 'All' || dashboardTypeFilter !== 'All';
+            const hasFilters = dashboardGenreFilter !== 'All' || dashboardStatusFilter !== 'All' || dashboardTypeFilter !== 'All' || dashboardPriorityFilter !== 'All';
 
             return (
               <>
@@ -1707,8 +1724,8 @@ const App: React.FC = () => {
                   <div className="mb-5">
                     {/* Filter pills row */}
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {/* Type filters */}
-                      {(['All', 'Class', 'Internship', 'Personal'] as const).map(t => {
+                      {/* Category filters */}
+                      {(['All', 'Personal', 'Professional', 'School'] as const).map(t => {
                         const active = dashboardTypeFilter === t;
                         return (
                           <button key={t}
@@ -1717,28 +1734,14 @@ const App: React.FC = () => {
                             style={{ padding: '5px 10px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}
                             onMouseEnter={e => { if (!active) { e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#17191a'; } }}
                             onMouseLeave={e => { if (!active) { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.55)'; } }}
-                          >{t}</button>
-                        );
-                      })}
-                      <span style={{ width: '1px', background: 'rgba(23,25,26,0.14)', margin: '0 4px' }} />
-                      {/* Genre filters */}
-                      {(['All', ...presentGenres] as const).map(g => {
-                        const active = dashboardGenreFilter === g;
-                        return (
-                          <button key={g}
-                            onClick={() => setDashboardGenreFilter(g as typeof dashboardGenreFilter)}
-                            className="font-mono text-[8px] tracking-[0.16em] uppercase transition-colors"
-                            style={{ padding: '5px 10px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}
-                            onMouseEnter={e => { if (!active) { e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#17191a'; } }}
-                            onMouseLeave={e => { if (!active) { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.55)'; } }}
-                          >{g === 'All' ? 'All Genres' : g}</button>
+                          >{t === 'All' ? 'All' : t}</button>
                         );
                       })}
                       <span style={{ width: '1px', background: 'rgba(23,25,26,0.14)', margin: '0 4px' }} />
                       {/* Status filters */}
-                      {(['All', 'capturing', 'shot', 'culled', 'edited', 'backed up', 'posted'] as const).map(s => {
+                      {(['All', 'todo', 'in-progress', 'done'] as const).map(s => {
                         const active = dashboardStatusFilter === s;
-                        const label = s === 'All' ? 'All' : { capturing: 'Shoot', shot: 'Cull', culled: 'Edit', edited: 'Backup', 'backed up': 'Post', posted: 'Done' }[s];
+                        const label = s === 'All' ? 'All' : s === 'todo' ? 'To Do' : s === 'in-progress' ? 'In Progress' : 'Done';
                         return (
                           <button key={s}
                             onClick={() => setDashboardStatusFilter(s)}
@@ -1749,6 +1752,24 @@ const App: React.FC = () => {
                           >{label}</button>
                         );
                       })}
+                      <span style={{ width: '1px', background: 'rgba(23,25,26,0.14)', margin: '0 4px' }} />
+                      {/* Priority filters */}
+                      {(['All', 'high', 'medium', 'low'] as const).map(p => {
+                        const active = dashboardPriorityFilter === p;
+                        const dotColor = p === 'high' ? '#a35a4a' : p === 'medium' ? '#c9a227' : p === 'low' ? 'rgba(23,25,26,0.30)' : undefined;
+                        return (
+                          <button key={p}
+                            onClick={() => setDashboardPriorityFilter(p)}
+                            className="font-mono text-[8px] tracking-[0.16em] uppercase transition-colors flex items-center gap-1"
+                            style={{ padding: '5px 10px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}
+                            onMouseEnter={e => { if (!active) { e.currentTarget.style.borderColor = '#17191a'; e.currentTarget.style.color = '#17191a'; } }}
+                            onMouseLeave={e => { if (!active) { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.55)'; } }}
+                          >
+                            {dotColor && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: active ? '#f4f3ef' : dotColor, display: 'inline-block', flexShrink: 0 }} />}
+                            {p === 'All' ? 'All Priority' : p}
+                          </button>
+                        );
+                      })}
                       <button
                         onClick={() => setDashboardDateSort(p => p === 'deadline' ? 'newest' : p === 'newest' ? 'oldest' : 'deadline')}
                         className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors ml-2"
@@ -1756,7 +1777,7 @@ const App: React.FC = () => {
                         onMouseEnter={e => { e.currentTarget.style.borderColor = '#c9a227'; e.currentTarget.style.color = '#8a6b0f'; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(23,25,26,0.18)'; e.currentTarget.style.color = 'rgba(23,25,26,0.50)'; }}
                       >
-                        {dashboardDateSort === 'deadline' ? 'Deadline ↑' : dashboardDateSort === 'newest' ? 'Newest ↓' : 'Oldest ↑'}
+                        {dashboardDateSort === 'deadline' ? 'Due ↑' : dashboardDateSort === 'newest' ? 'Newest ↓' : 'Oldest ↑'}
                       </button>
                     </div>
                     <div className="flex items-center justify-between">
@@ -1765,7 +1786,7 @@ const App: React.FC = () => {
                       </p>
                       {hasFilters && (
                         <button
-                          onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); setDashboardTypeFilter('All'); }}
+                          onClick={() => { setDashboardGenreFilter('All'); setDashboardStatusFilter('All'); setDashboardTypeFilter('All'); setDashboardPriorityFilter('All'); }}
                           className="font-mono text-[8px] tracking-[0.12em] uppercase transition-colors"
                           style={{ color: 'rgba(23,25,26,0.40)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                           onMouseEnter={e => (e.currentTarget.style.color = '#c9a227')}
