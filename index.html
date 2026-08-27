@@ -58,6 +58,14 @@
         /* Progress / pip animations */
         .progress-fill { transition: width 700ms ease-out, background-color 700ms ease-out; }
         .pip-fill      { transition: background-color 700ms ease-out; }
+
+        /* Normalize date inputs on iOS — prevent oversized native chrome */
+        input[type="date"] {
+            -webkit-appearance: none;
+            appearance: none;
+            min-height: 38px;
+            line-height: 1.4;
+        }
     </style>
     <script>
         tailwind.config = {
@@ -109,7 +117,7 @@
         }
     </script>
 <link rel="stylesheet" href="/index.css">
-  <script type="module" crossorigin src="/PhotoVise/assets/index-o8BHqj3y.js"></script>
+  <script type="module" crossorigin src="/PhotoVise/assets/index-BcmOcJxX.js"></script>
 </head>
 <body class="bg-brand-canvas text-brand-ink">
     <div id="root"></div>
