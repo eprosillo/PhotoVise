@@ -544,6 +544,7 @@ const App: React.FC = () => {
   const [dashboardTypeFilter, setDashboardTypeFilter] = useState<SessionType | 'All'>('All');
   const [dashboardPriorityFilter, setDashboardPriorityFilter] = useState<'high' | 'medium' | 'low' | 'All'>('All');
   const [dashboardDateSort, setDashboardDateSort] = useState<'deadline' | 'newest' | 'oldest'>('deadline');
+  const [isCollageDownloading, setIsCollageDownloading] = useState(false);
   const [pasteMode, setPasteMode] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [isParsing, setIsParsing] = useState(false);
@@ -1180,6 +1181,18 @@ const App: React.FC = () => {
   }, [journalEntries]);
 
   const downloadCollage = async (fromDate: string, toDate: string) => {
+    setIsCollageDownloading(true);
+    try {
+      await _buildAndDownloadCollage(fromDate, toDate);
+    } catch (err) {
+      console.error('Collage download failed:', err);
+      alert('Could not generate collage. Please try again.');
+    } finally {
+      setIsCollageDownloading(false);
+    }
+  };
+
+  const _buildAndDownloadCollage = async (fromDate: string, toDate: string) => {
     const entries = journalEntries
       .filter(e => e.date >= fromDate && e.date <= toDate)
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -1350,15 +1363,15 @@ const App: React.FC = () => {
       cursorY += ENTRY_GAP / 2;
     }
 
-    canvas.toBlob(blob => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `journal-collage-${fromDate}-to-${toDate}.jpg`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-    }, 'image/jpeg', 0.93);
+    // toDataURL is synchronous — avoids browser blocking the download
+    // because toBlob callback fires outside the user-gesture context
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.93);
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `journal-collage-${fromDate}-to-${toDate}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const updateBulletinStatus = (id: string, status: BulletinStatus) => {
@@ -2726,17 +2739,20 @@ const App: React.FC = () => {
                         ))}
                       </div>
                       <button
+                        disabled={isCollageDownloading}
                         onClick={() => downloadCollage(collageFrom, collageTo)}
                         style={{
                           fontFamily: "'IBM Plex Mono', monospace", fontSize: '10px', letterSpacing: '0.20em',
                           textTransform: 'uppercase', padding: '11px 24px',
-                          background: '#17191a', color: '#f8f7f4', border: 'none', cursor: 'pointer',
+                          background: isCollageDownloading ? 'rgba(23,25,26,0.20)' : '#17191a',
+                          color: isCollageDownloading ? 'rgba(23,25,26,0.40)' : '#f8f7f4',
+                          border: 'none', cursor: isCollageDownloading ? 'not-allowed' : 'pointer',
                           transition: 'background 0.15s',
                         }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#c9a227')}
-                        onMouseLeave={e => (e.currentTarget.style.background = '#17191a')}
+                        onMouseEnter={e => { if (!isCollageDownloading) e.currentTarget.style.background = '#c9a227'; }}
+                        onMouseLeave={e => { if (!isCollageDownloading) e.currentTarget.style.background = '#17191a'; }}
                       >
-                        ↓ Download Collage ({allPhotos.length} photos)
+                        {isCollageDownloading ? 'Building…' : `↓ Download Collage (${allPhotos.length} photos)`}
                       </button>
                     </>
                   )}
