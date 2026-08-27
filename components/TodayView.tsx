@@ -84,7 +84,7 @@ const MissionCard: React.FC<{
   return (
     <div className="animate-in fade-in duration-500">
       <ScreenHeader
-        eyebrow={`TODAY / MISSION ${String(missionNumber).padStart(2, '0')}`}
+        eyebrow={`MISSIONS / MISSION ${String(missionNumber).padStart(2, '0')}`}
         title={mission.title}
         readoutLabel="TIMEBOX"
         readoutValue={`${pad(mission.timeBoxMinutes)}:00`}

@@ -44,7 +44,7 @@ const NAV_GROUPS = [
   {
     label: 'GROW',
     items: [
-      { id: 'today',     label: 'Today',          index: '07' },
+      { id: 'today',     label: 'Missions',       index: '07' },
       { id: 'skills',    label: 'Skill Tree',     index: '08' },
       { id: 'askpro',    label: 'Ask a Pro',      index: '09' },
     ],
@@ -273,7 +273,7 @@ const Layout: React.FC<LayoutProps> = ({
                   activeTab === id ? 'text-brand-accent' : 'text-white/60',
                 ].join(' ')}
               >
-                {id === 'today' ? 'Today' : 'Ask Pro'}
+                {id === 'today' ? 'Missions' : 'Ask Pro'}
               </button>
             ))}
           </div>
