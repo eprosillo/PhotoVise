@@ -1185,8 +1185,9 @@ const App: React.FC = () => {
     try {
       await _buildAndDownloadCollage(fromDate, toDate);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       console.error('Collage download failed:', err);
-      alert('Could not generate collage. Please try again.');
+      alert(`Could not generate collage: ${msg}`);
     } finally {
       setIsCollageDownloading(false);
     }
