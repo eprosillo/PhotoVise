@@ -1314,34 +1314,26 @@ const App: React.FC = () => {
         const y = cursorY + row * (CELL + GAP);
 
         try {
-          // If src is an HTTP URL (Firebase Storage), fetch as blob first.
-          // Drawing an HTTP URL directly taints the canvas; a same-origin
-          // blob URL does not.
-          let src = imgData.dataUrl;
-          let blobUrl: string | null = null;
-          if (!src.startsWith('data:')) {
-            const res = await fetch(src);
-            if (!res.ok) throw new Error(`fetch ${res.status}`);
-            blobUrl = URL.createObjectURL(await res.blob());
-            src = blobUrl;
-          }
+          // Fetch both data: URLs and HTTP URLs as blobs, then use
+          // createImageBitmap — avoids canvas taint entirely and sidesteps
+          // the blob-URL revocation timing issue with HTMLImageElement.
+          const res = await fetch(imgData.dataUrl);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const blob = await res.blob();
+          const bitmap = await createImageBitmap(blob);
 
-          await new Promise<void>(resolve => {
-            const el = new Image();
-            el.onload = () => {
-              if (blobUrl) URL.revokeObjectURL(blobUrl);
-              const scale = Math.max(CELL / el.width, CELL / el.height);
-              const sw = CELL / scale, sh = CELL / scale;
-              const sx = (el.width - sw) / 2, sy = (el.height - sh) / 2;
-              ctx.drawImage(el, sx, sy, sw, sh, x, y, CELL, CELL);
-              resolve();
-            };
-            el.onerror = () => { if (blobUrl) URL.revokeObjectURL(blobUrl); resolve(); };
-            el.src = src;
-          });
-        } catch {
+          const scale = Math.max(CELL / bitmap.width, CELL / bitmap.height);
+          const sw = CELL / scale, sh = CELL / scale;
+          const sx = (bitmap.width - sw) / 2, sy = (bitmap.height - sh) / 2;
+          ctx.drawImage(bitmap, sx, sy, sw, sh, x, y, CELL, CELL);
+          bitmap.close();
+        } catch (imgErr) {
+          console.warn('Collage: could not draw image', imgData.id, imgErr);
           ctx.fillStyle = 'rgba(23,25,26,0.10)';
           ctx.fillRect(x, y, CELL, CELL);
+          ctx.fillStyle = 'rgba(23,25,26,0.30)';
+          ctx.font = '10px "IBM Plex Mono", monospace';
+          ctx.fillText('Photo unavailable', x + 10, y + CELL / 2);
         }
       }));
 
