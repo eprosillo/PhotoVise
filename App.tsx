@@ -1180,87 +1180,175 @@ const App: React.FC = () => {
   }, [journalEntries]);
 
   const downloadCollage = async (fromDate: string, toDate: string) => {
-    const weekEntries = journalEntries.filter(e => e.date >= fromDate && e.date <= toDate);
-    const allPhotos: { dataUrl: string; title: string; date: string }[] = [];
-    weekEntries.forEach(e => {
-      e.images.forEach(img => allPhotos.push({ dataUrl: img.dataUrl, title: e.title || e.date, date: e.date }));
-    });
-    if (allPhotos.length === 0) {
-      alert('No photos in this week\'s entries.');
+    const entries = journalEntries
+      .filter(e => e.date >= fromDate && e.date <= toDate)
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const hasPhotos = entries.some(e => e.images.length > 0);
+    if (!hasPhotos) {
+      alert('No photos in the selected entries.');
       return;
     }
 
-    const COLS = Math.min(allPhotos.length, 3);
-    const CELL = 380;
-    const GAP = 10;
-    const HEADER = 80;
-    const ROWS = Math.ceil(allPhotos.length / COLS);
-    const W = COLS * CELL + (COLS - 1) * GAP + GAP * 2;
-    const H = HEADER + ROWS * CELL + (ROWS - 1) * GAP + GAP * 2;
+    const PAD   = 36;
+    const W     = 1100;
+    const CELL  = 320;   // photo square size
+    const GAP   = 10;
+    const MAX_COLS = 3;
+    const HEADER_H = 100;
+    const ENTRY_TITLE_H = 56;
+    const NOTE_LINE_H = 20;
+    const NOTE_FONT = 13;
+    const ENTRY_GAP = 32;
+
+    const fmtDate = (s: string) =>
+      new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    // Helper: wrap text and return lines
+    const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] => {
+      const words = text.split(' ');
+      const lines: string[] = [];
+      let line = '';
+      for (const w of words) {
+        const test = line ? `${line} ${w}` : w;
+        if (ctx.measureText(test).width > maxW && line) {
+          lines.push(line);
+          line = w;
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    };
+
+    // First pass: measure total canvas height
+    // We need a throwaway canvas to measure text
+    const measure = document.createElement('canvas').getContext('2d')!;
+    measure.font = `${NOTE_FONT}px "Space Grotesk", sans-serif`;
+
+    let totalH = HEADER_H + PAD;
+    for (const entry of entries) {
+      if (entry.images.length === 0) continue;
+      totalH += ENTRY_TITLE_H;
+      const cols = Math.min(entry.images.length, MAX_COLS);
+      const rows = Math.ceil(entry.images.length / cols);
+      totalH += rows * CELL + (rows - 1) * GAP;
+      if (entry.notes?.trim()) {
+        const noteLines = wrapText(measure, entry.notes.trim(), W - PAD * 2);
+        totalH += PAD / 2 + noteLines.length * NOTE_LINE_H + 6;
+      }
+      totalH += ENTRY_GAP;
+    }
+    totalH += PAD;
 
     const canvas = document.createElement('canvas');
     canvas.width = W;
-    canvas.height = H;
+    canvas.height = totalH;
     const ctx = canvas.getContext('2d')!;
 
     // Background
-    ctx.fillStyle = '#f8f7f4';
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#f4f3ef';
+    ctx.fillRect(0, 0, W, totalH);
 
     // Header bar
     ctx.fillStyle = '#17191a';
-    ctx.fillRect(0, 0, W, HEADER);
-    // Brass accent line
+    ctx.fillRect(0, 0, W, HEADER_H);
     ctx.fillStyle = '#c9a227';
-    ctx.fillRect(0, HEADER - 3, W, 3);
+    ctx.fillRect(0, HEADER_H - 4, W, 4);
 
     ctx.fillStyle = '#f8f7f4';
-    ctx.font = 'bold 13px "IBM Plex Mono", monospace';
-    ctx.letterSpacing = '2px';
-    ctx.fillText('PHOTO JOURNAL', 28, 34);
-    ctx.fillStyle = 'rgba(248,247,244,0.55)';
+    ctx.font = 'bold 15px "IBM Plex Mono", monospace';
+    ctx.fillText('PHOTO JOURNAL', PAD, 40);
+    ctx.fillStyle = 'rgba(248,247,244,0.50)';
     ctx.font = '11px "IBM Plex Mono", monospace';
-    const fmtDate = (s: string) => new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    ctx.fillText(`${fmtDate(fromDate).toUpperCase()} – ${fmtDate(toDate).toUpperCase()}`, 28, 58);
+    ctx.fillText(`${fmtDate(fromDate).toUpperCase()}  –  ${fmtDate(toDate).toUpperCase()}`, PAD, 66);
+    ctx.fillStyle = 'rgba(248,247,244,0.25)';
+    ctx.font = '10px "IBM Plex Mono", monospace';
+    const photoCount = entries.reduce((n, e) => n + e.images.length, 0);
+    ctx.fillText(`${photoCount} PHOTO${photoCount !== 1 ? 'S' : ''}  ·  ${entries.filter(e => e.images.length > 0).length} ENTRIES`, PAD, 86);
 
-    // Load and draw images
-    await Promise.all(
-      allPhotos.map(async (photo, i) => {
-        const col = i % COLS;
-        const row = Math.floor(i / COLS);
-        const x = GAP + col * (CELL + GAP);
-        const y = HEADER + GAP + row * (CELL + GAP);
+    // Load images sequentially per entry
+    let cursorY = HEADER_H + PAD;
 
-        await new Promise<void>((resolve) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            // Cover-fit into cell
-            const scale = Math.max(CELL / img.width, CELL / img.height);
+    for (const entry of entries) {
+      if (entry.images.length === 0) continue;
+
+      // Entry date + title
+      const entryDateStr = fmtDate(entry.date).toUpperCase();
+      ctx.fillStyle = 'rgba(23,25,26,0.28)';
+      ctx.fillRect(PAD, cursorY + 18, 2, 22);
+      ctx.fillStyle = 'rgba(23,25,26,0.40)';
+      ctx.font = '10px "IBM Plex Mono", monospace';
+      ctx.fillText(entryDateStr, PAD + 14, cursorY + 26);
+      if (entry.title) {
+        ctx.fillStyle = '#17191a';
+        ctx.font = 'bold 18px "Space Grotesk", sans-serif';
+        ctx.fillText(entry.title, PAD + 14, cursorY + 48);
+      }
+      cursorY += ENTRY_TITLE_H;
+
+      // Photos
+      const cols = Math.min(entry.images.length, MAX_COLS);
+      const usedW = cols * CELL + (cols - 1) * GAP;
+      const startX = PAD + Math.floor((W - PAD * 2 - usedW) / 2); // center the photo row
+
+      await Promise.all(entry.images.map(async (imgData, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = startX + col * (CELL + GAP);
+        const y = cursorY + row * (CELL + GAP);
+
+        await new Promise<void>(resolve => {
+          const el = new Image();
+          el.onload = () => {
+            const scale = Math.max(CELL / el.width, CELL / el.height);
             const sw = CELL / scale;
             const sh = CELL / scale;
-            const sx = (img.width - sw) / 2;
-            const sy = (img.height - sh) / 2;
-            ctx.drawImage(img, sx, sy, sw, sh, x, y, CELL, CELL);
-
-            // Date label overlay at bottom of cell
-            ctx.fillStyle = 'rgba(23,25,26,0.55)';
-            ctx.fillRect(x, y + CELL - 24, CELL, 24);
-            ctx.fillStyle = '#f8f7f4';
-            ctx.font = '9px "IBM Plex Mono", monospace';
-            ctx.fillText(photo.date, x + 8, y + CELL - 8);
-
+            const sx = (el.width - sw) / 2;
+            const sy = (el.height - sh) / 2;
+            ctx.drawImage(el, sx, sy, sw, sh, x, y, CELL, CELL);
             resolve();
           };
-          img.onerror = () => {
-            ctx.fillStyle = 'rgba(23,25,26,0.08)';
+          el.onerror = () => {
+            ctx.fillStyle = 'rgba(23,25,26,0.10)';
             ctx.fillRect(x, y, CELL, CELL);
+            ctx.fillStyle = 'rgba(23,25,26,0.25)';
+            ctx.font = '10px "IBM Plex Mono", monospace';
+            ctx.fillText('NO IMAGE', x + 10, y + CELL / 2);
             resolve();
           };
-          img.src = photo.dataUrl;
+          // No crossOrigin for data URLs — that's what broke it
+          el.src = imgData.dataUrl;
         });
-      })
-    );
+      }));
+
+      const rows = Math.ceil(entry.images.length / cols);
+      cursorY += rows * CELL + (rows - 1) * GAP;
+
+      // Notes
+      if (entry.notes?.trim()) {
+        cursorY += PAD / 2;
+        ctx.font = `${NOTE_FONT}px "Space Grotesk", sans-serif`;
+        const noteLines = wrapText(ctx, entry.notes.trim(), W - PAD * 2 - 14);
+        ctx.fillStyle = 'rgba(23,25,26,0.55)';
+        for (const line of noteLines) {
+          ctx.fillText(line, PAD + 14, cursorY);
+          cursorY += NOTE_LINE_H;
+        }
+        cursorY += 6;
+      }
+
+      // Separator
+      cursorY += ENTRY_GAP / 2;
+      ctx.strokeStyle = 'rgba(23,25,26,0.10)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PAD, cursorY);
+      ctx.lineTo(W - PAD, cursorY);
+      ctx.stroke();
+      cursorY += ENTRY_GAP / 2;
+    }
 
     canvas.toBlob(blob => {
       if (!blob) return;
@@ -1270,7 +1358,7 @@ const App: React.FC = () => {
       a.download = `journal-collage-${fromDate}-to-${toDate}.jpg`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-    }, 'image/jpeg', 0.92);
+    }, 'image/jpeg', 0.93);
   };
 
   const updateBulletinStatus = (id: string, status: BulletinStatus) => {
