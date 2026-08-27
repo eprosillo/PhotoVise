@@ -503,7 +503,7 @@ const App: React.FC = () => {
   const { loadUserData, saveUserData } = useFirestore(user?.uid ?? null);
 
   // ── Local state ─────────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState('today');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [isFieldMode, setIsFieldMode] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 820);
   useEffect(() => {

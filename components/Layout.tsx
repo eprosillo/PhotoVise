@@ -87,7 +87,7 @@ const Layout: React.FC<LayoutProps> = ({
   };
 
   const handleLogoClick = () => {
-    setActiveTab('today');
+    setActiveTab('dashboard');
     setIsMenuOpen(false);
   };
 
