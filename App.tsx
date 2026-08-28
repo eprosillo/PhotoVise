@@ -1328,12 +1328,13 @@ const App: React.FC = () => {
           ctx.drawImage(bitmap, sx, sy, sw, sh, x, y, CELL, CELL);
           bitmap.close();
         } catch (imgErr) {
-          console.warn('Collage: could not draw image', imgData.id, imgErr);
+          const reason = imgErr instanceof Error ? imgErr.message : String(imgErr);
+          console.warn('Collage: could not draw image', imgData.id, reason);
           ctx.fillStyle = 'rgba(23,25,26,0.10)';
           ctx.fillRect(x, y, CELL, CELL);
-          ctx.fillStyle = 'rgba(23,25,26,0.30)';
-          ctx.font = '10px "IBM Plex Mono", monospace';
-          ctx.fillText('Photo unavailable', x + 10, y + CELL / 2);
+          ctx.fillStyle = 'rgba(23,25,26,0.45)';
+          ctx.font = '9px "IBM Plex Mono", monospace';
+          ctx.fillText(reason.slice(0, 40), x + 8, y + CELL / 2);
         }
       }));
 
