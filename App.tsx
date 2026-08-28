@@ -1313,29 +1313,35 @@ const App: React.FC = () => {
         const x = startX + col * (CELL + GAP);
         const y = cursorY + row * (CELL + GAP);
 
-        try {
-          // Fetch both data: URLs and HTTP URLs as blobs, then use
-          // createImageBitmap — avoids canvas taint entirely and sidesteps
-          // the blob-URL revocation timing issue with HTMLImageElement.
-          const res = await fetch(imgData.dataUrl);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const blob = await res.blob();
-          const bitmap = await createImageBitmap(blob);
-
-          const scale = Math.max(CELL / bitmap.width, CELL / bitmap.height);
-          const sw = CELL / scale, sh = CELL / scale;
-          const sx = (bitmap.width - sw) / 2, sy = (bitmap.height - sh) / 2;
-          ctx.drawImage(bitmap, sx, sy, sw, sh, x, y, CELL, CELL);
-          bitmap.close();
-        } catch (imgErr) {
-          const reason = imgErr instanceof Error ? imgErr.message : String(imgErr);
-          console.warn('Collage: could not draw image', imgData.id, reason);
-          ctx.fillStyle = 'rgba(23,25,26,0.10)';
-          ctx.fillRect(x, y, CELL, CELL);
-          ctx.fillStyle = 'rgba(23,25,26,0.45)';
-          ctx.font = '9px "IBM Plex Mono", monospace';
-          ctx.fillText(reason.slice(0, 40), x + 8, y + CELL / 2);
-        }
+        await new Promise<void>((resolve) => {
+          const el = new Image();
+          // For HTTP URLs (Firebase Storage), request CORS headers so the
+          // canvas doesn't get tainted.  Firebase Storage returns
+          // Access-Control-Allow-Origin: * for all authenticated download URLs.
+          if (!imgData.dataUrl.startsWith('data:')) {
+            el.crossOrigin = 'anonymous';
+          }
+          el.onload = () => {
+            const w = el.naturalWidth  || el.width  || CELL;
+            const h = el.naturalHeight || el.height || CELL;
+            const scale = Math.max(CELL / w, CELL / h);
+            const sw = CELL / scale, sh = CELL / scale;
+            const sx = (w - sw) / 2, sy = (h - sh) / 2;
+            ctx.drawImage(el, sx, sy, sw, sh, x, y, CELL, CELL);
+            resolve();
+          };
+          el.onerror = (e) => {
+            const reason = e instanceof ErrorEvent ? e.message : 'load failed';
+            console.warn('Collage: could not load image', imgData.id, reason);
+            ctx.fillStyle = 'rgba(23,25,26,0.10)';
+            ctx.fillRect(x, y, CELL, CELL);
+            ctx.fillStyle = 'rgba(23,25,26,0.50)';
+            ctx.font = `bold 22px "Space Grotesk", sans-serif`;
+            ctx.fillText('photo unavailable', x + 12, y + CELL / 2);
+            resolve();
+          };
+          el.src = imgData.dataUrl;
+        });
       }));
 
       const rows = Math.ceil(entry.images.length / cols);
