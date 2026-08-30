@@ -1414,15 +1414,29 @@ const App: React.FC = () => {
       cursorY += ENTRY_GAP / 2;
     }
 
-    // toDataURL is synchronous — avoids browser blocking the download
-    // because toBlob callback fires outside the user-gesture context
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.93);
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = `journal-collage-${fromDate}-to-${toDate}.jpg`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const fileName = `journal-collage-${fromDate}-to-${toDate}.jpg`;
+
+    // Try Web Share API first — works on iOS and Android, triggers the
+    // native share/save sheet so the user can save to Photos or Files.
+    const blob = await new Promise<Blob>((res) =>
+      canvas.toBlob((b) => res(b!), 'image/jpeg', 0.93)
+    );
+    if (navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/jpeg' })] })) {
+      await navigator.share({
+        files: [new File([blob], fileName, { type: 'image/jpeg' })],
+        title: 'Photo Journal Collage',
+      });
+    } else {
+      // Desktop fallback: create an object URL and trigger a download link.
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    }
   };
 
   const updateBulletinStatus = (id: string, status: BulletinStatus) => {
