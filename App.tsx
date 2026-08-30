@@ -1115,15 +1115,23 @@ const App: React.FC = () => {
           r.readAsDataURL(file);
         }))
         .then(async (dataUrl) => {
+          let storageUrl: string | undefined;
           if (user?.uid) {
-            const path = `journal/${user.uid}/${imageId}`;
-            const imgRef = storageRef(storage, path);
-            await uploadString(imgRef, dataUrl, 'data_url');
-            const url = await getDownloadURL(imgRef);
-            setJournalForm(prev => ({ ...prev, images: [...prev.images, { id: imageId, name: file.name, dataUrl: url }] }));
-          } else {
-            setJournalForm(prev => ({ ...prev, images: [...prev.images, { id: imageId, name: file.name, dataUrl }] }));
+            try {
+              const path = `journal/${user.uid}/${imageId}`;
+              const imgRef = storageRef(storage, path);
+              await uploadString(imgRef, dataUrl, 'data_url');
+              storageUrl = await getDownloadURL(imgRef);
+            } catch (err) {
+              console.warn('Journal image: Firebase Storage upload failed, using local data URL only', err);
+            }
           }
+          // Always keep the local data URL — it's canvas-safe and doesn't
+          // require CORS for collage exports.  storageUrl is backup only.
+          setJournalForm(prev => ({
+            ...prev,
+            images: [...prev.images, { id: imageId, name: file.name, dataUrl, ...(storageUrl ? { storageUrl } : {}) }],
+          }));
         })
         .catch(err => console.error('Journal image upload failed:', err));
     });
@@ -1314,25 +1322,7 @@ const App: React.FC = () => {
         const y = cursorY + row * (CELL + GAP);
 
         await new Promise<void>((resolve) => {
-          const el = new Image();
-          // For HTTP URLs (Firebase Storage), request CORS headers so the
-          // canvas doesn't get tainted.  Firebase Storage returns
-          // Access-Control-Allow-Origin: * for all authenticated download URLs.
-          if (!imgData.dataUrl.startsWith('data:')) {
-            el.crossOrigin = 'anonymous';
-          }
-          el.onload = () => {
-            const w = el.naturalWidth  || el.width  || CELL;
-            const h = el.naturalHeight || el.height || CELL;
-            const scale = Math.max(CELL / w, CELL / h);
-            const sw = CELL / scale, sh = CELL / scale;
-            const sx = (w - sw) / 2, sy = (h - sh) / 2;
-            ctx.drawImage(el, sx, sy, sw, sh, x, y, CELL, CELL);
-            resolve();
-          };
-          el.onerror = (e) => {
-            const reason = e instanceof ErrorEvent ? e.message : 'load failed';
-            console.warn('Collage: could not load image', imgData.id, reason);
+          const drawPlaceholder = () => {
             ctx.fillStyle = 'rgba(23,25,26,0.10)';
             ctx.fillRect(x, y, CELL, CELL);
             ctx.fillStyle = 'rgba(23,25,26,0.50)';
@@ -1340,7 +1330,34 @@ const App: React.FC = () => {
             ctx.fillText('photo unavailable', x + 12, y + CELL / 2);
             resolve();
           };
-          el.src = imgData.dataUrl;
+          const drawEl = (src: string, useCors: boolean) => {
+            const el = new Image();
+            if (useCors) el.crossOrigin = 'anonymous';
+            const timer = setTimeout(() => {
+              console.warn('Collage: image load timed out', imgData.id);
+              drawPlaceholder();
+            }, 8000);
+            el.onload = () => {
+              clearTimeout(timer);
+              const w = el.naturalWidth  || el.width  || CELL;
+              const h = el.naturalHeight || el.height || CELL;
+              const scale = Math.max(CELL / w, CELL / h);
+              const sw = CELL / scale, sh = CELL / scale;
+              const sx = (w - sw) / 2, sy = (h - sh) / 2;
+              ctx.drawImage(el, sx, sy, sw, sh, x, y, CELL, CELL);
+              resolve();
+            };
+            el.onerror = () => { clearTimeout(timer); drawPlaceholder(); };
+            el.src = src;
+          };
+          if (imgData.dataUrl.startsWith('data:')) {
+            // Local data URL — canvas-safe, no CORS needed.
+            drawEl(imgData.dataUrl, false);
+          } else {
+            // Legacy: old entry saved Firebase URL as dataUrl.
+            // Try crossOrigin first; Firebase Storage returns ACAO: * for token URLs.
+            drawEl(imgData.dataUrl, true);
+          }
         });
       }));
 

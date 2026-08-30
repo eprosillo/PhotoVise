@@ -114,7 +114,8 @@ export interface AssignmentPhase {
 export interface JournalImage {
   id: string;
   name: string;
-  dataUrl: string; // base64 data URL
+  dataUrl: string;      // compressed base64 data URL — always safe for canvas
+  storageUrl?: string;  // Firebase Storage URL (backup / future cross-device load)
 }
 
 export interface JournalEntry {
