@@ -710,6 +710,7 @@ const App: React.FC = () => {
     loadFromStorage<JournalEntry[]>('pingstudio_journal', [])
   );
   const [journalSearch, setJournalSearch] = useState('');
+  const [editingJournalId, setEditingJournalId] = useState<string | null>(null);
   const [collageFrom, setCollageFrom] = useState<string>('');
   const [collageTo, setCollageTo] = useState<string>('');
   const [journalForm, setJournalForm] = useState<{
@@ -1061,20 +1062,45 @@ const App: React.FC = () => {
   };
 
   // Journal handlers
+  const resetJournalForm = () => {
+    setJournalForm({ date: new Date().toISOString().split('T')[0], sessionIds: [], title: '', notes: '', tags: '', images: [] });
+    setEditingJournalId(null);
+  };
+
   const handleCreateJournalEntry = (e: React.FormEvent) => {
     e.preventDefault();
     const tagsArr = journalForm.tags.split(',').map(t => t.trim()).filter(t => t !== '');
-    const newEntry: JournalEntry = {
-      id: Date.now().toString(),
-      date: journalForm.date,
-      sessionIds: journalForm.sessionIds,
-      title: journalForm.title,
-      notes: journalForm.notes,
-      tags: tagsArr,
-      images: journalForm.images,
-    };
-    setJournalEntries(prev => [newEntry, ...prev]);
-    setJournalForm({ date: new Date().toISOString().split('T')[0], sessionIds: [], title: '', notes: '', tags: '', images: [] });
+    if (editingJournalId) {
+      setJournalEntries(prev => prev.map(entry =>
+        entry.id === editingJournalId
+          ? { ...entry, date: journalForm.date, sessionIds: journalForm.sessionIds, title: journalForm.title, notes: journalForm.notes, tags: tagsArr, images: journalForm.images }
+          : entry
+      ));
+    } else {
+      const newEntry: JournalEntry = {
+        id: Date.now().toString(),
+        date: journalForm.date,
+        sessionIds: journalForm.sessionIds,
+        title: journalForm.title,
+        notes: journalForm.notes,
+        tags: tagsArr,
+        images: journalForm.images,
+      };
+      setJournalEntries(prev => [newEntry, ...prev]);
+    }
+    resetJournalForm();
+  };
+
+  const startEditJournalEntry = (entry: JournalEntry) => {
+    setJournalForm({
+      date: entry.date,
+      sessionIds: entry.sessionIds,
+      title: entry.title,
+      notes: entry.notes,
+      tags: entry.tags.join(', '),
+      images: entry.images,
+    });
+    setEditingJournalId(entry.id);
   };
 
   const compressImage = (file: File): Promise<string> =>
@@ -2814,7 +2840,14 @@ const App: React.FC = () => {
                           <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)' }}>{entry.date}</span>
                           <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: '15px', color: '#17191a', margin: '3px 0 0' }}>{entry.title || 'Untitled'}</h3>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                          <button
+                            onClick={() => startEditJournalEntry(entry)}
+                            title="Edit entry"
+                            style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.50)', background: 'none', border: '1px solid rgba(23,25,26,0.18)', cursor: 'pointer', padding: '3px 8px' }}
+                          >
+                            Edit
+                          </button>
                           <button
                             onClick={() => deleteJournalEntry(entry.id)}
                             title="Delete entry"
@@ -2851,8 +2884,19 @@ const App: React.FC = () => {
 
             {/* New entry form */}
             <div style={{ border: '1px solid rgba(23,25,26,0.14)', background: '#f8f7f4', position: isMobile ? 'static' : 'sticky', top: '16px' }}>
-              <div style={{ borderBottom: '1px solid rgba(23,25,26,0.10)', padding: '12px 16px' }}>
-                <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.20em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', margin: 0 }}>New Entry</p>
+              <div style={{ borderBottom: '1px solid rgba(23,25,26,0.10)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.20em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', margin: 0 }}>
+                  {editingJournalId ? 'Edit Entry' : 'New Entry'}
+                </p>
+                {editingJournalId && (
+                  <button
+                    type="button"
+                    onClick={resetJournalForm}
+                    style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  >
+                    Cancel
+                  </button>
+                )}
               </div>
               <form onSubmit={handleCreateJournalEntry} style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
@@ -2932,7 +2976,7 @@ const App: React.FC = () => {
                   onMouseEnter={e => (e.currentTarget.style.background = '#c9a227')}
                   onMouseLeave={e => (e.currentTarget.style.background = '#17191a')}
                 >
-                  Save Entry
+                  {editingJournalId ? 'Save Changes' : 'Save Entry'}
                 </button>
               </form>
             </div>
