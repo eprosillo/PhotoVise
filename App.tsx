@@ -689,6 +689,7 @@ const App: React.FC = () => {
   );
   const [journalSearch, setJournalSearch] = useState('');
   const [editingJournalId, setEditingJournalId] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<{ src: string; name: string } | null>(null);
   const [collageFrom, setCollageFrom] = useState<string>('');
   const [collageTo, setCollageTo] = useState<string>('');
   const [journalForm, setJournalForm] = useState<{
@@ -1740,6 +1741,7 @@ const App: React.FC = () => {
   ];
 
   return (
+    <>
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} statusReadouts={statusReadouts} user={user} onSignOut={signOut} dailyQuote={dailyQuote}>
       {activeTab === 'dashboard' && (
         <div className="animate-in fade-in duration-700">
@@ -3026,7 +3028,13 @@ const App: React.FC = () => {
                       {entry.images.length > 0 && (
                         <div style={{ padding: '12px 16px', display: 'flex', gap: '8px', flexWrap: 'wrap', borderBottom: entry.tags.length > 0 ? '1px solid rgba(23,25,26,0.08)' : 'none' }}>
                           {entry.images.map(img => (
-                            <img key={img.id} src={img.dataUrl} alt={img.name} style={{ width: '80px', height: '80px', objectFit: 'cover', border: '1px solid rgba(23,25,26,0.14)' }} />
+                            <img
+                              key={img.id}
+                              src={img.dataUrl}
+                              alt={img.name}
+                              onClick={() => setLightboxImage({ src: img.dataUrl, name: img.name })}
+                              style={{ width: '80px', height: '80px', objectFit: 'cover', border: '1px solid rgba(23,25,26,0.14)', cursor: 'zoom-in' }}
+                            />
                           ))}
                         </div>
                       )}
@@ -3145,6 +3153,44 @@ const App: React.FC = () => {
         </div>
       )}
     </Layout>
+
+    {/* Lightbox */}
+    {lightboxImage && (
+      <div
+        onKeyDown={e => e.key === 'Escape' && setLightboxImage(null)}
+        onClick={() => setLightboxImage(null)}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(23,25,26,0.92)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: '24px',
+        }}
+      >
+        <img
+          src={lightboxImage.src}
+          alt={lightboxImage.name}
+          onClick={e => e.stopPropagation()}
+          style={{
+            maxWidth: '100%', maxHeight: 'calc(100vh - 100px)',
+            objectFit: 'contain',
+            boxShadow: '0 8px 48px rgba(0,0,0,0.6)',
+          }}
+        />
+        <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(248,247,244,0.45)' }}>
+            {lightboxImage.name}
+          </span>
+          <button
+            onClick={() => setLightboxImage(null)}
+            style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(248,247,244,0.55)', background: 'none', border: '1px solid rgba(248,247,244,0.20)', cursor: 'pointer', padding: '5px 12px' }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 
