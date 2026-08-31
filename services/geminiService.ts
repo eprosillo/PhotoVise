@@ -8,7 +8,7 @@
 
 import { httpsCallable } from 'firebase/functions';
 import { functions }     from '../firebase';
-import { CfeBulletinItem } from '../types';
+import { CfeBulletinItem, DailyInspiration } from '../types';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -121,6 +121,12 @@ export async function parseAssignment(text: string): Promise<ParsedAssignment> {
   const fn = getFn<{ text: string }, { assignment: ParsedAssignment }>('parseAssignment', 60_000);
   const result = await fn({ text });
   return result.data.assignment;
+}
+
+export async function getDailyInspiration(genre: string, date: string): Promise<DailyInspiration> {
+  const fn = getFn<{ genre: string; date: string }, { inspiration: DailyInspiration }>('getDailyInspiration', 60_000);
+  const result = await fn({ genre, date });
+  return { ...result.data.inspiration, date };
 }
 
 export async function fetchBulletinEvents(

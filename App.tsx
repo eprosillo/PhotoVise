@@ -6,12 +6,12 @@ import ErrorBoundary from './components/ErrorBoundary';
 import SessionCard from './components/SessionCard';
 import SessionSelector from './components/SessionSelector';
 import LocationAutocomplete from './components/LocationAutocomplete';
-import { Session, SessionStatus, SessionType, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan, ScoutLocation, Submission, SkillNodeProgress, SkillNodeType, JournalEntry, JournalImage } from './types';
+import { Session, SessionStatus, SessionType, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan, ScoutLocation, Submission, SkillNodeProgress, SkillNodeType, JournalEntry, JournalImage, DailyInspiration } from './types';
 import TodayView from './components/TodayView';
 import SkillTreeView from './components/SkillTreeView';
 import MissionHistoryView from './components/MissionHistoryView';
 import { getEncouragement } from './data/missions';
-import { generateWeeklyPlan, generateAssignmentGuide, askProQuestion, fetchBulletinEvents, parseAssignment } from './services/geminiService';
+import { generateWeeklyPlan, generateAssignmentGuide, askProQuestion, fetchBulletinEvents, parseAssignment, getDailyInspiration } from './services/geminiService';
 import { createCalendarEventForSession } from './services/calendarService';
 import { GENRE_ICONS } from './constants';
 import { PHOTO_QUOTES } from './quotes';
@@ -499,6 +499,14 @@ const App: React.FC = () => {
   const [askProInput, setAskProInput] = useState<string>('');
   const [askProAnswer, setAskProAnswer] = useState<string>('');
   const [isGeneratingAskPro, setIsGeneratingAskPro] = useState<boolean>(false);
+
+  const TODAY = new Date().toISOString().split('T')[0];
+  const INSPIRE_CACHE_KEY = `pingstudio_inspire_${TODAY}`;
+  const [dailyInspiration, setDailyInspiration] = useState<DailyInspiration | null>(() => {
+    try { return JSON.parse(localStorage.getItem(INSPIRE_CACHE_KEY) ?? 'null'); } catch { return null; }
+  });
+  const [isLoadingInspiration, setIsLoadingInspiration] = useState(false);
+  const [inspirationError, setInspirationError] = useState<string | null>(null);
 
   // Filter States
   const [genreFilter, setGenreFilter] = useState<Genre | 'All'>('All');
@@ -1579,6 +1587,23 @@ const App: React.FC = () => {
     setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, strategy: result } : s));
   };
 
+  const fetchDailyInspiration = async (force = false) => {
+    if (isLoadingInspiration) return;
+    if (!force && dailyInspiration?.date === TODAY) return;
+    setIsLoadingInspiration(true);
+    setInspirationError(null);
+    try {
+      const genre = profile.primaryGenres?.[0] ?? 'Other';
+      const result = await getDailyInspiration(genre, TODAY);
+      setDailyInspiration(result);
+      localStorage.setItem(INSPIRE_CACHE_KEY, JSON.stringify(result));
+    } catch {
+      setInspirationError('Could not load today\'s brief. Check your connection and try again.');
+    } finally {
+      setIsLoadingInspiration(false);
+    }
+  };
+
   const handleAskProSubmit = async () => {
     if (!askProInput.trim()) return;
     setIsGeneratingAskPro(true);
@@ -2326,7 +2351,182 @@ const App: React.FC = () => {
         </ErrorBoundary>
       )}
 
+      {activeTab === 'inspire' && (() => {
+        const genre = profile.primaryGenres?.[0] ?? '';
+        const insp = dailyInspiration;
 
+        const CARD_STYLE: React.CSSProperties = {
+          background: '#f8f7f4',
+          border: '1px solid rgba(23,25,26,0.14)',
+          padding: '20px 22px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+        };
+        const EYEBROW: React.CSSProperties = {
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: '8px',
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+          color: 'rgba(23,25,26,0.38)',
+        };
+        const TITLE: React.CSSProperties = {
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontWeight: 600,
+          fontSize: '15px',
+          color: '#17191a',
+          margin: 0,
+        };
+        const BODY: React.CSSProperties = {
+          fontSize: '13px',
+          color: 'rgba(23,25,26,0.72)',
+          lineHeight: 1.65,
+          margin: 0,
+        };
+        const FOOTNOTE: React.CSSProperties = {
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: '9px',
+          letterSpacing: '0.12em',
+          color: '#8a6b0f',
+          marginTop: '4px',
+        };
+
+        return (
+          <div className="animate-in fade-in duration-700">
+            {/* Header */}
+            <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '28px' }} className="flex items-end justify-between gap-4 flex-wrap">
+              <div>
+                <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Grow / Inspiration</p>
+                <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Daily Brief</h1>
+              </div>
+              <div className="flex items-center gap-3">
+                {genre && (
+                  <span className="font-mono text-[8px] tracking-[0.16em] uppercase" style={{ color: 'rgba(23,25,26,0.38)' }}>
+                    {genre}
+                  </span>
+                )}
+                <button
+                  onClick={() => fetchDailyInspiration(true)}
+                  disabled={isLoadingInspiration}
+                  className="font-mono text-[9px] tracking-[0.18em] uppercase transition-colors"
+                  style={{
+                    padding: '7px 14px',
+                    background: isLoadingInspiration ? 'rgba(23,25,26,0.06)' : '#17191a',
+                    color: isLoadingInspiration ? 'rgba(23,25,26,0.30)' : '#f8f7f4',
+                    border: 'none',
+                    cursor: isLoadingInspiration ? 'not-allowed' : 'pointer',
+                  }}
+                  onMouseEnter={e => { if (!isLoadingInspiration) e.currentTarget.style.background = '#c9a227'; e.currentTarget.style.color = '#17191a'; }}
+                  onMouseLeave={e => { if (!isLoadingInspiration) e.currentTarget.style.background = '#17191a'; e.currentTarget.style.color = '#f8f7f4'; }}
+                >
+                  {isLoadingInspiration ? 'Loading…' : insp ? 'Refresh' : 'Generate'}
+                </button>
+              </div>
+            </div>
+
+            {/* Date stamp */}
+            {insp && (
+              <p className="font-mono text-[9px] tracking-[0.18em] uppercase mb-5" style={{ color: 'rgba(23,25,26,0.35)' }}>
+                {new Date(insp.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            )}
+
+            {/* Error */}
+            {inspirationError && !isLoadingInspiration && (
+              <div style={{ border: '1px solid rgba(201,162,39,0.35)', background: 'rgba(201,162,39,0.07)', padding: '14px 18px', marginBottom: '20px' }}>
+                <p className="font-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#8a6b0f' }}>{inspirationError}</p>
+              </div>
+            )}
+
+            {/* Skeleton / empty state */}
+            {!insp && !isLoadingInspiration && !inspirationError && (
+              <div style={{ border: '1px solid rgba(23,25,26,0.10)', padding: '48px 24px', textAlign: 'center' }}>
+                <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.32)', marginBottom: '14px' }}>
+                  No brief for today yet
+                </p>
+                <button
+                  onClick={() => fetchDailyInspiration()}
+                  className="font-mono text-[9px] tracking-[0.18em] uppercase"
+                  style={{ padding: '9px 20px', background: '#17191a', color: '#f8f7f4', border: 'none', cursor: 'pointer' }}
+                >
+                  Generate Today's Brief
+                </button>
+              </div>
+            )}
+
+            {isLoadingInspiration && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                {[1,2,3,4].map(i => (
+                  <div key={i} style={{ ...CARD_STYLE, opacity: 0.4, gap: '8px' }}>
+                    <div style={{ height: '8px', width: '60px', background: 'rgba(23,25,26,0.12)' }} />
+                    <div style={{ height: '16px', width: '140px', background: 'rgba(23,25,26,0.10)' }} />
+                    <div style={{ height: '52px', background: 'rgba(23,25,26,0.06)' }} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Cards grid */}
+            {insp && !isLoadingInspiration && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+
+                {/* Photographer */}
+                <div style={CARD_STYLE}>
+                  <p style={EYEBROW}>Photographer to Study</p>
+                  <div>
+                    <h3 style={TITLE}>{insp.photographer.name}</h3>
+                    <span style={{ ...EYEBROW, color: 'rgba(23,25,26,0.45)', letterSpacing: '0.14em' }}>
+                      {insp.photographer.era} · {insp.photographer.style}
+                    </span>
+                  </div>
+                  <div style={{ borderLeft: '2px solid #c9a227', paddingLeft: '12px' }}>
+                    <p style={BODY}>{insp.photographer.why}</p>
+                  </div>
+                  <p style={FOOTNOTE}>Find: {insp.photographer.find}</p>
+                </div>
+
+                {/* Concept */}
+                <div style={CARD_STYLE}>
+                  <p style={EYEBROW}>Visual Concept</p>
+                  <h3 style={TITLE}>{insp.concept.title}</h3>
+                  <div style={{ borderLeft: '2px solid rgba(23,25,26,0.18)', paddingLeft: '12px' }}>
+                    <p style={BODY}>{insp.concept.description}</p>
+                  </div>
+                </div>
+
+                {/* Read / Watch */}
+                <div style={CARD_STYLE}>
+                  <p style={EYEBROW}>Read / Watch</p>
+                  <div>
+                    <h3 style={TITLE}>{insp.read.title}</h3>
+                    <span style={{ ...EYEBROW, color: 'rgba(23,25,26,0.45)', letterSpacing: '0.14em', textTransform: 'capitalize' }}>
+                      {insp.read.type} · {insp.read.author}
+                    </span>
+                  </div>
+                  <div style={{ borderLeft: '2px solid rgba(23,25,26,0.18)', paddingLeft: '12px' }}>
+                    <p style={BODY}>{insp.read.description}</p>
+                  </div>
+                </div>
+
+                {/* Follow */}
+                <div style={CARD_STYLE}>
+                  <p style={EYEBROW}>Follow Today</p>
+                  <div>
+                    <h3 style={TITLE}>{insp.follow.name}</h3>
+                    <span style={{ ...EYEBROW, color: '#8a6b0f', letterSpacing: '0.14em' }}>
+                      {insp.follow.handle} · {insp.follow.platform}
+                    </span>
+                  </div>
+                  <div style={{ borderLeft: '2px solid rgba(23,25,26,0.18)', paddingLeft: '12px' }}>
+                    <p style={BODY}>{insp.follow.why}</p>
+                  </div>
+                </div>
+
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {activeTab === 'cfe' && (
         <div className="animate-in fade-in duration-700">

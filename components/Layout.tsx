@@ -44,17 +44,18 @@ const NAV_GROUPS = [
   {
     label: 'GROW',
     items: [
-      { id: 'today',     label: 'Missions',       index: '07' },
-      { id: 'skills',    label: 'Skill Tree',     index: '08' },
-      { id: 'askpro',    label: 'Ask a Pro',      index: '09' },
+      { id: 'today',      label: 'Missions',       index: '07' },
+      { id: 'skills',     label: 'Skill Tree',    index: '08' },
+      { id: 'askpro',     label: 'Ask a Pro',     index: '09' },
+      { id: 'inspire',    label: 'Inspiration',   index: '10' },
     ],
   },
   {
     label: 'YOU',
     items: [
-      { id: 'profile',   label: 'Profile',        index: '10' },
-      { id: 'gear',      label: 'Gear Locker',    index: '11' },
-      { id: 'archive',   label: 'Archive',        index: '12' },
+      { id: 'profile',   label: 'Profile',        index: '11' },
+      { id: 'gear',      label: 'Gear Locker',    index: '12' },
+      { id: 'archive',   label: 'Archive',        index: '13' },
     ],
   },
 ];

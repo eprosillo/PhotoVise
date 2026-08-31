@@ -282,3 +282,11 @@ export interface SkillNodeProgress {
   node: SkillNodeType;
   completions: number;
 }
+
+export interface DailyInspiration {
+  date: string;
+  photographer: { name: string; era: string; style: string; why: string; find: string };
+  concept:      { title: string; description: string };
+  read:         { title: string; author: string; type: string; description: string };
+  follow:       { handle: string; platform: string; name: string; why: string };
+}

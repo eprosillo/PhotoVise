@@ -1,16 +1,14 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions';
-import { GoogleGenAI } from '@google/genai';
+import Anthropic from '@anthropic-ai/sdk';
 import * as admin from 'firebase-admin';
 
-// Initialise Admin SDK once
 if (!admin.apps.length) admin.initializeApp();
 
-const geminiApiKey = defineSecret('GEMINI_API_KEY');
+const anthropicApiKey = defineSecret('ANTHROPIC_API_KEY');
 
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
 
 const SYSTEM_INSTRUCTION = `You are Photovise, a design-aware personal workflow assistant for a professional photographer.
 Always refer to the user's PHOTOGRAPHER PROFILE for their specific software workflow (e.g. Lightroom, Capture One, Photoshop, CamRanger), hardware locker, and artistic goals. Avoid assuming a standard Capture One + Photoshop workflow if their profile states otherwise.
@@ -34,7 +32,6 @@ STRUCTURE FOR STRATEGY DOCUMENTS:
 
 Style: Concise, professional, action-oriented. Avoid long essays.`;
 
-// Helper: verify user is authenticated
 function requireAuth(auth: { uid: string } | undefined): string {
   if (!auth?.uid) {
     throw new HttpsError('unauthenticated', 'You must be signed in to use this feature.');
@@ -42,30 +39,33 @@ function requireAuth(auth: { uid: string } | undefined): string {
   return auth.uid;
 }
 
+function getClient() {
+  return new Anthropic({ apiKey: anthropicApiKey.value() });
+}
+
+async function callClaude(userContent: string, systemOverride?: string): Promise<string> {
+  const client = getClient();
+  const response = await client.messages.create({
+    model: CLAUDE_MODEL,
+    max_tokens: 2048,
+    system: systemOverride ?? SYSTEM_INSTRUCTION,
+    messages: [{ role: 'user', content: userContent }],
+  });
+  const block = response.content[0];
+  return block.type === 'text' ? block.text : '';
+}
+
 // ── generateWeeklyPlan ────────────────────────────────────────────────────────
 export const generateWeeklyPlan = onCall(
-  { secrets: [geminiApiKey], timeoutSeconds: 120 },
+  { secrets: [anthropicApiKey], timeoutSeconds: 120 },
   async (request) => {
     requireAuth(request.auth);
     const input = request.data.input as string;
     if (!input) throw new HttpsError('invalid-argument', 'input is required');
-
     try {
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: input,
-        config: { systemInstruction: SYSTEM_INSTRUCTION },
-      });
-      return { text: response.text || 'Communication error with Photovise core.' };
+      return { text: await callClaude(input) };
     } catch (e) {
-      logger.error('Gemini API call failed', {
-        functionName: 'generateWeeklyPlan',
-        uid:          request.auth?.uid,
-        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
-        errorMessage: e instanceof Error ? e.message : String(e),
-        timestamp:    new Date().toISOString(),
-      });
+      logger.error('Claude API call failed', { functionName: 'generateWeeklyPlan', error: String(e) });
       throw new HttpsError('internal', 'Photovise is temporarily unreachable.');
     }
   }
@@ -73,28 +73,15 @@ export const generateWeeklyPlan = onCall(
 
 // ── generateAssignmentGuide ───────────────────────────────────────────────────
 export const generateAssignmentGuide = onCall(
-  { secrets: [geminiApiKey], timeoutSeconds: 120 },
+  { secrets: [anthropicApiKey], timeoutSeconds: 120 },
   async (request) => {
     requireAuth(request.auth);
     const input = request.data.input as string;
     if (!input) throw new HttpsError('invalid-argument', 'input is required');
-
     try {
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: input,
-        config: { systemInstruction: SYSTEM_INSTRUCTION },
-      });
-      return { text: response.text || 'Communication error with Photovise core.' };
+      return { text: await callClaude(input) };
     } catch (e) {
-      logger.error('Gemini API call failed', {
-        functionName: 'generateAssignmentGuide',
-        uid:          request.auth?.uid,
-        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
-        errorMessage: e instanceof Error ? e.message : String(e),
-        timestamp:    new Date().toISOString(),
-      });
+      logger.error('Claude API call failed', { functionName: 'generateAssignmentGuide', error: String(e) });
       throw new HttpsError('internal', 'Photovise is temporarily unreachable.');
     }
   }
@@ -102,28 +89,15 @@ export const generateAssignmentGuide = onCall(
 
 // ── askProQuestion ────────────────────────────────────────────────────────────
 export const askProQuestion = onCall(
-  { secrets: [geminiApiKey], timeoutSeconds: 120 },
+  { secrets: [anthropicApiKey], timeoutSeconds: 120 },
   async (request) => {
     requireAuth(request.auth);
     const prompt = request.data.prompt as string;
     if (!prompt) throw new HttpsError('invalid-argument', 'prompt is required');
-
     try {
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: prompt,
-        config: { systemInstruction: SYSTEM_INSTRUCTION },
-      });
-      return { text: response.text || 'The pro is currently silent. Please try asking again.' };
+      return { text: await callClaude(prompt) };
     } catch (e) {
-      logger.error('Gemini API call failed', {
-        functionName: 'askProQuestion',
-        uid:          request.auth?.uid,
-        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
-        errorMessage: e instanceof Error ? e.message : String(e),
-        timestamp:    new Date().toISOString(),
-      });
+      logger.error('Claude API call failed', { functionName: 'askProQuestion', error: String(e) });
       throw new HttpsError('internal', 'Photovise is temporarily unreachable.');
     }
   }
@@ -131,65 +105,44 @@ export const askProQuestion = onCall(
 
 // ── fetchLocationSuggestions ──────────────────────────────────────────────────
 export const fetchLocationSuggestions = onCall(
-  { secrets: [geminiApiKey] },
+  { secrets: [anthropicApiKey] },
   async (request) => {
     requireAuth(request.auth);
     const { query, lat, lng } = request.data as { query: string; lat?: number; lng?: number };
     if (!query) throw new HttpsError('invalid-argument', 'query is required');
 
+    const locationContext = (lat !== undefined && lng !== undefined)
+      ? ` The user is near coordinates ${lat.toFixed(4)}, ${lng.toFixed(4)}.`
+      : '';
+
+    const prompt = `Suggest 5 specific real-world photography locations matching: "${query}".${locationContext}
+Return ONLY a JSON array, no markdown. Each item: {"title":"Location Name, City, Country","uri":"https://www.google.com/maps/search/Location+Name+City+Country"}
+Replace spaces in the uri search query with +. Return only the JSON array.`;
+
     try {
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
-
-      const config: Record<string, unknown> = {
-        tools: [{ googleMaps: {} }],
+      const text = await callClaude(prompt, 'You are a photography location assistant. Return only valid JSON arrays, no explanation.');
+      const clean = text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+      const parsed = JSON.parse(clean);
+      if (!Array.isArray(parsed)) return { suggestions: [] };
+      return {
+        suggestions: parsed
+          .filter((s: unknown) => s && typeof s === 'object' && typeof (s as Record<string,unknown>).title === 'string')
+          .slice(0, 5)
+          .map((s: Record<string, unknown>) => ({ title: String(s.title), uri: s.uri ? String(s.uri) : undefined })),
       };
-      if (lat !== undefined && lng !== undefined) {
-        config.toolConfig = { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } };
-      }
-
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: `Provide 5 specific real-world place or address suggestions that match: "${query}". Return only the names of the places.`,
-        config,
-      });
-
-      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-      const mapsSuggestions = chunks
-        .filter(chunk => !!chunk.maps)
-        .map(chunk => ({ title: chunk.maps?.title || '', uri: chunk.maps?.uri }))
-        .filter(s => s.title.length > 0);
-
-      if (mapsSuggestions.length > 0) {
-        return { suggestions: mapsSuggestions };
-      }
-
-      const lines = (response.text || '')
-        .split('\n')
-        .map((l: string) => l.replace(/^[•\-\d.\s]+/, '').trim())
-        .filter((l: string) => l.length > 0)
-        .slice(0, 5)
-        .map((title: string) => ({ title }));
-
-      return { suggestions: lines };
     } catch (e) {
-      logger.error('Gemini API call failed', {
-        functionName: 'fetchLocationSuggestions',
-        uid:          request.auth?.uid,
-        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
-        errorMessage: e instanceof Error ? e.message : String(e),
-        timestamp:    new Date().toISOString(),
-      });
+      logger.error('Claude location suggestions failed', { error: String(e) });
       return { suggestions: [] };
     }
   }
 );
 
-// ── fetchBulletinEvents helpers ───────────────────────────────────────────────
+// ── fetchBulletinEvents ───────────────────────────────────────────────────────
 const VALID_CFE_TYPES = new Set([
   'Competition', 'Grant', 'Fellowship', 'Residency',
   'Open Call', 'Call for Entry', 'Portfolio Review', 'Festival', 'Event',
 ]);
-const VALID_REGIONS  = new Set(['Global', 'US', 'Europe', 'Asia', 'Latin America', 'Africa', 'Other']);
+const VALID_REGIONS   = new Set(['Global', 'US', 'Europe', 'Asia', 'Latin America', 'Africa', 'Other']);
 const VALID_PRIORITIES = new Set(['high', 'medium', 'low']);
 
 function isValidBulletinItem(item: unknown): item is Record<string, unknown> {
@@ -204,9 +157,8 @@ function isValidBulletinItem(item: unknown): item is Record<string, unknown> {
   );
 }
 
-// ── fetchBulletinEvents ───────────────────────────────────────────────────────
 export const fetchBulletinEvents = onCall(
-  { secrets: [geminiApiKey] },
+  { secrets: [anthropicApiKey] },
   async (request) => {
     requireAuth(request.auth);
     const { genre, region, type } = request.data as { genre: string; region: string; type?: string };
@@ -219,753 +171,172 @@ export const fetchBulletinEvents = onCall(
     const regionContext = region === 'All' ? 'worldwide' : `the ${region} region`;
     const typeContext = (!type || type === 'All')
       ? 'competitions, grants, fellowships, residencies, open calls, calls for entry, portfolio reviews, festivals, and events'
-      : type === 'Competition' ? 'photography competitions and contests'
-      : type === 'Grant' ? 'photography grants and funding opportunities'
-      : type === 'Fellowship' ? 'photography fellowships and artist-in-residence programs'
-      : type === 'Residency' ? 'photography residencies'
-      : type === 'Open Call' ? 'open calls for photographers'
-      : type === 'Call for Entry' ? 'calls for entry and submission opportunities'
+      : type === 'Competition'      ? 'photography competitions and contests'
+      : type === 'Grant'            ? 'photography grants and funding opportunities'
+      : type === 'Fellowship'       ? 'photography fellowships and artist-in-residence programs'
+      : type === 'Residency'        ? 'photography residencies'
+      : type === 'Open Call'        ? 'open calls for photographers'
+      : type === 'Call for Entry'   ? 'calls for entry and submission opportunities'
       : type === 'Portfolio Review' ? 'portfolio review events and programs'
-      : type === 'Festival' ? 'photography festivals and exhibitions'
+      : type === 'Festival'         ? 'photography festivals and exhibitions'
       : 'photography events and opportunities';
 
     const prompt = `Today is ${today}. List 12 real upcoming ${typeContext} relevant to ${genreContext} in ${regionContext}. Only include opportunities with deadlines after ${today} or rolling/ongoing applications. Return ONLY a valid JSON array with no markdown. Each object must match this schema exactly: {"id":"ai-1","name":"","organizer":"","type":"Competition","url":"https://example.com","location":"","deadline":"YYYY-MM-DD","genres":[""],"blurb":"","fee":"","status":"unmarked","region":"Global","priority":"high"}. Valid type values: Competition, Grant, Fellowship, Residency, Open Call, Call for Entry, Portfolio Review, Festival, Event. Valid region values: Global, US, Europe, Asia, Latin America, Africa, Other. Valid priority values: high, medium, low. Use "Rolling" for deadline if the application is ongoing.`;
 
     try {
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: prompt,
-        config: { responseMimeType: 'application/json' },
-      });
-      const text = (response.text || '').replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+      const text = await callClaude(prompt, 'You are a photography opportunities assistant. Return only valid JSON arrays, no explanation or markdown.');
+      const clean = text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
 
       let parsed: unknown;
       try {
-        parsed = JSON.parse(text);
+        parsed = JSON.parse(clean);
       } catch {
-        logger.error('Gemini response JSON parse failed', {
-          functionName: 'fetchBulletinEvents',
-          uid:          request.auth?.uid,
-          errorCode:    'JsonParseError',
-          rawResponse:  text.slice(0, 500),
-          timestamp:    new Date().toISOString(),
-        });
+        logger.error('Claude response JSON parse failed', { functionName: 'fetchBulletinEvents', raw: clean.slice(0, 500) });
         return { items: [] };
       }
 
-      if (!Array.isArray(parsed)) {
-        logger.error('Gemini response is not an array', {
-          functionName: 'fetchBulletinEvents',
-          uid:          request.auth?.uid,
-          errorCode:    'InvalidResponseShape',
-          rawResponse:  text.slice(0, 500),
-          timestamp:    new Date().toISOString(),
-        });
-        return { items: [] };
-      }
+      if (!Array.isArray(parsed)) return { items: [] };
 
-      const items = parsed
-        .filter((item: unknown) => {
+      const items = (parsed as unknown[])
+        .filter((item) => {
           const valid = isValidBulletinItem(item);
-          if (!valid) logger.warn('Dropping invalid bulletin item', {
-            functionName: 'fetchBulletinEvents',
-            uid:          request.auth?.uid,
-            invalidItem:  JSON.stringify(item).slice(0, 200),
-            timestamp:    new Date().toISOString(),
-          });
+          if (!valid) logger.warn('Dropping invalid bulletin item', { item: JSON.stringify(item).slice(0, 200) });
           return valid;
         })
-        .map((item: Record<string, unknown>) => ({
-          ...item,
-          id: (item.name as string).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+        .map((item) => ({
+          ...(item as Record<string, unknown>),
+          id: ((item as Record<string,unknown>).name as string).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
           status: 'unmarked',
         }));
+
       return { items };
     } catch (e) {
-      logger.error('Gemini API call failed', {
-        functionName: 'fetchBulletinEvents',
-        uid:          request.auth?.uid,
-        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
-        errorMessage: e instanceof Error ? e.message : String(e),
-        timestamp:    new Date().toISOString(),
-      });
+      logger.error('Claude API call failed', { functionName: 'fetchBulletinEvents', error: String(e) });
       return { items: [] };
     }
   }
 );
 
-// ── runGeminiForFunction (internal) ──────────────────────────────────────────
-// Shared Gemini call logic used by processGeminiQueue.
-// Must only be called from within a Cloud Function that declares geminiApiKey.
-async function runGeminiForFunction(
-  functionName: string,
-  payload: Record<string, unknown>,
-): Promise<unknown> {
-  const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+// ── parseAssignment ───────────────────────────────────────────────────────────
+export const parseAssignment = onCall(
+  { secrets: [anthropicApiKey], timeoutSeconds: 60 },
+  async (request) => {
+    requireAuth(request.auth);
+    const { text } = request.data as { text: string };
+    if (!text?.trim()) throw new HttpsError('invalid-argument', 'text is required');
 
-  // ── generateWeeklyPlan / generateAssignmentGuide ──────────────────────────
-  if (functionName === 'generateWeeklyPlan' || functionName === 'generateAssignmentGuide') {
-    const input    = String(payload.input ?? '');
-    const response = await ai.models.generateContent({
-      model:    GEMINI_MODEL,
-      contents: input,
-      config:   { systemInstruction: SYSTEM_INSTRUCTION },
-    });
-    return { text: response.text || 'Communication error with Photovise core.' };
-  }
+    const today = new Date().toISOString().split('T')[0];
+    const prompt = `Today is ${today}. A photographer pasted the following assignment description. Extract the relevant fields and return ONLY a valid JSON object — no markdown, no explanation.
 
-  // ── askProQuestion ────────────────────────────────────────────────────────
-  if (functionName === 'askProQuestion') {
-    const prompt   = String(payload.prompt ?? '');
-    const response = await ai.models.generateContent({
-      model:    GEMINI_MODEL,
-      contents: prompt,
-      config:   { systemInstruction: SYSTEM_INSTRUCTION },
-    });
-    return { text: response.text || 'The pro is currently silent. Please try asking again.' };
-  }
+Assignment text:
+"""
+${text.trim()}
+"""
 
-  // ── fetchBulletinEvents ───────────────────────────────────────────────────
-  if (functionName === 'fetchBulletinEvents') {
-    const genre  = String(payload.genre  ?? 'All');
-    const region = String(payload.region ?? 'All');
-    const type   = String(payload.type   ?? 'All');
-    const today  = new Date().toISOString().split('T')[0];
+Return this exact JSON shape (use null for any field you cannot determine):
+{
+  "title": "short assignment title",
+  "category": "Personal" | "Professional" | "School" | null,
+  "priority": "high" | "medium" | "low" | null,
+  "dueDate": "YYYY-MM-DD" | null,
+  "genre": "Street" | "Sports" | "Photojournalism" | "Portrait" | "Wedding" | "Event" | "Landscape" | "Architecture" | "Documentary" | "Commercial" | "Editorial" | "Fashion" | "Product" | "Food" | "Still Life" | "Wildlife" | "Macro" | "Astro" | "Travel" | "Other" | null,
+  "location": "city or place name" | null,
+  "brief": "the full assignment requirements, cleaned up",
+  "notes": "any extra context or constraints not covered by other fields" | null
+}`;
 
-    const genreContext = genre === 'All'
-      ? 'all photography genres (Street, Landscape, Portrait, Architecture, Sports, Photojournalism, Fashion, Wildlife, Documentary)'
-      : `${genre} photography`;
-    const regionContext = region === 'All' ? 'worldwide' : `the ${region} region`;
-    const typeContext = (!type || type === 'All')
-      ? 'competitions, grants, fellowships, residencies, open calls, calls for entry, portfolio reviews, festivals, and events'
-      : type === 'Competition'     ? 'photography competitions and contests'
-      : type === 'Grant'           ? 'photography grants and funding opportunities'
-      : type === 'Fellowship'      ? 'photography fellowships and artist-in-residence programs'
-      : type === 'Residency'       ? 'photography residencies'
-      : type === 'Open Call'       ? 'open calls for photographers'
-      : type === 'Call for Entry'  ? 'calls for entry and submission opportunities'
-      : type === 'Portfolio Review'? 'portfolio review events and programs'
-      : type === 'Festival'        ? 'photography festivals and exhibitions'
-      : 'photography events and opportunities';
-
-    const prompt = `Today is ${today}. List 12 real upcoming ${typeContext} relevant to ${genreContext} in ${regionContext}. Only include opportunities with deadlines after ${today} or rolling/ongoing applications. Return ONLY a valid JSON array with no markdown. Each object must match this schema exactly: {"id":"ai-1","name":"","organizer":"","type":"Competition","url":"https://example.com","location":"","deadline":"YYYY-MM-DD","genres":[""],"blurb":"","fee":"","status":"unmarked","region":"Global","priority":"high"}. Valid type values: Competition, Grant, Fellowship, Residency, Open Call, Call for Entry, Portfolio Review, Festival, Event. Valid region values: Global, US, Europe, Asia, Latin America, Africa, Other. Valid priority values: high, medium, low. Use "Rolling" for deadline if the application is ongoing.`;
-
-    const response = await ai.models.generateContent({
-      model:    GEMINI_MODEL,
-      contents: prompt,
-      config:   { responseMimeType: 'application/json' },
-    });
-
-    const text = (response.text || '').replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
-    let parsed: unknown;
     try {
-      parsed = JSON.parse(text);
-    } catch {
-      logger.error('Gemini response JSON parse failed', {
-        functionName: 'runGeminiForFunction/fetchBulletinEvents',
-        errorCode:    'JsonParseError',
-        rawResponse:  text.slice(0, 500),
-        timestamp:    new Date().toISOString(),
-      });
-      return { items: [] };
+      const raw = await callClaude(prompt, 'You are a structured data extractor. Return only valid JSON, no markdown or explanation.');
+      const clean = raw.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+      const parsed = JSON.parse(clean);
+      return { assignment: parsed };
+    } catch (e) {
+      logger.error('parseAssignment failed', { error: String(e) });
+      throw new HttpsError('internal', 'Could not parse the assignment. Please fill in the fields manually.');
     }
-    if (!Array.isArray(parsed)) {
-      logger.error('Gemini response is not an array', {
-        functionName: 'runGeminiForFunction/fetchBulletinEvents',
-        errorCode:    'InvalidResponseShape',
-        rawResponse:  text.slice(0, 500),
-        timestamp:    new Date().toISOString(),
-      });
-      return { items: [] };
-    }
-    const items = parsed
-      .filter((item: unknown) => {
-        const valid = isValidBulletinItem(item);
-        if (!valid) logger.warn('Dropping invalid bulletin item', {
-          functionName: 'runGeminiForFunction/fetchBulletinEvents',
-          invalidItem:  JSON.stringify(item).slice(0, 200),
-          timestamp:    new Date().toISOString(),
-        });
-        return valid;
-      })
-      .map((item: Record<string, unknown>) => ({
-        ...item,
-        id:     (item.name as string).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
-        status: 'unmarked',
-      }));
-    return { items };
   }
+);
 
-  throw new HttpsError('invalid-argument', `Unknown function name: ${functionName}`);
-}
+// ── getDailyInspiration ───────────────────────────────────────────────────────
+export const getDailyInspiration = onCall(
+  { secrets: [anthropicApiKey], timeoutSeconds: 60 },
+  async (request) => {
+    requireAuth(request.auth);
+    const { genre, date } = request.data as { genre?: string; date: string };
+
+    const genreCtx = genre && genre !== 'Other'
+      ? ` who specialises in ${genre} photography`
+      : '';
+
+    const prompt = `Today is ${date}. Generate a daily photography inspiration brief for a photographer${genreCtx}.
+
+Return ONLY a valid JSON object — no markdown, no explanation:
+{
+  "photographer": {
+    "name": "Full Name",
+    "era": "decade range or 'Contemporary'",
+    "style": "one-line style description",
+    "why": "2–3 sentences on why to study them today and what to look for",
+    "find": "where to find their work (e.g. a book title, museum, or website)"
+  },
+  "concept": {
+    "title": "Concept Name",
+    "description": "2–3 sentences explaining the concept and one concrete way to apply it today"
+  },
+  "read": {
+    "title": "Title",
+    "author": "Author or Creator",
+    "type": "book or article or video or podcast",
+    "description": "1–2 sentences on why it's worth reading or watching"
+  },
+  "follow": {
+    "handle": "@handle",
+    "platform": "Instagram or YouTube or Substack or Website",
+    "name": "Full Name",
+    "why": "1–2 sentences on what makes their work worth following"
+  }
+}`;
+
+    try {
+      const raw = await callClaude(prompt, 'You are a photography curator and educator. Return only valid JSON, no markdown or explanation. Recommend real people and real works only.');
+      const clean = raw.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+      const parsed = JSON.parse(clean);
+      return { inspiration: parsed };
+    } catch (e) {
+      logger.error('getDailyInspiration failed', { error: String(e) });
+      throw new HttpsError('internal', 'Could not generate daily inspiration.');
+    }
+  }
+);
 
 // ── suggestScoutLocations ─────────────────────────────────────────────────────
-// Given a session context string, asks Gemini for 2-3 real, specific shooting
-// locations that fit the assignment's genre, area, and status.
-const VALID_SCOUT_TAGS = new Set([
-  'Architecture', 'Landscape', 'Street', 'Photojournalism',
-  'Abstraction', 'People', 'Composition', 'Blue Hour', 'Golden Hour',
-]);
-const VALID_BEST_TIMES = new Set([
-  'Sunrise', 'Early Morning', 'Morning', 'Midday', 'Afternoon',
-  'Golden Hour', 'Blue Hour', 'Night', 'Any Time',
-]);
-
-interface RawScoutSuggestion {
-  name?: unknown;
-  area?: unknown;
-  mapLink?: unknown;
-  tags?: unknown;
-  bestTime?: unknown;
-  lightingNotes?: unknown;
-  accessNotes?: unknown;
-  safetyNotes?: unknown;
-  parkingNotes?: unknown;
-  shotIdeas?: unknown;
-  backupSpot?: unknown;
-}
-
-function sanitiseScoutSuggestion(raw: RawScoutSuggestion) {
-  return {
-    name:          typeof raw.name         === 'string' ? raw.name.trim()         : 'Unnamed location',
-    area:          typeof raw.area         === 'string' ? raw.area.trim()         : '',
-    mapLink:       typeof raw.mapLink      === 'string' ? raw.mapLink.trim()      : '',
-    tags:          Array.isArray(raw.tags)
-                     ? (raw.tags as unknown[]).filter(t => typeof t === 'string' && VALID_SCOUT_TAGS.has(t as string)) as string[]
-                     : [],
-    bestTime:      typeof raw.bestTime === 'string' && VALID_BEST_TIMES.has(raw.bestTime) ? raw.bestTime : 'Any Time',
-    lightingNotes: typeof raw.lightingNotes === 'string' ? raw.lightingNotes.trim() : '',
-    accessNotes:   typeof raw.accessNotes   === 'string' ? raw.accessNotes.trim()   : '',
-    safetyNotes:   typeof raw.safetyNotes   === 'string' ? raw.safetyNotes.trim()   : '',
-    parkingNotes:  typeof raw.parkingNotes  === 'string' ? raw.parkingNotes.trim()  : '',
-    shotIdeas:     typeof raw.shotIdeas     === 'string' ? raw.shotIdeas.trim()     : '',
-    backupSpot:    typeof raw.backupSpot    === 'string' ? raw.backupSpot.trim()    : '',
-  };
+export interface ScoutLocationSuggestion {
+  name: string; area: string; mapLink: string; tags: string[];
+  bestTime: string; lightingNotes: string; accessNotes: string;
+  safetyNotes: string; parkingNotes: string; shotIdeas: string; backupSpot: string;
 }
 
 export const suggestScoutLocations = onCall(
-  { secrets: [geminiApiKey], timeoutSeconds: 120 },
+  { secrets: [anthropicApiKey], timeoutSeconds: 120 },
   async (request) => {
     requireAuth(request.auth);
     const { sessionContext } = request.data as { sessionContext: string };
-    if (!sessionContext?.trim()) throw new HttpsError('invalid-argument', 'sessionContext is required');
+    if (!sessionContext) throw new HttpsError('invalid-argument', 'sessionContext is required');
 
-    const prompt =
-      `You are a photography location scout. Based on the session context below, suggest exactly 3 specific, ` +
-      `real-world shooting locations that fit the assignment.\n\n` +
-      `SESSION CONTEXT:\n${sessionContext}\n\n` +
-      `Return ONLY a valid JSON array — no markdown fences, no explanation. Each object must match this schema exactly:\n` +
-      `[{"name":"","area":"","mapLink":"full street address","tags":[],"bestTime":"","lightingNotes":"","accessNotes":"","safetyNotes":"","parkingNotes":"","shotIdeas":"","backupSpot":""}]\n\n` +
-      `Valid "tags" values (use only these): Architecture, Landscape, Street, Photojournalism, Abstraction, People, Composition, Blue Hour, Golden Hour\n` +
-      `Valid "bestTime" values (use only these): Sunrise, Early Morning, Morning, Midday, Afternoon, Golden Hour, Blue Hour, Night, Any Time\n\n` +
-      `Rules:\n` +
-      `- Read ALL fields in the session context — assignment notes, strategy, and day plan contain the most important intent signals. Let them drive your suggestions.\n` +
-      `- Strictly honour the "Search radius" field: only suggest locations within that distance of the assignment location. If the radius is "No limit", suggest the best-fit locations anywhere.\n` +
-      `- Suggest real, named places — not generic descriptions.\n` +
-      `- If the session has a city or area, prioritise locations there.\n` +
-      `- Make shotIdeas concrete and directly tied to the genre, strategy, and any specific goals mentioned in the notes.\n` +
-      `- Include 3 locations.`;
+    const prompt = `Based on this photography session context: "${sessionContext}"
+
+Suggest 3 specific real-world shooting locations. Return ONLY a JSON array, no markdown.
+Each item: {"name":"","area":"City, Country","mapLink":"https://www.google.com/maps/search/Location+Name","tags":[""],"bestTime":"","lightingNotes":"","accessNotes":"","safetyNotes":"","parkingNotes":"","shotIdeas":"","backupSpot":""}`;
 
     try {
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: prompt,
-        config: { systemInstruction: SYSTEM_INSTRUCTION },
-      });
-
-      const raw = (response.text || '').trim();
-      // Strip optional markdown fences
-      const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(cleaned);
-      } catch {
-        logger.warn('suggestScoutLocations: JSON parse failed', { raw: raw.slice(0, 200) });
-        throw new HttpsError('internal', 'Location suggestions could not be parsed.');
-      }
-
-      if (!Array.isArray(parsed)) {
-        throw new HttpsError('internal', 'Unexpected response shape from location scout.');
-      }
-
-      const locations = (parsed as RawScoutSuggestion[])
-        .slice(0, 3)
-        .filter(item => item && typeof item === 'object')
-        .map(sanitiseScoutSuggestion);
-
-      return { locations };
+      const text = await callClaude(prompt, 'You are a photography location scouting assistant. Return only valid JSON arrays.');
+      const clean = text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+      const parsed = JSON.parse(clean);
+      if (!Array.isArray(parsed)) return { locations: [] };
+      return { locations: parsed as ScoutLocationSuggestion[] };
     } catch (e) {
-      if (e instanceof HttpsError) throw e;
-      logger.error('Gemini API call failed', {
-        functionName: 'suggestScoutLocations',
-        uid:          request.auth?.uid,
-        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
-        errorMessage: e instanceof Error ? e.message : String(e),
-        timestamp:    new Date().toISOString(),
-      });
-      throw new HttpsError('internal', 'Photovise is temporarily unreachable.');
+      logger.error('Claude scout locations failed', { error: String(e) });
+      throw new HttpsError('internal', 'Location suggestions temporarily unavailable.');
     }
-  }
-);
-
-// ── enqueueGeminiRequest ──────────────────────────────────────────────────────
-// Accepts a functionName + payload from the client, writes a pending job to
-// geminiQueue, and returns the jobId immediately. The queue processor runs
-// every minute and processes up to 30 jobs — enforcing the 30 req/min limit.
-const QUEUE_VALID_FUNCTIONS = new Set([
-  'generateWeeklyPlan',
-  'generateAssignmentGuide',
-  'askProQuestion',
-  'fetchBulletinEvents',
-]);
-
-export const enqueueGeminiRequest = onCall(async (request) => {
-  const uid = requireAuth(request.auth);
-  const { functionName, payload } = request.data as {
-    functionName: string;
-    payload: Record<string, unknown>;
-  };
-
-  if (!QUEUE_VALID_FUNCTIONS.has(functionName)) {
-    throw new HttpsError('invalid-argument', `Invalid function name: ${functionName}`);
-  }
-
-  const db = admin.firestore();
-
-  // Per-user guard: max 2 pending jobs at a time to prevent flooding
-  const userSnap        = await db.collection('geminiQueue').where('userId', '==', uid).get();
-  const userPending     = userSnap.docs.filter(d => d.data().status === 'pending').length;
-  if (userPending >= 2) {
-    throw new HttpsError(
-      'resource-exhausted',
-      'You have too many pending requests. Please wait for your current requests to complete.',
-    );
-  }
-
-  // Count jobs currently ahead in line (pending + processing) for position display
-  const queueSnap    = await db.collection('geminiQueue')
-    .where('status', 'in', ['pending', 'processing'])
-    .limit(50)
-    .get();
-  const queuedBefore = queueSnap.size;
-
-  const jobRef = db.collection('geminiQueue').doc();
-  await jobRef.set({
-    userId:       uid,
-    functionName,
-    payload,
-    status:       'pending',
-    createdAt:    admin.firestore.FieldValue.serverTimestamp(),
-    queuedBefore,             // approximate position shown to client
-  });
-
-  logger.info('Gemini job enqueued', {
-    functionName: 'enqueueGeminiRequest',
-    uid,
-    jobId:        jobRef.id,
-    geminiTarget: functionName,
-    queuePosition: queuedBefore + 1,
-    timestamp:    new Date().toISOString(),
-  });
-  return { jobId: jobRef.id };
-});
-
-// ── processGeminiQueue ────────────────────────────────────────────────────────
-// Runs every minute via Cloud Scheduler.
-// Processes up to 30 pending jobs per invocation — matching the 30 req/min
-// Gemini quota. Uses a Firestore transaction to claim each job atomically so
-// concurrent scheduler invocations cannot double-process the same job.
-export const processGeminiQueue = onSchedule(
-  { schedule: '* * * * *', timeZone: 'UTC', secrets: [geminiApiKey] },
-  async () => {
-    const db         = admin.firestore();
-    const RATE_LIMIT = 30;
-    const STUCK_MS   = 5 * 60_000; // recover jobs stuck in 'processing' > 5 min
-
-    // ── Recover stuck jobs ────────────────────────────────────────────────────
-    const processingSnap = await db.collection('geminiQueue')
-      .where('status', '==', 'processing')
-      .get();
-
-    for (const stuckDoc of processingSnap.docs) {
-      const processedAt = stuckDoc.data().processedAt?.toMillis?.() ?? 0;
-      if (Date.now() - processedAt > STUCK_MS) {
-        logger.warn('Recovering stuck Gemini queue job', {
-          functionName: 'processGeminiQueue',
-          jobId:        stuckDoc.id,
-          stuckForMs:   Date.now() - processedAt,
-          timestamp:    new Date().toISOString(),
-        });
-        await stuckDoc.ref.update({ status: 'pending' });
-      }
-    }
-
-    // ── Fetch and sort pending jobs in memory (avoids composite index) ────────
-    const pendingSnap = await db.collection('geminiQueue')
-      .where('status', '==', 'pending')
-      .limit(RATE_LIMIT + 20)   // fetch extra so in-memory sort is accurate
-      .get();
-
-    if (pendingSnap.empty) {
-      logger.info('No pending Gemini jobs', {
-        functionName: 'processGeminiQueue',
-        timestamp:    new Date().toISOString(),
-      });
-    } else {
-      const sorted = pendingSnap.docs
-        .slice()
-        .sort((a, b) =>
-          (a.data().createdAt?.toMillis?.() ?? 0) -
-          (b.data().createdAt?.toMillis?.() ?? 0),
-        )
-        .slice(0, RATE_LIMIT);
-
-      logger.info('Processing Gemini queue batch', {
-        functionName: 'processGeminiQueue',
-        jobCount:     sorted.length,
-        timestamp:    new Date().toISOString(),
-      });
-
-      for (const jobDoc of sorted) {
-        // Atomic claim — prevents double-processing if scheduler fires twice
-        const claimed = await db.runTransaction(async (tx) => {
-          const fresh = await tx.get(jobDoc.ref);
-          if (fresh.data()?.status !== 'pending') return false;
-          tx.update(jobDoc.ref, {
-            status:      'processing',
-            processedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-          return true;
-        });
-
-        if (!claimed) continue;
-
-        const job = jobDoc.data();
-        try {
-          const result = await runGeminiForFunction(
-            job.functionName as string,
-            job.payload       as Record<string, unknown>,
-          );
-          await jobDoc.ref.update({
-            status:      'complete',
-            result,
-            completedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-          logger.info('Gemini job completed', {
-            functionName: 'processGeminiQueue',
-            jobId:        jobDoc.id,
-            geminiTarget: job.functionName,
-            uid:          job.userId,
-            timestamp:    new Date().toISOString(),
-          });
-        } catch (e) {
-          logger.error('Gemini job failed', {
-            functionName: 'processGeminiQueue',
-            jobId:        jobDoc.id,
-            geminiTarget: job.functionName,
-            uid:          job.userId,
-            errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
-            errorMessage: e instanceof Error ? e.message : String(e),
-            timestamp:    new Date().toISOString(),
-          });
-          await jobDoc.ref.update({
-            status:      'failed',
-            error:       e instanceof Error ? e.message : 'Unknown error',
-            completedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-        }
-      }
-    }
-
-    // ── Clean up completed/failed jobs older than 1 hour ─────────────────────
-    // Two separate queries to avoid a composite index on status+completedAt.
-    const cutoffMs = Date.now() - 60 * 60_000;
-    const [completeSnap, failedSnap] = await Promise.all([
-      db.collection('geminiQueue').where('status', '==', 'complete').limit(100).get(),
-      db.collection('geminiQueue').where('status', '==', 'failed').limit(100).get(),
-    ]);
-    const toDelete = [...completeSnap.docs, ...failedSnap.docs]
-      .filter(d => (d.data().completedAt?.toMillis?.() ?? 0) < cutoffMs);
-
-    if (toDelete.length > 0) {
-      const batch = db.batch();
-      toDelete.forEach(d => batch.delete(d.ref));
-      await batch.commit();
-      logger.info('Cleaned up old Gemini queue jobs', {
-        functionName: 'processGeminiQueue',
-        deletedCount: toDelete.length,
-        timestamp:    new Date().toISOString(),
-      });
-    }
-  },
-);
-
-// ── validateAndCreateCommunityPost ───────────────────────────────────────────
-// Enforces a 3-active-post limit per user, then creates the Firestore document.
-// Images must be uploaded to Storage by the client first; their download URLs are
-// passed in as `imageUrls`.
-export const validateAndCreateCommunityPost = onCall(
-  async (request) => {
-    const uid = requireAuth(request.auth);
-
-    const { displayName, caption, assignmentTag, imageUrls, cameraBody, lens, settings, expiresAtMs } =
-      request.data as {
-        displayName: string;
-        caption: string;
-        assignmentTag: string;
-        imageUrls: string[];
-        cameraBody?: string;
-        lens?: string;
-        settings?: string;
-        expiresAtMs: number;
-      };
-
-    if (!caption || !assignmentTag || !Array.isArray(imageUrls) || imageUrls.length === 0) {
-      throw new HttpsError('invalid-argument', 'caption, assignmentTag, and imageUrls are required.');
-    }
-
-    const db      = admin.firestore();
-    const userRef = db.collection('users').doc(uid);
-    // Pre-allocate a document ID so we can reference it inside the transaction
-    // and return it to the caller without a second round-trip.
-    const postRef = db.collection('communityPosts').doc();
-
-    // ── Atomic transaction ───────────────────────────────────────────────────
-    // Reads users/{uid}.activePostCount, enforces the 3-post cap, creates the
-    // community post document, and increments the counter — all in one commit.
-    // If any step fails the entire transaction is rolled back automatically.
-    let activeCount: number;
-    try {
-      activeCount = await db.runTransaction(async (tx) => {
-        const userSnap = await tx.get(userRef);
-
-        // Treat a missing field (or a brand-new user doc) as 0.
-        const count = (userSnap.data()?.activePostCount as number) ?? 0;
-
-        if (count >= 3) {
-          throw new HttpsError(
-            'resource-exhausted',
-            'Post limit reached. Remove a post to continue.',
-          );
-        }
-
-        // Write the new post document.
-        tx.set(postRef, {
-          userId:        uid,
-          displayName:   displayName ?? 'Photographer',
-          caption:       String(caption).trim(),
-          assignmentTag,
-          imageUrls,
-          ...(cameraBody && { cameraBody }),
-          ...(lens       && { lens       }),
-          ...(settings   && { settings   }),
-          createdAt:   admin.firestore.FieldValue.serverTimestamp(),
-          expiresAt:   admin.firestore.Timestamp.fromMillis(Number(expiresAtMs)),
-          status:      'active',
-          ratingSum:   0,
-          ratingCount: 0,
-        });
-
-        // Increment the counter on the user document.
-        // merge: true handles the case where activePostCount doesn't exist yet
-        // (FieldValue.increment creates the field and sets it to 1).
-        tx.set(userRef, { activePostCount: admin.firestore.FieldValue.increment(1) }, { merge: true });
-
-        return count; // value before increment — used for logging
-      });
-    } catch (e) {
-      // Re-throw HttpsErrors (e.g. limit reached); wrap everything else.
-      if (e instanceof HttpsError) throw e;
-      logger.error('Community post transaction failed', {
-        functionName: 'validateAndCreateCommunityPost',
-        uid,
-        errorCode:    e instanceof Error ? e.constructor.name : 'UnknownError',
-        errorMessage: e instanceof Error ? e.message : String(e),
-        timestamp:    new Date().toISOString(),
-      });
-      throw new HttpsError('internal', 'Failed to create post. Please try again.');
-    }
-
-    logger.info('Community post created', {
-      functionName:       'validateAndCreateCommunityPost',
-      uid,
-      postId:             postRef.id,
-      activeCountBefore:  activeCount,
-      activeCountAfter:   activeCount + 1,
-      timestamp:          new Date().toISOString(),
-    });
-    return { id: postRef.id };
-  }
-);
-
-// ── ratePost ──────────────────────────────────────────────────────────────────
-// Adds or updates a 1-5 star rating for a community post.
-// Uses a Firestore transaction to keep ratingSum / ratingCount in sync on the post doc.
-// Ratings are stored in the subcollection: communityPosts/{postId}/ratings/{uid}
-export const ratePost = onCall(
-  async (request) => {
-    const uid = requireAuth(request.auth);
-    const { postId, rating } = request.data as { postId: string; rating: number };
-
-    if (!postId) throw new HttpsError('invalid-argument', 'postId is required.');
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-      throw new HttpsError('invalid-argument', 'rating must be an integer between 1 and 5.');
-    }
-
-    const db        = admin.firestore();
-    const postRef   = db.collection('communityPosts').doc(postId);
-    const ratingRef = postRef.collection('ratings').doc(uid);
-
-    const { ratingSum, ratingCount } = await db.runTransaction(async (tx) => {
-      const [postSnap, ratingSnap] = await Promise.all([tx.get(postRef), tx.get(ratingRef)]);
-
-      if (!postSnap.exists) throw new HttpsError('not-found', 'Post not found.');
-      if (postSnap.data()?.status !== 'active') {
-        throw new HttpsError('failed-precondition', 'Post is no longer active.');
-      }
-
-      const oldRating = ratingSnap.exists ? (ratingSnap.data()?.rating ?? 0) : 0;
-      const isNew     = !ratingSnap.exists;
-      const delta     = isNew ? rating : rating - oldRating;
-
-      tx.update(postRef, {
-        ratingSum:   admin.firestore.FieldValue.increment(delta),
-        ...(isNew && { ratingCount: admin.firestore.FieldValue.increment(1) }),
-      });
-      tx.set(ratingRef, {
-        rating,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-
-      // Compute optimistic return values from snapshot + delta
-      const currentSum   = postSnap.data()?.ratingSum   ?? 0;
-      const currentCount = postSnap.data()?.ratingCount ?? 0;
-      return {
-        ratingSum:   currentSum + delta,
-        ratingCount: isNew ? currentCount + 1 : currentCount,
-      };
-    });
-
-    logger.info('Post rated', {
-      functionName: 'ratePost',
-      uid,
-      postId,
-      rating,
-      ratingSum,
-      ratingCount,
-      timestamp:    new Date().toISOString(),
-    });
-    return { ratingSum, ratingCount };
-  }
-);
-
-// ── cleanupExpiredCommunityPosts ──────────────────────────────────────────────
-// Runs every 24 hours. Deletes Firestore docs and Storage files for posts
-// whose expiresAt timestamp has passed.
-export const cleanupExpiredCommunityPosts = onSchedule(
-  { schedule: '0 3 * * *', timeZone: 'UTC' }, // 03:00 UTC daily
-  async () => {
-    const db      = admin.firestore();
-    const bucket  = admin.storage().bucket();
-    const now     = admin.firestore.Timestamp.now();
-
-    // ── Collect posts to delete ──────────────────────────────────────────────
-    // Two independent queries — no composite index needed:
-    //   1. Posts whose expiry timestamp has passed (any status).
-    //   2. Posts explicitly removed by the owner (any expiry).
-    // We deduplicate by document ID so a removed+expired post is only counted once.
-    const [expiredSnap, removedSnap] = await Promise.all([
-      db.collection('communityPosts').where('expiresAt', '<=', now).get(),
-      db.collection('communityPosts').where('status',    '==', 'removed').get(),
-    ]);
-
-    // Deduplicate: use a Set to track IDs we've already included.
-    const seen    = new Set<string>();
-    const allDocs = [...expiredSnap.docs, ...removedSnap.docs].filter(doc => {
-      if (seen.has(doc.id)) return false;
-      seen.add(doc.id);
-      return true;
-    });
-
-    if (allDocs.length === 0) {
-      logger.info('No expired community posts found', {
-        functionName: 'cleanupExpiredCommunityPosts',
-        timestamp:    new Date().toISOString(),
-      });
-      return;
-    }
-
-    // ── Tally per-user decrements ────────────────────────────────────────────
-    // Multiple posts from the same user collapse into one batch.set() call,
-    // so we accumulate the total delta before building the batch.
-    const decrementByUid = new Map<string, number>();
-    for (const doc of allDocs) {
-      const userId = doc.data().userId as string | undefined;
-      if (userId) {
-        decrementByUid.set(userId, (decrementByUid.get(userId) ?? 0) + 1);
-      }
-    }
-
-    let deletedPosts = 0;
-    let deletedFiles = 0;
-
-    const batch = db.batch();
-
-    // ── Delete Storage files and queue Firestore doc deletes ─────────────────
-    for (const doc of allDocs) {
-      const data      = doc.data();
-      const imageUrls = (data.imageUrls as string[]) ?? [];
-
-      // Delete each Storage file derived from its download URL
-      for (const url of imageUrls) {
-        try {
-          // URL format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?...
-          const match = url.match(/\/o\/([^?]+)/);
-          if (match) {
-            const filePath = decodeURIComponent(match[1]);
-            await bucket.file(filePath).delete();
-            deletedFiles++;
-          }
-        } catch (err) {
-          // Log but don't abort — file may already be gone
-          logger.warn('Failed to delete Storage file for expired post', {
-            functionName: 'cleanupExpiredCommunityPosts',
-            postId:       doc.id,
-            storageUrl:   url,
-            errorCode:    err instanceof Error ? err.constructor.name : 'UnknownError',
-            errorMessage: err instanceof Error ? err.message : String(err),
-            timestamp:    new Date().toISOString(),
-          });
-        }
-      }
-
-      batch.delete(doc.ref);
-      deletedPosts++;
-    }
-
-    // ── Decrement activePostCount for every affected user ────────────────────
-    // merge: true handles the edge case where the user doc was deleted;
-    // FieldValue.increment on a missing field creates it at -delta (harmless,
-    // as the CF re-initialises on next create via merge: true).
-    for (const [userId, delta] of decrementByUid) {
-      const userRef = db.collection('users').doc(userId);
-      batch.set(
-        userRef,
-        { activePostCount: admin.firestore.FieldValue.increment(-delta) },
-        { merge: true },
-      );
-    }
-
-    await batch.commit();
-    logger.info('Expired community posts cleaned up', {
-      functionName:  'cleanupExpiredCommunityPosts',
-      deletedPosts,
-      deletedFiles,
-      affectedUsers: decrementByUid.size,
-      timestamp:     new Date().toISOString(),
-    });
   }
 );
