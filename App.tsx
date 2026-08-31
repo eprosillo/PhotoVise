@@ -94,35 +94,16 @@ const AskProPage: React.FC<{
   isGeneratingAskPro: boolean;
   onAskProSubmit: () => void;
   onReset: () => void;
-  isFieldMode?: boolean;
   onFeedback: (note: string) => void;
   activeTab: string;
 }> = (props) => {
-  const [showFullAskProAnswer, setShowFullAskProAnswer] = useState(false);
   const askProInputRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    if (props.isFieldMode && props.activeTab === 'askpro') {
-      askProInputRef.current?.focus();
-      askProInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [props.isFieldMode, props.activeTab]);
+  const containerClass = "grid grid-cols-1 lg:grid-cols-2 gap-10";
 
-  const containerClass = props.isFieldMode
-    ? 'flex flex-col gap-4'
-    : 'grid grid-cols-1 lg:grid-cols-2 gap-10';
+  const visibleAnswer = props.askProAnswer;
 
-  const askButtonClass = props.isFieldMode ? 'w-full py-4 text-sm' : 'px-10 py-4 text-sm';
-
-  const maxChars = 800;
-  const isLong = props.askProAnswer.length > maxChars;
-  const visibleAnswer = props.isFieldMode && isLong && !showFullAskProAnswer
-    ? props.askProAnswer.slice(0, maxChars) + '…'
-    : props.askProAnswer;
-
-  const askProPlaceholder = props.isFieldMode
-    ? 'Ask what you’re stuck on right now…'
-    : 'Ask about shooting, culling, processing, clients, or your current assignment…';
+  const askProPlaceholder = "Ask about shooting, culling, processing, clients, or your current assignment…";
 
   const disabled = props.isGeneratingAskPro || !props.askProInput.trim();
 
@@ -190,16 +171,6 @@ const AskProPage: React.FC<{
                 <div style={{ borderLeft: '2px solid #c9a227', paddingLeft: '14px', marginBottom: '12px' }}>
                   <p style={{ fontSize: '13px', lineHeight: 1.7, color: '#17191a', whiteSpace: 'pre-wrap' }}>{visibleAnswer}</p>
                 </div>
-                {props.isFieldMode && isLong && (
-                  <button
-                    type="button"
-                    className="font-mono text-[8px] tracking-[0.14em] uppercase transition-colors mt-2"
-                    style={{ color: '#c9a227', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                    onClick={() => setShowFullAskProAnswer(v => !v)}
-                  >
-                    {showFullAskProAnswer ? 'Show less' : 'Show full answer'}
-                  </button>
-                )}
                 <FeedbackFlag section="Ask a Pro" onSubmit={props.onFeedback} />
               </div>
             ) : (
@@ -504,7 +475,6 @@ const App: React.FC = () => {
 
   // ── Local state ─────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isFieldMode, setIsFieldMode] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 820);
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 820);
@@ -1745,7 +1715,7 @@ const App: React.FC = () => {
   ];
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} statusReadouts={statusReadouts} isFieldMode={isFieldMode} user={user} onSignOut={signOut} dailyQuote={dailyQuote}>
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab} statusReadouts={statusReadouts} user={user} onSignOut={signOut} dailyQuote={dailyQuote}>
       {activeTab === 'dashboard' && (
         <div className="animate-in fade-in duration-700">
           {/* Screen header */}
@@ -1753,28 +1723,6 @@ const App: React.FC = () => {
             <div>
               <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Shoot / Pipeline</p>
               <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Assignments</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              {/* Field mode toggle */}
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: 'rgba(23,25,26,0.45)' }}>Field</span>
-                <button
-                  onClick={() => setIsFieldMode(!isFieldMode)}
-                  style={{
-                    width: '32px', height: '16px', position: 'relative',
-                    background: isFieldMode ? '#c9a227' : 'rgba(23,25,26,0.18)',
-                    border: 'none', cursor: 'pointer', transition: 'background 0.2s',
-                  }}
-                >
-                  <div style={{
-                    position: 'absolute', top: '3px',
-                    left: isFieldMode ? '17px' : '3px',
-                    width: '10px', height: '10px',
-                    background: '#f8f7f4',
-                    transition: 'left 0.2s',
-                  }} />
-                </button>
-              </div>
             </div>
           </div>
 
@@ -2370,7 +2318,6 @@ const App: React.FC = () => {
           isGeneratingAskPro={isGeneratingAskPro}
           onAskProSubmit={handleAskProSubmit}
           onReset={() => { setAskProInput(''); setAskProAnswer(''); }}
-          isFieldMode={isFieldMode}
           onFeedback={(note) => {
             setFeedbackLog(prev => [...prev, { id: crypto.randomUUID(), section: 'Ask a Pro', note, createdAt: new Date().toISOString() }]);
           }}
