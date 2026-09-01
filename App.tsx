@@ -1395,27 +1395,16 @@ const App: React.FC = () => {
 
     const fileName = `journal-collage-${fromDate}-to-${toDate}.jpg`;
 
-    // Try Web Share API first — works on iOS and Android, triggers the
-    // native share/save sheet so the user can save to Photos or Files.
-    const blob = await new Promise<Blob>((res) =>
-      canvas.toBlob((b) => res(b!), 'image/jpeg', 0.93)
-    );
-    if (navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/jpeg' })] })) {
-      await navigator.share({
-        files: [new File([blob], fileName, { type: 'image/jpeg' })],
-        title: 'Photo Journal Collage',
-      });
-    } else {
-      // Desktop fallback: create an object URL and trigger a download link.
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    }
+    // toDataURL is synchronous so the download anchor fires reliably across
+    // all browsers. (Web Share API was tried but fails after async work
+    // because the user-gesture context is lost by the time it is called.)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.93);
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const updateBulletinStatus = (id: string, status: BulletinStatus) => {
