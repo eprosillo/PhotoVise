@@ -762,7 +762,25 @@ const App: React.FC = () => {
       if (cancelled || !data) return;
       if (data.sessions)         setSessions(data.sessions);
       if (data.gear)             setGear(data.gear);
-      if (data.journal)          setJournalEntries(data.journal);
+      if (data.journal) {
+        // Firestore entries have images stripped of dataUrl to stay under the
+        // 1 MB document limit. Restore dataUrl from the localStorage copy so
+        // photos still display after a fresh load.
+        const local = loadFromStorage<JournalEntry[]>('pingstudio_journal', []);
+        const localMap = new Map(local.map(e => [e.id, e]));
+        const merged = (data.journal as JournalEntry[]).map(entry => {
+          const localEntry = localMap.get(entry.id);
+          if (!localEntry) return entry;
+          return {
+            ...entry,
+            images: entry.images.map(img => ({
+              ...img,
+              dataUrl: img.dataUrl || localEntry.images.find(li => li.id === img.id)?.dataUrl || '',
+            })),
+          };
+        });
+        setJournalEntries(merged);
+      }
       if (data.profile)          setProfile(data.profile);
       if (data.bulletinState)    setBulletinState(data.bulletinState);
       if (data.bulletinItems)    setAiBulletinItems(data.bulletinItems);
