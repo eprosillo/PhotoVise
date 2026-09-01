@@ -500,7 +500,9 @@ const App: React.FC = () => {
   const [askProAnswer, setAskProAnswer] = useState<string>('');
   const [isGeneratingAskPro, setIsGeneratingAskPro] = useState<boolean>(false);
 
-  const TODAY = new Date().toISOString().split('T')[0];
+  // Use local calendar date — toISOString() returns UTC which can be a day ahead.
+  const localDateStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+  const TODAY = localDateStr();
   const INSPIRE_CACHE_KEY = `pingstudio_inspire_${TODAY}`;
   const [dailyInspiration, setDailyInspiration] = useState<DailyInspiration | null>(() => {
     try { return JSON.parse(localStorage.getItem(INSPIRE_CACHE_KEY) ?? 'null'); } catch { return null; }
@@ -696,7 +698,7 @@ const App: React.FC = () => {
     date: string; sessionIds: string[]; title: string; notes: string;
     tags: string; images: JournalImage[];
   }>({
-    date: new Date().toISOString().split('T')[0],
+    date: localDateStr(),
     sessionIds: [], title: '', notes: '', tags: '',
     images: [],
   });
@@ -1042,7 +1044,7 @@ const App: React.FC = () => {
 
   // Journal handlers
   const resetJournalForm = () => {
-    setJournalForm({ date: new Date().toISOString().split('T')[0], sessionIds: [], title: '', notes: '', tags: '', images: [] });
+    setJournalForm({ date: localDateStr(), sessionIds: [], title: '', notes: '', tags: '', images: [] });
     setEditingJournalId(null);
   };
 
@@ -3040,8 +3042,8 @@ const App: React.FC = () => {
               )}
             </div>
 
-            {/* New entry form */}
-            <div style={{ border: '1px solid rgba(23,25,26,0.14)', background: '#f8f7f4', position: isMobile ? 'static' : 'sticky', top: '16px' }}>
+            {/* New entry form — floats above the list on mobile via order */}
+            <div style={{ border: '1px solid rgba(23,25,26,0.14)', background: '#f8f7f4', position: isMobile ? 'static' : 'sticky', top: '16px', order: isMobile ? -1 : 0 }}>
               <div style={{ borderBottom: '1px solid rgba(23,25,26,0.10)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.20em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', margin: 0 }}>
                   {editingJournalId ? 'Edit Entry' : 'New Entry'}
