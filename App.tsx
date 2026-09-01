@@ -789,10 +789,16 @@ const App: React.FC = () => {
     saveUserData({ gear });
   }, [gear]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist journal entries (localStorage + Firestore)
+  // Persist journal entries: full data (with base64 images) to localStorage,
+  // lightweight data (images stripped to storageUrl only) to Firestore.
+  // Base64 blobs can easily exceed Firestore's 1 MB document limit.
   useEffect(() => {
     localStorage.setItem('pingstudio_journal', JSON.stringify(journalEntries));
-    saveUserData({ journal: journalEntries });
+    const firestoreEntries = journalEntries.map(entry => ({
+      ...entry,
+      images: entry.images.map(({ dataUrl: _omit, ...img }) => img),
+    }));
+    saveUserData({ journal: firestoreEntries });
   }, [journalEntries]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist profile (localStorage + Firestore — only when applied)
@@ -1092,7 +1098,7 @@ const App: React.FC = () => {
         const img = new Image();
         img.onerror = reject;
         img.onload = () => {
-          const MAX = 800;
+          const MAX = 640;
           let { width, height } = img;
           if (width > MAX || height > MAX) {
             if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
@@ -1101,7 +1107,7 @@ const App: React.FC = () => {
           const canvas = document.createElement('canvas');
           canvas.width = width; canvas.height = height;
           canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.7));
+          resolve(canvas.toDataURL('image/jpeg', 0.65));
         };
         img.src = reader.result as string;
       };
@@ -1116,11 +1122,6 @@ const App: React.FC = () => {
     fileArray.forEach((file: File) => {
       const imageId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
       compressImage(file)
-        .catch(() => new Promise<string>((resolve, reject) => {
-          const r = new FileReader(); r.onerror = reject;
-          r.onloadend = () => resolve(r.result as string);
-          r.readAsDataURL(file);
-        }))
         .then(async (dataUrl) => {
           let storageUrl: string | undefined;
           if (user?.uid) {
@@ -1140,7 +1141,10 @@ const App: React.FC = () => {
             images: [...prev.images, { id: imageId, name: file.name, dataUrl, ...(storageUrl ? { storageUrl } : {}) }],
           }));
         })
-        .catch(err => console.error('Journal image upload failed:', err));
+        .catch(err => {
+          console.error('Journal image upload failed:', err);
+          alert(`Could not add photo "${file.name}". Try a different image or a smaller file.`);
+        });
     });
   };
 
