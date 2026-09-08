@@ -8,10 +8,13 @@ import SessionSelector from './components/SessionSelector';
 import LocationAutocomplete from './components/LocationAutocomplete';
 import { Session, SessionStatus, SessionType, Genre, GearItem, GearCategory, CfeBulletinItem, CfeType, BulletinStatus, BulletinRegion, BulletinPriority, PhotoQuote, PhotographerProfile, EditingApp, TetheringApp, FeedbackEntry, AssignmentTimeframe, WeekPlan, ScoutLocation, Submission, SkillNodeProgress, SkillNodeType, JournalEntry, JournalImage, DailyInspiration } from './types';
 import TodayView from './components/TodayView';
+import CoworkingView from './components/CoworkingView';
+import ExposureCalculatorView from './components/ExposureCalculatorView';
 import SkillTreeView from './components/SkillTreeView';
 import MissionHistoryView from './components/MissionHistoryView';
 import { getEncouragement } from './data/missions';
-import { generateWeeklyPlan, generateAssignmentGuide, askProQuestion, fetchBulletinEvents, parseAssignment, getDailyInspiration } from './services/geminiService';
+import { generateWeeklyPlan, generateAssignmentGuide, askProQuestion, fetchBulletinEvents, parseAssignment, getDailyInspiration, parseEventFromUrl, getJournalImageBase64 } from './services/geminiService';
+import { AddEventModal } from './components/AddEventModal';
 import { createCalendarEventForSession } from './services/calendarService';
 import { GENRE_ICONS } from './constants';
 import { PHOTO_QUOTES } from './quotes';
@@ -20,7 +23,7 @@ import LoginScreen from './LoginScreen';
 import { useFirestore } from './hooks/useFirestore';
 import { toast } from './utils/toast';
 import { storage } from './firebase';
-import { ref as storageRef, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref as storageRef, uploadString, getDownloadURL, deleteObject, getBytes } from 'firebase/storage';
 
 // Helper to determine which genres are currently active for the guidance system
 
@@ -223,6 +226,7 @@ const BulletinCard: React.FC<BulletinCardProps> = ({ item, updateBulletinStatus,
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="font-mono text-[8px] tracking-[0.14em] uppercase" style={{ color: 'rgba(23,25,26,0.45)', border: '1px solid rgba(23,25,26,0.16)', padding: '2px 6px' }}>{item.type}</span>
+                    {item.id.startsWith('user-') && <span className="font-mono text-[8px] tracking-[0.12em] uppercase" style={{ color: '#4b6b52', border: '1px solid rgba(75,107,82,0.35)', padding: '2px 6px' }}>Added by you</span>}
             <span className="font-mono text-[8px] tracking-[0.12em] uppercase" style={{ color: statusColor[item.status] }}>{item.status}</span>
           </div>
           <p style={{ fontSize: '14px', fontWeight: 500, color: '#17191a', lineHeight: 1.3 }}>{item.name}</p>
@@ -360,8 +364,9 @@ function buildAskProPrompt(args: {
   assignmentTimeframe: AssignmentTimeframe;
   assignmentInput: string;
   question: string;
+  profileContext: string;
 }): string {
-  const { profile, assignmentGenre, assignmentInput, question } = args;
+  const { profile, assignmentGenre, assignmentInput, question, profileContext } = args;
 
   const effectiveGenre =
     assignmentGenre !== 'All'
@@ -375,10 +380,9 @@ function buildAskProPrompt(args: {
 
   const pieces: string[] = [];
 
-  pieces.push(
-    `PROFILE GENRES: ${genresLine}`,
-    `FOCUS GENRE FOR THIS QUESTION: ${effectiveGenre}`,
-  );
+  if (profileContext.trim()) pieces.push(profileContext);
+
+  pieces.push(`FOCUS GENRE FOR THIS QUESTION: ${effectiveGenre}`);
 
   if (assignmentInput.trim()) {
     pieces.push('ASSIGNMENT DETAILS:\n' + assignmentInput.trim());
@@ -392,11 +396,13 @@ function buildAskProPrompt(args: {
       '- You are answering in an “Ask a Pro” Q&A section, NOT running an assignment planner.',
       '- Ignore any previous instructions or formats about multi-step plans, headings, or bullet-point frameworks.',
       '- Answer as a seasoned professional photographer with hands-on experience across ALL of the user\'s profile genres (' + genresLine + '), not just the focus genre.',
+      '- Use the photographer profile above to personalize your answer — reference their specific genres, tools, strengths, and goals where relevant.',
+      '- If they have listed struggles, address those directly and specifically when the question touches on them.',
+      '- Match your creative risk in suggestions to their stated risk profile.',
       '- Use a relaxed, conversational tone — like you are talking to a friend or mentee. It should read like a normal human / AI chat reply.',
       '- Write in the first person (“I” / “you”), avoid formal or academic language.',
       '- Do NOT structure the answer as a numbered plan, checklist, or with section headers (no “Step 1/Step 2”, no “Overview/Plan/Deliverables” etc.).',
       '- Instead, write 3–8 short paragraphs of flowing text. Use bullets only if they genuinely make something clearer, not as a default.',
-      '- You can cover shooting approach, culling decisions, processing choices, and client/editor communication if relevant, but keep the flow conversational.',
     ].join('\n')
   );
 
@@ -513,6 +519,9 @@ const App: React.FC = () => {
   // Filter States
   const [genreFilter, setGenreFilter] = useState<Genre | 'All'>('All');
   const [regionFilter, setRegionFilter] = useState<BulletinRegion | 'All'>('All');
+  const [cityFilter, setCityFilter] = useState('');
+  const [filtersChanged, setFiltersChanged] = useState(false);
+  const lastFetchedFilters = React.useRef({ genre: 'All', region: 'All', type: 'All', city: '' });
   const [statusFilter, setStatusFilter] = useState<BulletinStatus | 'All'>('All');
   const [priorityFilter, setPriorityFilter] = useState<BulletinPriority | 'All'>('All');
   const [typeFilter, setTypeFilter] = useState<CfeType | 'All'>('All');
@@ -530,9 +539,12 @@ const App: React.FC = () => {
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState('');
   const [parsedDraft, setParsedDraft] = useState<{
-    title: string; category: string; priority: string; dueDate: string;
+    title: string; category: string; priority: string; date: string;
     genre: string; location: string; brief: string; notes: string;
   } | null>(null);
+  const [isRecurring,       setIsRecurring]       = useState(false);
+  const [recurringFreq,     setRecurringFreq]     = useState<'weekly' | 'biweekly' | 'monthly'>('weekly');
+  const [recurringCount,    setRecurringCount]    = useState(4);
 
   // Persistence for sessions
   const [sessions, setSessions] = useState<Session[]>(() => {
@@ -673,6 +685,10 @@ const App: React.FC = () => {
   const [aiBulletinItems, setAiBulletinItems] = useState<CfeBulletinItem[]>(() =>
     loadFromStorage<CfeBulletinItem[]>('pingstudio_bulletin_items', [])
   );
+  const [customBulletinItems, setCustomBulletinItems] = useState<CfeBulletinItem[]>(() =>
+    loadFromStorage<CfeBulletinItem[]>('pingstudio_custom_bulletin_items', [])
+  );
+  const [showAddEvent, setShowAddEvent] = useState(false);
   const [isFetchingBulletin, setIsFetchingBulletin] = useState(false);
   const [bulletinFetchedAt, setBulletinFetchedAt] = useState<number>(() =>
     loadFromStorage<number>('pingstudio_bulletin_fetched_at', 0)
@@ -763,23 +779,22 @@ const App: React.FC = () => {
       if (data.sessions)         setSessions(data.sessions);
       if (data.gear)             setGear(data.gear);
       if (data.journal) {
-        // Firestore entries have images stripped of dataUrl to stay under the
-        // 1 MB document limit. Restore dataUrl from the localStorage copy so
-        // photos still display after a fresh load.
-        const local = loadFromStorage<JournalEntry[]>('pingstudio_journal', []);
-        const localMap = new Map(local.map(e => [e.id, e]));
-        const merged = (data.journal as JournalEntry[]).map(entry => {
-          const localEntry = localMap.get(entry.id);
-          if (!localEntry) return entry;
-          return {
-            ...entry,
-            images: entry.images.map(img => ({
-              ...img,
-              dataUrl: img.dataUrl || localEntry.images.find(li => li.id === img.id)?.dataUrl || '',
-            })),
-          };
+        // Firestore entries have dataUrl stripped to stay under 1 MB.
+        // Restore it from the current state (loaded from localStorage on init)
+        // using the functional updater so we merge into the live prev value.
+        setJournalEntries(prev => {
+          const prevMap = new Map<string, JournalEntry>(prev.map(e => [e.id, e]));
+          return data.journal!.map(entry => {
+            const existing = prevMap.get(entry.id);
+            return {
+              ...entry,
+              images: (entry.images ?? []).map(img => ({
+                ...img,
+                dataUrl: existing?.images.find(ei => ei.id === img.id)?.dataUrl || (img as JournalImage).dataUrl || img.storageUrl || '',
+              })),
+            };
+          });
         });
-        setJournalEntries(merged);
       }
       if (data.profile)          setProfile(data.profile);
       if (data.bulletinState)    setBulletinState(data.bulletinState);
@@ -841,6 +856,11 @@ const App: React.FC = () => {
     saveUserData({ bulletinFetchedAt });
   }, [bulletinFetchedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Persist user-added bulletin items (localStorage only — no AI involved)
+  useEffect(() => {
+    localStorage.setItem('pingstudio_custom_bulletin_items', JSON.stringify(customBulletinItems));
+  }, [customBulletinItems]);
+
   // Auto-fetch bulletin events when tab opens (cache 2 hours)
   useEffect(() => {
     if (activeTab !== 'cfe') return;
@@ -849,6 +869,28 @@ const App: React.FC = () => {
     refreshBulletinEvents();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  // Mark filters as changed when they diverge from last-fetched values
+  useEffect(() => {
+    if (activeTab !== 'cfe') return;
+    const lf = lastFetchedFilters.current;
+    const changed =
+      genreFilter !== lf.genre || regionFilter !== lf.region ||
+      typeFilter  !== lf.type  || cityFilter.trim() !== lf.city;
+    setFiltersChanged(changed);
+  }, [activeTab, genreFilter, regionFilter, typeFilter, cityFilter]);
+
+  // Auto-fetch when city changes (debounced 900 ms) — bypass cache
+  useEffect(() => {
+    if (activeTab !== 'cfe') return;
+    if (!cityFilter.trim()) return;
+    if (isFetchingBulletin) return;
+    const timer = setTimeout(() => {
+      refreshBulletinEvents();
+    }, 900);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cityFilter, activeTab]);
 
   // Persist feedback log (localStorage + Firestore)
   useEffect(() => {
@@ -972,6 +1014,14 @@ const App: React.FC = () => {
     return submission;
   };
 
+  const advanceDate = (isoDate: string, freq: 'weekly' | 'biweekly' | 'monthly', n: number): string => {
+    const d = new Date(isoDate + 'T00:00:00');
+    if (freq === 'weekly')   d.setDate(d.getDate() + 7 * n);
+    if (freq === 'biweekly') d.setDate(d.getDate() + 14 * n);
+    if (freq === 'monthly')  d.setMonth(d.getMonth() + n);
+    return d.toISOString().split('T')[0];
+  };
+
   const addSession = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -981,37 +1031,35 @@ const App: React.FC = () => {
     const notes = formData.get('notes') as string;
     const title = (formData.get('title') as string).trim();
     const type = (formData.get('type') as string) || undefined;
-    const deadline = (formData.get('deadline') as string) || undefined;
     const brief = ((formData.get('brief') as string) || '').trim() || undefined;
-
-    const name = `${date}_${location.replace(/\s+/g, '_')}_${genre}`;
-
     const priority = (formData.get('priority') as string) || undefined;
-    const dueDate = (formData.get('dueDate') as string) || undefined;
 
-    const newSession: Session = {
-      id: Date.now().toString(),
-      name,
-      title: title || undefined,
-      date,
-      location,
-      genre: [genre],
-      status: 'todo',
-      notes: notes || '',
-      type: type as SessionType | undefined,
-      priority: priority as Session['priority'],
-      deadline,
-      dueDate,
-      brief,
-    };
-    
-    setSessions(prev => [newSession, ...prev]);
+    const count = isRecurring ? recurringCount : 1;
+    const newSessions: Session[] = Array.from({ length: count }, (_, i) => {
+      const d = i === 0 ? date : advanceDate(date, recurringFreq, i);
+      return {
+        id: `${Date.now()}_${i}`,
+        name: `${d}_${location.replace(/\s+/g, '_')}_${genre}`,
+        title: title ? (count > 1 ? `${title} (${i + 1}/${count})` : title) : undefined,
+        date: d,
+        location,
+        genre: [genre],
+        status: 'todo' as SessionStatus,
+        notes: notes || '',
+        type: type as SessionType | undefined,
+        priority: priority as Session['priority'],
+        brief,
+      };
+    });
+
+    setSessions(prev => [...newSessions, ...prev]);
     e.currentTarget.reset();
+    setIsRecurring(false);
+    setRecurringCount(4);
+    setRecurringFreq('weekly');
 
-    try {
-      await createCalendarEventForSession(newSession);
-    } catch (err) {
-      console.error("Calendar sync skipped - session archived locally only.");
+    for (const s of newSessions) {
+      try { await createCalendarEventForSession(s); } catch { /* skip */ }
     }
   };
 
@@ -1241,153 +1289,175 @@ const App: React.FC = () => {
       return;
     }
 
-    const PAD   = 36;
-    const W     = 1100;
-    const CELL  = 320;   // photo square size
-    const GAP   = 10;
+    // Pre-load custom web fonts so canvas renders them (not system fallbacks)
+    await Promise.allSettled([
+      document.fonts.load('bold 22px "IBM Plex Mono"'),
+      document.fonts.load('500 12px "IBM Plex Mono"'),
+      document.fonts.load('bold 20px "Space Grotesk"'),
+      document.fonts.load('400 14px "Space Grotesk"'),
+    ]);
+
+    const PAD      = 48;
+    const W        = 1200;
+    const CELL     = 340;
+    const GAP      = 12;
     const MAX_COLS = 3;
-    const HEADER_H = 100;
-    const ENTRY_TITLE_H = 56;
-    const NOTE_LINE_H = 20;
-    const NOTE_FONT = 13;
-    const ENTRY_GAP = 32;
+    const HEADER_H = 128;
+    const FOOTER_H = 52;
+    const ENTRY_META_H = 64;
+    const NOTE_LINE_H  = 22;
+    const NOTE_FONT    = 14;
+    const ENTRY_GAP    = 44;
 
     const fmtDate = (s: string) =>
       new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-    // Helper: wrap text and return lines
     const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] => {
       const words = text.split(' ');
       const lines: string[] = [];
       let line = '';
       for (const w of words) {
         const test = line ? `${line} ${w}` : w;
-        if (ctx.measureText(test).width > maxW && line) {
-          lines.push(line);
-          line = w;
-        } else {
-          line = test;
-        }
+        if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+        else { line = test; }
       }
       if (line) lines.push(line);
       return lines;
     };
 
     // First pass: measure total canvas height
-    // We need a throwaway canvas to measure text
     const measure = document.createElement('canvas').getContext('2d')!;
     measure.font = `${NOTE_FONT}px "Space Grotesk", sans-serif`;
 
     let totalH = HEADER_H + PAD;
     for (const entry of entries) {
       if (entry.images.length === 0) continue;
-      totalH += ENTRY_TITLE_H;
+      totalH += ENTRY_META_H;
       const cols = Math.min(entry.images.length, MAX_COLS);
       const rows = Math.ceil(entry.images.length / cols);
       totalH += rows * CELL + (rows - 1) * GAP;
       if (entry.notes?.trim()) {
-        const noteLines = wrapText(measure, entry.notes.trim(), W - PAD * 2);
-        totalH += PAD / 2 + noteLines.length * NOTE_LINE_H + 6;
+        const noteLines = wrapText(measure, entry.notes.trim(), W - PAD * 2 - 20);
+        totalH += 20 + noteLines.length * NOTE_LINE_H + 8;
       }
       totalH += ENTRY_GAP;
     }
-    totalH += PAD;
+    totalH += PAD + FOOTER_H;
 
     const canvas = document.createElement('canvas');
-    canvas.width = W;
+    canvas.width  = W;
     canvas.height = totalH;
     const ctx = canvas.getContext('2d')!;
 
-    // Background
+    // ── Background ────────────────────────────────────────────────────────────
     ctx.fillStyle = '#f4f3ef';
     ctx.fillRect(0, 0, W, totalH);
 
-    // Header bar
+    // ── Header ────────────────────────────────────────────────────────────────
     ctx.fillStyle = '#17191a';
     ctx.fillRect(0, 0, W, HEADER_H);
+
+    // gold accent strip at bottom of header
     ctx.fillStyle = '#c9a227';
-    ctx.fillRect(0, HEADER_H - 4, W, 4);
+    ctx.fillRect(0, HEADER_H - 3, W, 3);
 
-    ctx.fillStyle = '#f8f7f4';
-    ctx.font = 'bold 15px "IBM Plex Mono", monospace';
-    ctx.fillText('PHOTO JOURNAL', PAD, 40);
-    ctx.fillStyle = 'rgba(248,247,244,0.50)';
-    ctx.font = '11px "IBM Plex Mono", monospace';
-    ctx.fillText(`${fmtDate(fromDate).toUpperCase()}  –  ${fmtDate(toDate).toUpperCase()}`, PAD, 66);
-    ctx.fillStyle = 'rgba(248,247,244,0.25)';
-    ctx.font = '10px "IBM Plex Mono", monospace';
-    const photoCount = entries.reduce((n, e) => n + e.images.length, 0);
-    ctx.fillText(`${photoCount} PHOTO${photoCount !== 1 ? 'S' : ''}  ·  ${entries.filter(e => e.images.length > 0).length} ENTRIES`, PAD, 86);
+    // "PHOTOVISE" wordmark — top-right, subtle
+    ctx.fillStyle = 'rgba(201,162,39,0.70)';
+    ctx.font = '500 11px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('PHOTOVISE', W - PAD, 36);
 
-    // Load images sequentially per entry
+    // "PHOTO JOURNAL" label
+    ctx.fillStyle = '#f4f3ef';
+    ctx.font = 'bold 22px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('PHOTO JOURNAL', PAD, 52);
+
+    // date range
+    ctx.fillStyle = 'rgba(244,243,239,0.55)';
+    ctx.font = '500 12px "IBM Plex Mono", monospace';
+    ctx.fillText(`${fmtDate(fromDate).toUpperCase()}  ·  ${fmtDate(toDate).toUpperCase()}`, PAD, 76);
+
+    // counts
+    const photoCount   = entries.reduce((n, e) => n + e.images.length, 0);
+    const entryCount   = entries.filter(e => e.images.length > 0).length;
+    ctx.fillStyle = 'rgba(244,243,239,0.28)';
+    ctx.font = '500 10px "IBM Plex Mono", monospace';
+    ctx.fillText(
+      `${photoCount} PHOTO${photoCount !== 1 ? 'S' : ''}  ·  ${entryCount} ENTR${entryCount !== 1 ? 'IES' : 'Y'}`,
+      PAD, 98,
+    );
+
+    // ── Entries ───────────────────────────────────────────────────────────────
     let cursorY = HEADER_H + PAD;
 
     for (const entry of entries) {
       if (entry.images.length === 0) continue;
 
-      // Entry date + title
-      const entryDateStr = fmtDate(entry.date).toUpperCase();
-      ctx.fillStyle = 'rgba(23,25,26,0.28)';
-      ctx.fillRect(PAD, cursorY + 18, 2, 22);
-      ctx.fillStyle = 'rgba(23,25,26,0.40)';
-      ctx.font = '10px "IBM Plex Mono", monospace';
-      ctx.fillText(entryDateStr, PAD + 14, cursorY + 26);
+      // gold left accent bar
+      ctx.fillStyle = '#c9a227';
+      ctx.fillRect(PAD, cursorY + 8, 3, ENTRY_META_H - 16);
+
+      // date label
+      ctx.fillStyle = 'rgba(23,25,26,0.38)';
+      ctx.font = '500 10px "IBM Plex Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(fmtDate(entry.date).toUpperCase(), PAD + 16, cursorY + 24);
+
+      // entry title
       if (entry.title) {
         ctx.fillStyle = '#17191a';
-        ctx.font = 'bold 18px "Space Grotesk", sans-serif';
-        ctx.fillText(entry.title, PAD + 14, cursorY + 48);
+        ctx.font = 'bold 20px "Space Grotesk", sans-serif';
+        ctx.fillText(entry.title, PAD + 16, cursorY + 50);
       }
-      cursorY += ENTRY_TITLE_H;
+      cursorY += ENTRY_META_H;
 
       // Photos
-      const cols = Math.min(entry.images.length, MAX_COLS);
-      const usedW = cols * CELL + (cols - 1) * GAP;
-      const startX = PAD + Math.floor((W - PAD * 2 - usedW) / 2); // center the photo row
+      const cols   = Math.min(entry.images.length, MAX_COLS);
+      const usedW  = cols * CELL + (cols - 1) * GAP;
+      const startX = PAD + Math.floor((W - PAD * 2 - usedW) / 2);
 
       await Promise.all(entry.images.map(async (imgData, i) => {
         const col = i % cols;
         const row = Math.floor(i / cols);
-        const x = startX + col * (CELL + GAP);
-        const y = cursorY + row * (CELL + GAP);
+        const x   = startX + col * (CELL + GAP);
+        const y   = cursorY + row * (CELL + GAP);
 
-        await new Promise<void>((resolve) => {
-          const drawPlaceholder = () => {
-            ctx.fillStyle = 'rgba(23,25,26,0.10)';
-            ctx.fillRect(x, y, CELL, CELL);
-            ctx.fillStyle = 'rgba(23,25,26,0.50)';
-            ctx.font = `bold 22px "Space Grotesk", sans-serif`;
-            ctx.fillText('photo unavailable', x + 12, y + CELL / 2);
-            resolve();
-          };
-          const drawEl = (src: string, useCors: boolean) => {
-            const el = new Image();
-            if (useCors) el.crossOrigin = 'anonymous';
-            const timer = setTimeout(() => {
-              console.warn('Collage: image load timed out', imgData.id);
-              drawPlaceholder();
-            }, 8000);
-            el.onload = () => {
-              clearTimeout(timer);
-              const w = el.naturalWidth  || el.width  || CELL;
-              const h = el.naturalHeight || el.height || CELL;
-              const scale = Math.max(CELL / w, CELL / h);
-              const sw = CELL / scale, sh = CELL / scale;
-              const sx = (w - sw) / 2, sy = (h - sh) / 2;
-              ctx.drawImage(el, sx, sy, sw, sh, x, y, CELL, CELL);
-              resolve();
-            };
-            el.onerror = () => { clearTimeout(timer); drawPlaceholder(); };
-            el.src = src;
-          };
-          if (imgData.dataUrl.startsWith('data:')) {
-            // Local data URL — canvas-safe, no CORS needed.
-            drawEl(imgData.dataUrl, false);
-          } else {
-            // Legacy: old entry saved Firebase URL as dataUrl.
-            // Try crossOrigin first; Firebase Storage returns ACAO: * for token URLs.
-            drawEl(imgData.dataUrl, true);
+        const drawPlaceholder = () => {
+          ctx.fillStyle = 'rgba(23,25,26,0.07)';
+          ctx.fillRect(x, y, CELL, CELL);
+          ctx.fillStyle = 'rgba(23,25,26,0.30)';
+          ctx.font = '500 11px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('photo unavailable', x + CELL / 2, y + CELL / 2);
+          ctx.textAlign = 'left';
+        };
+
+        const drawBitmap = (bitmap: ImageBitmap) => {
+          const bw = bitmap.width  || CELL;
+          const bh = bitmap.height || CELL;
+          const scale = Math.max(CELL / bw, CELL / bh);
+          const sw = CELL / scale, sh = CELL / scale;
+          const sx = (bw - sw) / 2, sy = (bh - sh) / 2;
+          ctx.drawImage(bitmap, sx, sy, sw, sh, x, y, CELL, CELL);
+          bitmap.close();
+        };
+
+        if (imgData.dataUrl?.startsWith('data:')) {
+          try {
+            const resp = await fetch(imgData.dataUrl);
+            drawBitmap(await createImageBitmap(await resp.blob()));
+          } catch { drawPlaceholder(); }
+        } else {
+          try {
+            const base64 = await getJournalImageBase64(imgData.id);
+            const resp   = await fetch(`data:image/jpeg;base64,${base64}`);
+            drawBitmap(await createImageBitmap(await resp.blob()));
+          } catch (err) {
+            console.warn('Collage: proxy fetch failed', imgData.id, err);
+            drawPlaceholder();
           }
-        });
+        }
       }));
 
       const rows = Math.ceil(entry.images.length / cols);
@@ -1395,20 +1465,21 @@ const App: React.FC = () => {
 
       // Notes
       if (entry.notes?.trim()) {
-        cursorY += PAD / 2;
+        cursorY += 20;
         ctx.font = `${NOTE_FONT}px "Space Grotesk", sans-serif`;
-        const noteLines = wrapText(ctx, entry.notes.trim(), W - PAD * 2 - 14);
-        ctx.fillStyle = 'rgba(23,25,26,0.55)';
+        const noteLines = wrapText(ctx, entry.notes.trim(), W - PAD * 2 - 20);
+        ctx.fillStyle = 'rgba(23,25,26,0.50)';
+        ctx.textAlign = 'left';
         for (const line of noteLines) {
-          ctx.fillText(line, PAD + 14, cursorY);
+          ctx.fillText(line, PAD + 16, cursorY);
           cursorY += NOTE_LINE_H;
         }
-        cursorY += 6;
+        cursorY += 8;
       }
 
-      // Separator
+      // thin separator
       cursorY += ENTRY_GAP / 2;
-      ctx.strokeStyle = 'rgba(23,25,26,0.10)';
+      ctx.strokeStyle = 'rgba(23,25,26,0.08)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(PAD, cursorY);
@@ -1417,12 +1488,25 @@ const App: React.FC = () => {
       cursorY += ENTRY_GAP / 2;
     }
 
-    const fileName = `journal-collage-${fromDate}-to-${toDate}.jpg`;
+    // ── Footer ────────────────────────────────────────────────────────────────
+    const footerY = totalH - FOOTER_H;
+    ctx.fillStyle = '#17191a';
+    ctx.fillRect(0, footerY, W, FOOTER_H);
+    ctx.fillStyle = '#c9a227';
+    ctx.fillRect(0, footerY, W, 2);
 
-    // toDataURL is synchronous so the download anchor fires reliably across
-    // all browsers. (Web Share API was tried but fails after async work
-    // because the user-gesture context is lost by the time it is called.)
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.93);
+    ctx.fillStyle = 'rgba(244,243,239,0.40)';
+    ctx.font = '500 10px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('PHOTOVISE  ·  PHOTO JOURNAL', PAD, footerY + 30);
+
+    ctx.fillStyle = 'rgba(244,243,239,0.22)';
+    ctx.textAlign = 'right';
+    ctx.fillText(new Date().getFullYear().toString(), W - PAD, footerY + 30);
+
+    // ── Export ────────────────────────────────────────────────────────────────
+    const fileName = `journal-collage-${fromDate}-to-${toDate}.jpg`;
+    const dataUrl  = canvas.toDataURL('image/jpeg', 0.93);
     const a = document.createElement('a');
     a.href = dataUrl;
     a.download = fileName;
@@ -1431,8 +1515,23 @@ const App: React.FC = () => {
     document.body.removeChild(a);
   };
 
+  const addCustomBulletinItem = (item: CfeBulletinItem) => {
+    setCustomBulletinItems(prev => [item, ...prev]);
+  };
+
+  const removeCustomBulletinItem = (id: string) => {
+    setCustomBulletinItems(prev => prev.filter(i => i.id !== id));
+  };
+
   const updateBulletinStatus = (id: string, status: BulletinStatus) => {
-    setBulletinState(prev => ({ ...prev, [id]: status }));
+    if (id.startsWith('user-')) {
+      // Custom items carry their status directly in the item object
+      setCustomBulletinItems(prev =>
+        prev.map(item => item.id === id ? { ...item, status } : item)
+      );
+    } else {
+      setBulletinState(prev => ({ ...prev, [id]: status }));
+    }
   };
 
   const removeBulletinItem = (id: string) => {
@@ -1444,12 +1543,17 @@ const App: React.FC = () => {
     return bulletinState[id] || 'unmarked';
   };
 
-  const refreshBulletinEvents = async () => {
+  const refreshBulletinEvents = async (
+    overrideGenre?: string, overrideRegion?: string,
+    overrideType?: string,  overrideCity?: string,
+  ) => {
+    const g = overrideGenre  ?? genreFilter;
+    const r = overrideRegion ?? regionFilter;
+    const t = overrideType   ?? typeFilter;
+    const c = overrideCity   !== undefined ? overrideCity : cityFilter.trim();
     setIsFetchingBulletin(true);
-    const items = await fetchBulletinEvents(genreFilter, regionFilter, typeFilter);
+    const items = await fetchBulletinEvents(g, r, t, c || undefined);
     if (items.length > 0) {
-      // Preserve items the user has already tracked (considering/applied) that
-      // aren't present in the new results, so statuses are never silently lost.
       setAiBulletinItems(prev => {
         const newIds = new Set(items.map(i => i.id));
         const kept = prev.filter(existing => {
@@ -1460,6 +1564,8 @@ const App: React.FC = () => {
       });
       setBulletinFetchedAt(Date.now());
     }
+    lastFetchedFilters.current = { genre: g, region: r, type: t, city: c };
+    setFiltersChanged(false);
     setIsFetchingBulletin(false);
   };
 
@@ -1496,7 +1602,7 @@ const App: React.FC = () => {
         `  Genre: ${s.genre.join(', ')}`,
         `  Status: ${s.status}`,
         s.type     && `  Type: ${s.type}`,
-        s.deadline && `  Deadline: ${s.deadline}`,
+        s.date && `  Due date: ${s.date}`,
         s.title    && `  Title: ${s.title}`,
         s.brief    && `  Brief: ${s.brief}`,
         s.notes    && `  Notes: ${s.notes}`,
@@ -1524,32 +1630,58 @@ const App: React.FC = () => {
   };
 
   const formatProfileForContext = (prof: PhotographerProfile): string => {
-    const genres = prof.primaryGenres.join(', ') || 'None specified';
-    const style = prof.styleKeywords.join(', ') || 'None specified';
-    const editing = prof.editingApps.join(', ') || 'None specified';
-    const tethering = prof.tetheringApps.join(', ') || 'None specified';
+    const genres = prof.primaryGenres.join(', ') || 'unspecified';
+    const style  = prof.styleKeywords.join(', ') || 'unspecified';
+    const apps   = prof.editingApps.join(', ') || 'unspecified';
+
+    const riskImplication: Record<PhotographerProfile['riskProfile'], string> = {
+      cautious:     'prefer reliable, proven techniques — avoid suggesting experimental or risky approaches unless asked',
+      balanced:     'open to creative suggestions but appreciate grounded, practical advice',
+      experimental: 'actively welcome unconventional angles, bold ideas, and non-obvious approaches',
+    };
+
+    // Narrative brief — easier for the model to parse than a flat key:value dump
+    const briefParts: string[] = [];
+    const who = prof.name ? prof.name : 'This photographer';
+    const exp = prof.yearsShooting ? ` with ${prof.yearsShooting} of shooting experience` : '';
+    briefParts.push(`${who} shoots ${genres}${exp}.`);
+    if (prof.typicalWork) briefParts.push(`Their typical work: ${prof.typicalWork}.`);
+    if (style !== 'unspecified') briefParts.push(`Visual style: ${style}.`);
+    if (apps !== 'unspecified') briefParts.push(`They edit in ${apps}.`);
+    if (prof.otherEditingAppNote) briefParts.push(`(Editing note: ${prof.otherEditingAppNote})`);
+
+    // Per-field interpretation instructions — tell the model HOW to use each field
+    const instructions: string[] = [
+      `- Tailor all advice to their genres (${genres}) and their typical work context.`,
+      `- Match workflow recommendations to their editing software (${apps}).`,
+      `- Creative risk stance: "${prof.riskProfile}" — ${riskImplication[prof.riskProfile]}.`,
+    ];
+    if (prof.strengths) {
+      instructions.push(`- They excel at: ${prof.strengths}. Don't over-explain what they already know — build on it.`);
+    }
+    if (prof.struggles) {
+      instructions.push(`- They want targeted help with: ${prof.struggles}. Always address this directly with specific, actionable guidance when relevant.`);
+    }
+    if (prof.growthGoals) {
+      instructions.push(`- They're actively working toward: ${prof.growthGoals}. Connect advice to these goals whenever you can.`);
+    }
+    if (prof.physicalConstraints) {
+      instructions.push(`- Physical/logistical constraints: ${prof.physicalConstraints}. Keep recommendations realistic within these.`);
+    }
+    if (prof.accessReality) {
+      instructions.push(`- Access reality: ${prof.accessReality}. Don't suggest positions or locations outside their typical access.`);
+    }
+    if (prof.timeBudget) {
+      instructions.push(`- Time budget: ${prof.timeBudget}. Scale advice to what's achievable in this window.`);
+    }
 
     return [
       'PHOTOGRAPHER PROFILE:',
-      prof.name ? `Name: ${prof.name}` : null,
-      prof.yearsShooting ? `Years Shooting: ${prof.yearsShooting}` : null,
-      `Primary Genres: ${genres}`,
-      `Typical Work: ${prof.typicalWork || 'Not specified'}`,
-      `Style Keywords: ${style}`,
-      `Software Workflow: ${editing}`,
-      `Tethering Apps: ${tethering}`,
-      prof.otherEditingAppNote ? `Note on Editing: ${prof.otherEditingAppNote}` : null,
-      prof.otherTetheringAppNote ? `Note on Tethering: ${prof.otherTetheringAppNote}` : null,
-      `Risk Profile: ${prof.riskProfile}`,
-      prof.strengths ? `Strengths: ${prof.strengths}` : null,
-      prof.struggles ? `Struggles: ${prof.struggles}` : null,
-      prof.physicalConstraints ? `Physical Constraints: ${prof.physicalConstraints}` : null,
-      prof.accessReality ? `Access Reality: ${prof.accessReality}` : null,
-      prof.timeBudget ? `Time Budget: ${prof.timeBudget}` : null,
-      prof.growthGoals ? `Growth Goals: ${prof.growthGoals}` : null,
-    ]
-      .filter(Boolean)
-      .join('\n');
+      briefParts.join(' '),
+      '',
+      'HOW TO USE THIS PROFILE:',
+      ...instructions,
+    ].join('\n');
   };
 
   // ── Strategy generation (called from SessionCard inline form) ────────────────
@@ -1608,7 +1740,7 @@ const App: React.FC = () => {
     setInspirationError(null);
     try {
       const genre = profile.primaryGenres?.[0] ?? 'Other';
-      const result = await getDailyInspiration(genre, TODAY);
+      const result = await getDailyInspiration(genre, TODAY, formatProfileForContext(profile));
       setDailyInspiration(result);
       localStorage.setItem(INSPIRE_CACHE_KEY, JSON.stringify(result));
     } catch {
@@ -1628,6 +1760,7 @@ const App: React.FC = () => {
         assignmentTimeframe: '2hr',
         assignmentInput: '',
         question: askProInput,
+        profileContext: formatProfileForContext(profile),
       });
       const answer = await askProQuestion(prompt);
       setAskProAnswer(answer);
@@ -1695,6 +1828,18 @@ const App: React.FC = () => {
     }));
   }, [aiBulletinItems, bulletinState]);
 
+  // Custom items carry status directly on the object (updated via setCustomBulletinItems)
+  const enrichedCustom = useMemo(() => customBulletinItems, [customBulletinItems]);
+
+  const sortFn = (a: CfeBulletinItem, b: CfeBulletinItem) => {
+    const userPriority: Record<BulletinPriority, number> = { high: 3, medium: 2, low: 1 };
+    const diffPriority = userPriority[b.priority] - userPriority[a.priority];
+    if (diffPriority !== 0) return diffPriority;
+    if (a.deadline === 'Rolling') return 1;
+    if (b.deadline === 'Rolling') return -1;
+    return (a.deadline || 'TBA').localeCompare(b.deadline || 'TBA');
+  };
+
   const primaryBoardItems = useMemo(() => {
     const filtered = enrichedBulletin.filter(item => {
       const matchGenre = genreFilter === 'All' || (item.genres && item.genres.includes(genreFilter));
@@ -1704,29 +1849,31 @@ const App: React.FC = () => {
       return matchGenre && matchRegion && matchPriority && matchType && item.status === 'unmarked';
     });
 
-    return filtered.sort((a, b) => {
-      const userPriority: Record<BulletinPriority, number> = { high: 3, medium: 2, low: 1 };
-      const diffPriority = userPriority[b.priority] - userPriority[a.priority];
-      if (diffPriority !== 0) return diffPriority;
-      if (a.deadline === 'Rolling') return 1;
-      if (b.deadline === 'Rolling') return -1;
-      return (a.deadline || 'TBA').localeCompare(b.deadline || 'TBA');
+    const customFiltered = enrichedCustom.filter(item => {
+      const matchType = typeFilter === 'All' || item.type === typeFilter;
+      const matchRegion = regionFilter === 'All' || item.region === regionFilter;
+      const matchPriority = priorityFilter === 'All' || item.priority === priorityFilter;
+      return matchType && matchRegion && matchPriority && item.status === 'unmarked';
     });
-  }, [enrichedBulletin, genreFilter, regionFilter, priorityFilter, typeFilter]);
+
+    return [...customFiltered.sort(sortFn), ...filtered.sort(sortFn)];
+  }, [enrichedBulletin, enrichedCustom, genreFilter, regionFilter, priorityFilter, typeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const consideringItems = useMemo(() => {
-    return enrichedBulletin.filter(item => item.status === 'considering')
+    return [...enrichedCustom, ...enrichedBulletin]
+      .filter(item => item.status === 'considering')
       .sort((a, b) => (a.deadline || 'TBA').localeCompare(b.deadline || 'TBA'));
-  }, [enrichedBulletin]);
+  }, [enrichedBulletin, enrichedCustom]);
 
   const appliedItems = useMemo(() => {
-    return enrichedBulletin.filter(item => item.status === 'applied')
+    return [...enrichedCustom, ...enrichedBulletin]
+      .filter(item => item.status === 'applied')
       .sort((a, b) => (a.deadline || 'TBA').localeCompare(b.deadline || 'TBA'));
-  }, [enrichedBulletin]);
+  }, [enrichedBulletin, enrichedCustom]);
 
   const archivedBoardItems = useMemo(() => {
-    return enrichedBulletin.filter(item => item.status === 'archived');
-  }, [enrichedBulletin]);
+    return [...enrichedCustom, ...enrichedBulletin].filter(item => item.status === 'archived');
+  }, [enrichedBulletin, enrichedCustom]);
 
   const conciseWorkflowLabel = useMemo(() => <SystemStatusApps profile={profile} />, [profile]);
 
@@ -1813,7 +1960,7 @@ const App: React.FC = () => {
                           title: result.title || '',
                           category: result.category || '',
                           priority: result.priority || '',
-                          dueDate: result.dueDate || '',
+                          date: result.dueDate || new Date().toISOString().split('T')[0],
                           genre: result.genre || genreOptions[0],
                           location: result.location || '',
                           brief: result.brief || '',
@@ -1869,33 +2016,39 @@ const App: React.FC = () => {
                     const title = ((fd.get('title') as string) || '').trim();
                     const type = (fd.get('type') as string) || undefined;
                     const priority = (fd.get('priority') as string) || undefined;
-                    const dueDate = (fd.get('dueDate') as string) || undefined;
                     const brief = ((fd.get('brief') as string) || '').trim() || undefined;
                     const notes = (fd.get('notes') as string) || '';
-                    const name = `${date}_${location.replace(/\s+/g, '_')}_${genre}`;
-                    const newSession: Session = {
-                      id: Date.now().toString(), name,
-                      title: title || undefined, date, location, genre: [genre],
-                      status: 'todo', notes,
-                      type: type as SessionType | undefined,
-                      priority: priority as Session['priority'],
-                      dueDate, brief,
-                    };
-                    setSessions(prev => [newSession, ...prev]);
+                    const count = isRecurring ? recurringCount : 1;
+                    const newSessions: Session[] = Array.from({ length: count }, (_, i) => {
+                      const d = i === 0 ? date : advanceDate(date, recurringFreq, i);
+                      return {
+                        id: `${Date.now()}_${i}`,
+                        name: `${d}_${location.replace(/\s+/g, '_')}_${genre}`,
+                        title: title ? (count > 1 ? `${title} (${i + 1}/${count})` : title) : undefined,
+                        date: d, location, genre: [genre],
+                        status: 'todo' as SessionStatus, notes,
+                        type: type as SessionType | undefined,
+                        priority: priority as Session['priority'],
+                        brief,
+                      };
+                    });
+                    setSessions(prev => [...newSessions, ...prev]);
+                    setIsRecurring(false); setRecurringCount(4); setRecurringFreq('weekly');
                     setParsedDraft(null); setPasteText(''); setPasteMode(false);
-                    createCalendarEventForSession(newSession).catch(() => {});
+                    for (const s of newSessions) createCalendarEventForSession(s).catch(() => {});
                   }}
                   style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}
                 >
                   <input name="title" type="text" defaultValue={parsedDraft.title} placeholder="Assignment title"
                     style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }} />
                   <div className="grid grid-cols-2 gap-2">
-                    <input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]}
+                    <input name="date" type="date" required defaultValue={parsedDraft.date || new Date().toISOString().split('T')[0]}
+                      title="Due date"
                       style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }} />
                     <input name="location" type="text" defaultValue={parsedDraft.location} placeholder="Location"
                       style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }} />
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <select name="type" defaultValue={parsedDraft.category}
                       style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
                       <option value="">Category</option>
@@ -1910,8 +2063,6 @@ const App: React.FC = () => {
                       <option value="medium">Medium</option>
                       <option value="low">Low</option>
                     </select>
-                    <input name="dueDate" type="date" defaultValue={parsedDraft.dueDate}
-                      style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }} title="Due date" />
                   </div>
                   <select name="genre" defaultValue={parsedDraft.genre || genreOptions[0]} required
                     style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
@@ -1921,6 +2072,37 @@ const App: React.FC = () => {
                     style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', minHeight: '70px', resize: 'vertical', fontFamily: 'inherit' }} />
                   <textarea name="notes" defaultValue={parsedDraft.notes} placeholder="Notes"
                     style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', minHeight: '50px', resize: 'vertical', fontFamily: 'inherit' }} />
+
+                  {/* Recurring toggle — paste form */}
+                  <div style={{ border: '1px solid rgba(23,25,26,0.14)', padding: '10px 12px', background: isRecurring ? 'rgba(201,162,39,0.06)' : 'rgba(23,25,26,0.02)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
+                      <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)}
+                        style={{ accentColor: '#c9a227', width: '14px', height: '14px', cursor: 'pointer' }} />
+                      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: isRecurring ? '#c9a227' : 'rgba(23,25,26,0.50)' }}>
+                        Repeat this assignment
+                      </span>
+                    </label>
+                    {isRecurring && (
+                      <div style={{ marginTop: '10px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <select value={recurringFreq} onChange={e => setRecurringFreq(e.target.value as typeof recurringFreq)}
+                          style={{ padding: '7px 10px', fontSize: '12px', color: '#17191a', background: '#fff', border: '1px solid rgba(23,25,26,0.20)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+                          <option value="weekly">Weekly</option>
+                          <option value="biweekly">Every 2 weeks</option>
+                          <option value="monthly">Monthly</option>
+                        </select>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <input type="number" min={2} max={52} value={recurringCount}
+                            onChange={e => setRecurringCount(Math.max(2, Math.min(52, Number(e.target.value))))}
+                            style={{ width: '56px', padding: '7px 10px', fontSize: '12px', color: '#17191a', background: '#fff', border: '1px solid rgba(23,25,26,0.20)', outline: 'none', fontFamily: 'inherit', textAlign: 'center' }} />
+                          <span style={{ fontSize: '12px', color: 'rgba(23,25,26,0.50)' }}>occurrences</span>
+                        </div>
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', color: '#c9a227', letterSpacing: '0.10em' }}>
+                          → {recurringCount} assignments will be created
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
                   <button type="submit"
                     className="w-full font-mono text-[9px] tracking-[0.20em] uppercase transition-colors"
                     style={{ padding: '11px 0', background: '#4b6b52', border: 'none', color: '#f4f3ef', cursor: 'pointer' }}
@@ -1947,6 +2129,7 @@ const App: React.FC = () => {
                     name="date"
                     type="date"
                     required
+                    title="Due date"
                     style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
                   />
                   <LocationAutocomplete
@@ -1975,7 +2158,7 @@ const App: React.FC = () => {
                     + Add
                   </button>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <select
                     name="type"
                     style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
@@ -1994,12 +2177,6 @@ const App: React.FC = () => {
                     <option value="medium">Medium</option>
                     <option value="low">Low</option>
                   </select>
-                  <input
-                    name="dueDate"
-                    type="date"
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }}
-                    title="Due date"
-                  />
                 </div>
                 <textarea
                   name="brief"
@@ -2011,6 +2188,49 @@ const App: React.FC = () => {
                   placeholder="Notes"
                   style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
                 />
+
+                {/* Recurring toggle */}
+                <div style={{ border: '1px solid rgba(23,25,26,0.14)', padding: '10px 12px', background: isRecurring ? 'rgba(201,162,39,0.06)' : 'rgba(23,25,26,0.02)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
+                    <input
+                      type="checkbox"
+                      checked={isRecurring}
+                      onChange={e => setIsRecurring(e.target.checked)}
+                      style={{ accentColor: '#c9a227', width: '14px', height: '14px', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: isRecurring ? '#c9a227' : 'rgba(23,25,26,0.50)' }}>
+                      Repeat this assignment
+                    </span>
+                  </label>
+
+                  {isRecurring && (
+                    <div style={{ marginTop: '10px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <select
+                        value={recurringFreq}
+                        onChange={e => setRecurringFreq(e.target.value as typeof recurringFreq)}
+                        style={{ padding: '7px 10px', fontSize: '12px', color: '#17191a', background: '#fff', border: '1px solid rgba(23,25,26,0.20)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
+                      >
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Every 2 weeks</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="number"
+                          min={2}
+                          max={52}
+                          value={recurringCount}
+                          onChange={e => setRecurringCount(Math.max(2, Math.min(52, Number(e.target.value))))}
+                          style={{ width: '56px', padding: '7px 10px', fontSize: '12px', color: '#17191a', background: '#fff', border: '1px solid rgba(23,25,26,0.20)', outline: 'none', fontFamily: 'inherit', textAlign: 'center' }}
+                        />
+                        <span style={{ fontSize: '12px', color: 'rgba(23,25,26,0.50)' }}>occurrences</span>
+                      </div>
+                      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', color: '#c9a227', letterSpacing: '0.10em' }}>
+                        → {recurringCount} assignments will be created
+                      </span>
+                    </div>
+                  )}
+                </div>
               </form>
             )}
           </div>
@@ -2028,8 +2248,8 @@ const App: React.FC = () => {
               )
               .sort((a, b) => {
                 if (dashboardDateSort === 'deadline') {
-                  const da = a.dueDate || a.deadline || '';
-                  const db = b.dueDate || b.deadline || '';
+                  const da = a.date || '';
+                  const db = b.date || '';
                   if (da && db) return da.localeCompare(db);
                   if (da) return -1;
                   if (db) return 1;
@@ -2189,22 +2409,26 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* Panel grid — 2 columns */}
+          {/* Panel grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            {/* Panel: Basics */}
+            {/* Panel: Identity */}
             <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTop: '2px solid #4a6b7c', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <p className="font-mono text-[9px] tracking-[0.20em] uppercase" style={{ color: '#4a6b7c' }}>Basics</p>
-              <div>
-                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Name</label>
-                <input type="text" value={draftProfile.name} onChange={e => setDraftProfile(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g. Jane Doe"
-                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              <p className="font-mono text-[9px] tracking-[0.20em] uppercase" style={{ color: '#4a6b7c' }}>Identity</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Name</label>
+                  <input type="text" value={draftProfile.name} onChange={e => setDraftProfile(prev => ({ ...prev, name: e.target.value }))} placeholder="Your name"
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Years Shooting</label>
+                  <input type="text" value={draftProfile.yearsShooting} onChange={e => setDraftProfile(prev => ({ ...prev, yearsShooting: e.target.value }))} placeholder="e.g. 5 yrs"
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                </div>
               </div>
-              <div>
-                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Years Shooting</label>
-                <input type="text" value={draftProfile.yearsShooting} onChange={e => setDraftProfile(prev => ({ ...prev, yearsShooting: e.target.value }))} placeholder="e.g. 5 years, or since 2018"
-                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-              </div>
+
               <div>
                 <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '7px' }}>Primary Genres</label>
                 <div className="flex flex-wrap gap-1.5">
@@ -2222,23 +2446,9 @@ const App: React.FC = () => {
                     style={{ width: '100%', marginTop: '8px', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
                 )}
               </div>
-            </div>
 
-            {/* Panel: Style */}
-            <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTop: '2px solid #c9a227', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <p className="font-mono text-[9px] tracking-[0.20em] uppercase" style={{ color: '#8a6b0f' }}>Work & Style</p>
               <div>
-                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Typical Work / Scope</label>
-                <textarea value={draftProfile.typicalWork} onChange={e => setDraftProfile(prev => ({ ...prev, typicalWork: e.target.value }))} placeholder="e.g. editorial assignments, street photography series"
-                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '70px', resize: 'vertical', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Style Keywords</label>
-                <input type="text" value={styleKeywordsDraft} onChange={e => setStyleKeywordsDraft(e.target.value)} placeholder="cinematic, high contrast, natural light…"
-                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '7px' }}>Risk Profile</label>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '7px' }}>Creative Risk</label>
                 <div className="flex gap-2">
                   {(['cautious', 'balanced', 'experimental'] as PhotographerProfile['riskProfile'][]).map(r => {
                     const active = draftProfile.riskProfile === r;
@@ -2252,11 +2462,24 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Panel: Software */}
-            <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTop: '2px solid #4a6b7c', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <p className="font-mono text-[9px] tracking-[0.20em] uppercase" style={{ color: '#4a6b7c' }}>Software & Workflow</p>
+            {/* Panel: Practice */}
+            <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTop: '2px solid #c9a227', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p className="font-mono text-[9px] tracking-[0.20em] uppercase" style={{ color: '#8a6b0f' }}>Practice</p>
+
               <div>
-                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '7px' }}>Editing / RAW</label>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Typical Work</label>
+                <textarea value={draftProfile.typicalWork} onChange={e => setDraftProfile(prev => ({ ...prev, typicalWork: e.target.value }))} placeholder="e.g. editorial assignments, documentary projects, client portraits"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '64px', resize: 'vertical', boxSizing: 'border-box' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Visual Style</label>
+                <input type="text" value={styleKeywordsDraft} onChange={e => setStyleKeywordsDraft(e.target.value)} placeholder="cinematic, high contrast, natural light, gritty…"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '7px' }}>Editing Software</label>
                 <div className="flex flex-wrap gap-1.5">
                   {editingAppsList.map(app => {
                     const active = draftProfile.editingApps.includes(app);
@@ -2272,60 +2495,29 @@ const App: React.FC = () => {
                     style={{ width: '100%', marginTop: '8px', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
                 )}
               </div>
+
               <div>
-                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '7px' }}>Tethering / Capture</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {tetheringAppsList.map(app => {
-                    const active = draftProfile.tetheringApps.includes(app);
-                    return (
-                      <button key={app} onClick={() => setDraftProfile(prev => ({ ...prev, tetheringApps: active ? prev.tetheringApps.filter(a => a !== app) : [...prev.tetheringApps, app] }))}
-                        className="font-mono text-[8px] tracking-[0.12em] uppercase"
-                        style={{ padding: '4px 8px', border: active ? '1px solid #17191a' : '1px solid rgba(23,25,26,0.18)', background: active ? '#17191a' : 'transparent', color: active ? '#f4f3ef' : 'rgba(23,25,26,0.55)', cursor: 'pointer' }}>{app}</button>
-                    );
-                  })}
+                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Currently Working On</label>
+                <textarea value={draftProfile.growthGoals} onChange={e => setDraftProfile(prev => ({ ...prev, growthGoals: e.target.value }))} placeholder="Skills to develop, new directions, things you're pushing toward…"
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '64px', resize: 'vertical', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            {/* Panel: Strengths & Struggles — full width */}
+            <div className="md:col-span-2" style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTop: '2px solid #a35a4a', padding: '18px' }}>
+              <p className="font-mono text-[9px] tracking-[0.20em] uppercase mb-3" style={{ color: '#a35a4a' }}>Strengths & Struggles</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>What you do well</label>
+                  <textarea value={draftProfile.strengths} onChange={e => setDraftProfile(prev => ({ ...prev, strengths: e.target.value }))} placeholder="Composition, light reading, speed on location…"
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '72px', resize: 'vertical', boxSizing: 'border-box' }} />
                 </div>
-                {draftProfile.tetheringApps.includes('Other') && (
-                  <input type="text" value={draftProfile.otherTetheringAppNote || ''} onChange={e => setDraftProfile(prev => ({ ...prev, otherTetheringAppNote: e.target.value }))} placeholder="Specify tethering app…"
-                    style={{ width: '100%', marginTop: '8px', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-                )}
+                <div>
+                  <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Where you want help</label>
+                  <textarea value={draftProfile.struggles} onChange={e => setDraftProfile(prev => ({ ...prev, struggles: e.target.value }))} placeholder="Low light, posing, culling speed, off-camera flash…"
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '72px', resize: 'vertical', boxSizing: 'border-box' }} />
+                </div>
               </div>
-            </div>
-
-            {/* Panel: Strengths & Constraints */}
-            <div style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTop: '2px solid #a35a4a', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <p className="font-mono text-[9px] tracking-[0.20em] uppercase" style={{ color: '#a35a4a' }}>Strengths & Constraints</p>
-              <div>
-                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Strengths</label>
-                <textarea value={draftProfile.strengths} onChange={e => setDraftProfile(prev => ({ ...prev, strengths: e.target.value }))} placeholder="Describe what you do best…"
-                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '60px', resize: 'vertical', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Struggles</label>
-                <textarea value={draftProfile.struggles} onChange={e => setDraftProfile(prev => ({ ...prev, struggles: e.target.value }))} placeholder="Where do you feel friction or stall?"
-                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '60px', resize: 'vertical', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Physical Constraints</label>
-                <textarea value={draftProfile.physicalConstraints} onChange={e => setDraftProfile(prev => ({ ...prev, physicalConstraints: e.target.value }))} placeholder="e.g. height, stamina, crowd tolerance"
-                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '55px', resize: 'vertical', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Access Reality</label>
-                <textarea value={draftProfile.accessReality} onChange={e => setDraftProfile(prev => ({ ...prev, accessReality: e.target.value }))} placeholder="e.g. public stands, press access, sidelines"
-                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '55px', resize: 'vertical', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(23,25,26,0.40)', marginBottom: '5px' }}>Time Budget</label>
-                <textarea value={draftProfile.timeBudget} onChange={e => setDraftProfile(prev => ({ ...prev, timeBudget: e.target.value }))} placeholder="Typical time available per assignment"
-                  style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '55px', resize: 'vertical', boxSizing: 'border-box' }} />
-              </div>
-            </div>
-
-            {/* Panel: Growth Goals — full width */}
-            <div className="md:col-span-2" style={{ background: '#f8f7f4', border: '1px solid rgba(23,25,26,0.14)', borderTop: '2px solid #4b6b52', padding: '18px' }}>
-              <p className="font-mono text-[9px] tracking-[0.20em] uppercase mb-3" style={{ color: '#4b6b52' }}>Growth Goals</p>
-              <textarea value={draftProfile.growthGoals} onChange={e => setDraftProfile(prev => ({ ...prev, growthGoals: e.target.value }))} placeholder="What are you currently trying to master?"
-                style={{ width: '100%', padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit', minHeight: '80px', resize: 'vertical', boxSizing: 'border-box' }} />
             </div>
           </div>
 
@@ -2551,18 +2743,27 @@ const App: React.FC = () => {
               <p className="font-mono text-[9px] tracking-[0.24em] text-brand-ink/40 uppercase mb-[9px]">Plan / Calls for Entry</p>
               <h1 className="font-sans font-semibold text-[28px] sm:text-[42px] leading-none tracking-[-0.02em] text-brand-ink">Bulletin Board</h1>
             </div>
-            <button
-              onClick={refreshBulletinEvents}
-              disabled={isFetchingBulletin}
-              className="font-mono text-[9px] tracking-[0.18em] uppercase transition-colors"
-              style={{ padding: '9px 16px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', color: isFetchingBulletin ? 'rgba(23,25,26,0.30)' : 'rgba(23,25,26,0.55)', cursor: isFetchingBulletin ? 'not-allowed' : 'pointer' }}
-            >
-              {isFetchingBulletin ? 'Fetching…' : '↻ Refresh'}
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setShowAddEvent(true)}
+                className="font-mono text-[9px] tracking-[0.18em] uppercase transition-colors"
+                style={{ padding: '9px 16px', border: 'none', background: '#17191a', color: '#f4f3ef', cursor: 'pointer' }}
+              >
+                + Add Event
+              </button>
+              <button
+                onClick={refreshBulletinEvents}
+                disabled={isFetchingBulletin}
+                className="font-mono text-[9px] tracking-[0.18em] uppercase transition-colors"
+                style={{ padding: '9px 16px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', color: isFetchingBulletin ? 'rgba(23,25,26,0.30)' : 'rgba(23,25,26,0.55)', cursor: isFetchingBulletin ? 'not-allowed' : 'pointer' }}
+              >
+                {isFetchingBulletin ? 'Fetching…' : '↻ Refresh'}
+              </button>
+            </div>
           </div>
 
           {/* Filter pills */}
-          <div style={{ background: '#f4f3ef', border: '1px solid rgba(23,25,26,0.14)', padding: '14px 16px', marginBottom: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ background: '#f4f3ef', border: `1px solid ${filtersChanged ? '#c9a227' : 'rgba(23,25,26,0.14)'}`, padding: '14px 16px', marginBottom: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div className="flex flex-wrap gap-2">
               {(['All', 'Competition', 'Grant', 'Fellowship', 'Residency', 'Open Call', 'Call for Entry', 'Portfolio Review', 'Festival', 'Event'] as const).map(t => {
                 const active = typeFilter === t;
@@ -2585,6 +2786,15 @@ const App: React.FC = () => {
                 <option value="All">All Regions</option>
                 {(['Global', 'US', 'Europe', 'Asia', 'Latin America', 'Africa', 'Other'] as const).map(r => <option key={r} value={r}>{r}</option>)}
               </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                <input
+                  type="text"
+                  value={cityFilter}
+                  onChange={e => setCityFilter(e.target.value)}
+                  placeholder="City for local events…"
+                  style={{ padding: '7px 10px', fontSize: '11px', border: '1px solid rgba(23,25,26,0.18)', background: 'transparent', color: '#17191a', outline: 'none', fontFamily: 'inherit', width: '180px' }}
+                />
+              </div>
               <div className="flex gap-1">
                 {(['All', 'high', 'medium', 'low'] as const).map(p => {
                   const active = priorityFilter === p;
@@ -2597,6 +2807,21 @@ const App: React.FC = () => {
                 })}
               </div>
             </div>
+
+            {/* Filters-changed notice */}
+            {filtersChanged && !isFetchingBulletin && (
+              <div style={{ marginTop: '10px', padding: '9px 12px', background: 'rgba(201,162,39,0.10)', border: '1px solid rgba(201,162,39,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8a6b0f' }}>
+                  Filters changed — click Refresh to search with these settings
+                </span>
+                <button
+                  onClick={() => refreshBulletinEvents()}
+                  style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', background: '#c9a227', color: '#17191a', border: 'none', cursor: 'pointer', padding: '5px 12px', flexShrink: 0 }}
+                >
+                  ↻ Refresh now
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Cards */}
@@ -2606,10 +2831,27 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {primaryBoardItems.length === 0 ? (
                 <div className="col-span-full" style={{ borderLeft: '2px solid rgba(23,25,26,0.14)', paddingLeft: '14px', padding: '14px' }}>
-                  <p className="font-mono text-[9px] tracking-[0.18em] uppercase" style={{ color: 'rgba(23,25,26,0.40)' }}>No Opportunities Match</p>
+                  <p className="font-mono text-[9px] tracking-[0.18em] uppercase mb-2" style={{ color: 'rgba(23,25,26,0.40)' }}>
+                    No {typeFilter !== 'All' ? typeFilter : ''} opportunities in current results
+                  </p>
+                  <button
+                    onClick={() => refreshBulletinEvents()}
+                    disabled={isFetchingBulletin}
+                    className="font-mono text-[9px] tracking-[0.14em] uppercase transition-colors"
+                    style={{ padding: '6px 14px', background: '#17191a', color: '#f4f3ef', border: 'none', cursor: 'pointer' }}
+                  >
+                    ↻ Search with current filters
+                  </button>
                 </div>
               ) : (
-                primaryBoardItems.map(item => <BulletinCard key={item.id} item={item} updateBulletinStatus={updateBulletinStatus} />)
+                primaryBoardItems.map(item => (
+                  <BulletinCard
+                    key={item.id}
+                    item={item}
+                    updateBulletinStatus={updateBulletinStatus}
+                    onRemove={item.id.startsWith('user-') ? removeCustomBulletinItem : undefined}
+                  />
+                ))
               )}
             </div>
           )}
@@ -2649,6 +2891,13 @@ const App: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {showAddEvent && (
+        <AddEventModal
+          onClose={() => setShowAddEvent(false)}
+          onSave={addCustomBulletinItem}
+        />
       )}
 
       {activeTab === 'cfe-considering' && (
@@ -2703,6 +2952,7 @@ const App: React.FC = () => {
           weekPlans={weekPlans}
           scoutLocations={scoutLocations}
           profile={profile}
+          profileContext={formatProfileForContext(profile)}
           gear={gear}
           onSaveWeekPlan={(plan) => setWeekPlans(prev => [plan, ...prev])}
           onDeleteWeekPlan={(id) => setWeekPlans(prev => prev.filter(p => p.id !== id))}
@@ -2829,6 +3079,8 @@ const App: React.FC = () => {
           <LocationScoutView
             locations={scoutLocations}
             sessions={sessions}
+            profile={profile}
+            profileContext={formatProfileForContext(profile)}
             onAdd={addScoutLocation}
             onUpdate={updateScoutLocation}
             onDelete={deleteScoutLocation}
@@ -2862,6 +3114,14 @@ const App: React.FC = () => {
         <ErrorBoundary>
           <MissionHistoryView submissions={submissions} />
         </ErrorBoundary>
+      )}
+
+      {activeTab === 'cowork' && (
+        <CoworkingView user={user} />
+      )}
+
+      {activeTab === 'exposure' && (
+        <ExposureCalculatorView />
       )}
 
       {activeTab === 'journal' && (
@@ -2958,7 +3218,7 @@ const App: React.FC = () => {
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '5px', marginBottom: '14px' }}>
                         {allPhotos.map(({ img, entry }) => (
                           <div key={img.id} style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', border: '1px solid rgba(23,25,26,0.12)' }}>
-                            <img src={img.dataUrl} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            <img src={img.dataUrl || img.storageUrl || ''} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(23,25,26,0.50)', padding: '3px 5px' }}>
                               <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '7px', letterSpacing: '0.08em', color: 'rgba(248,247,244,0.80)', textTransform: 'uppercase' }}>{entry.date}</span>
                             </div>
@@ -3043,9 +3303,9 @@ const App: React.FC = () => {
                           {entry.images.map(img => (
                             <img
                               key={img.id}
-                              src={img.dataUrl}
+                              src={img.dataUrl || img.storageUrl || ''}
                               alt={img.name}
-                              onClick={() => setLightboxImage({ src: img.dataUrl, name: img.name })}
+                              onClick={() => setLightboxImage({ src: img.dataUrl || img.storageUrl || '', name: img.name })}
                               style={{ width: '80px', height: '80px', objectFit: 'cover', border: '1px solid rgba(23,25,26,0.14)', cursor: 'zoom-in' }}
                             />
                           ))}
@@ -3141,7 +3401,7 @@ const App: React.FC = () => {
                     <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       {journalForm.images.map(img => (
                         <div key={img.id} style={{ position: 'relative' }}>
-                          <img src={img.dataUrl} alt={img.name} style={{ width: '60px', height: '60px', objectFit: 'cover', border: '1px solid rgba(23,25,26,0.14)' }} />
+                          <img src={img.dataUrl || img.storageUrl || ''} alt={img.name} style={{ width: '60px', height: '60px', objectFit: 'cover', border: '1px solid rgba(23,25,26,0.14)' }} />
                           <button
                             type="button"
                             onClick={() => setJournalForm(prev => ({ ...prev, images: prev.images.filter(i => i.id !== img.id) }))}

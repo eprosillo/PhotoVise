@@ -7,6 +7,7 @@ interface CalendarViewProps {
   weekPlans: WeekPlan[];
   scoutLocations: ScoutLocation[];
   profile: PhotographerProfile;
+  profileContext: string;
   gear: GearItem[];
   onSaveWeekPlan: (plan: WeekPlan) => void;
   onDeleteWeekPlan: (id: string) => void;
@@ -131,7 +132,7 @@ function TabBtn({ active, onClick, label }: { active: boolean; onClick: () => vo
 // ── Main component ────────────────────────────────────────────────────────────
 
 const CalendarView: React.FC<CalendarViewProps> = ({
-  sessions, weekPlans, scoutLocations, profile, gear,
+  sessions, weekPlans, scoutLocations, profile, profileContext, gear,
   onSaveWeekPlan, onDeleteWeekPlan, onGoToSession,
 }) => {
   const today = new Date();
@@ -221,31 +222,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     archived:      'Archived — stored for reference.',
   };
 
-  const formatProfileForContext = (): string => {
-    const genres    = profile.primaryGenres.join(', ') || 'None specified';
-    const style     = profile.styleKeywords.join(', ') || 'None specified';
-    const editing   = profile.editingApps.join(', ')   || 'None specified';
-    const tethering = profile.tetheringApps.join(', ') || 'None specified';
-    return [
-      'PHOTOGRAPHER PROFILE:',
-      profile.name          ? `Name: ${profile.name}`                                 : null,
-      profile.yearsShooting ? `Years Shooting: ${profile.yearsShooting}`               : null,
-      `Primary Genres: ${genres}`,
-      `Typical Work: ${profile.typicalWork || 'Not specified'}`,
-      `Style Keywords: ${style}`,
-      `Software Workflow: ${editing}`,
-      `Tethering Apps: ${tethering}`,
-      profile.otherEditingAppNote   ? `Note on Editing: ${profile.otherEditingAppNote}`     : null,
-      profile.otherTetheringAppNote ? `Note on Tethering: ${profile.otherTetheringAppNote}` : null,
-      `Risk Profile: ${profile.riskProfile}`,
-      profile.strengths           ? `Strengths: ${profile.strengths}`                   : null,
-      profile.struggles           ? `Struggles: ${profile.struggles}`                   : null,
-      profile.physicalConstraints ? `Physical Constraints: ${profile.physicalConstraints}` : null,
-      profile.accessReality       ? `Access Reality: ${profile.accessReality}`           : null,
-      profile.timeBudget          ? `Time Budget: ${profile.timeBudget}`                 : null,
-      profile.growthGoals         ? `Growth Goals: ${profile.growthGoals}`               : null,
-    ].filter(Boolean).join('\n');
-  };
 
   const formatGearForContext = (): string => {
     const available = gear.filter(g => g.available);
@@ -306,8 +282,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       })
       .join('\n');
 
-    const profileContext = formatProfileForContext();
-    const gearContext    = formatGearForContext();
+    const gearContext = formatGearForContext();
 
     const prompt = `You are a professional photography scheduling assistant. Create a practical, forward-looking work schedule for the photographer for the week of ${currentWeekLabel}.
 

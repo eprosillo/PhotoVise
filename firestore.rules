@@ -76,5 +76,81 @@ service cloud.firestore {
       allow create: if request.auth != null;
     }
 
+    // ── Membership requests ────────────────────────────────────────────────────
+    // Users write their own request; admin reads all to review them.
+    // Approvals/rejections are written only by Cloud Functions (Admin SDK).
+    match /membership_requests/{uid} {
+      allow read:   if request.auth != null
+                    && (request.auth.uid == uid
+                        || request.auth.token.email == 'eprosillo@gmail.com');
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if false; // Cloud Function only
+      allow delete: if false;
+    }
+
+    // ── Coworking helpers ──────────────────────────────────────────────────────
+    // isAdmin: email-based (claims not set on admin's own account since admin
+    //          is always eprosillo@gmail.com, the original account).
+    // isMember: coworkingApproved custom claim set by approveMembership CF.
+    // hasAccess: either condition grants coworking access.
+
+    // ── Coworking: job board ───────────────────────────────────────────────────
+    // Instructors (coworkingLead claim) can manage jobs just like admin.
+    match /studio_jobs/{jobId} {
+      allow read:   if request.auth != null
+                    && (request.auth.token.coworkingApproved == true
+                        || request.auth.token.coworkingLead == true
+                        || request.auth.token.email == 'eprosillo@gmail.com');
+      allow create: if request.auth != null
+                    && (request.auth.token.coworkingLead == true
+                        || request.auth.token.email == 'eprosillo@gmail.com');
+      allow update: if request.auth != null
+                    && (request.auth.token.coworkingLead == true
+                        || request.auth.token.email == 'eprosillo@gmail.com');
+      allow delete: if request.auth != null
+                    && (request.auth.token.coworkingLead == true
+                        || request.auth.token.email == 'eprosillo@gmail.com');
+    }
+
+    // ── Coworking: job responses ───────────────────────────────────────────────
+    match /studio_job_responses/{responseId} {
+      allow read:   if request.auth != null
+                    && (request.auth.token.coworkingApproved == true
+                        || request.auth.token.email == 'eprosillo@gmail.com');
+      allow create: if request.auth != null
+                    && (request.auth.token.coworkingApproved == true
+                        || request.auth.token.email == 'eprosillo@gmail.com')
+                    && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null
+                    && resource.data.userId == request.auth.uid;
+    }
+
+    // ── Coworking: channels ────────────────────────────────────────────────────
+    match /studio_channels/{channelId} {
+      allow read:   if request.auth != null
+                    && (request.auth.token.coworkingApproved == true
+                        || request.auth.token.email == 'eprosillo@gmail.com');
+      allow create: if request.auth != null
+                    && (request.auth.token.coworkingApproved == true
+                        || request.auth.token.email == 'eprosillo@gmail.com');
+      allow delete: if request.auth != null
+                    && request.auth.token.email == 'eprosillo@gmail.com';
+
+      match /messages/{messageId} {
+        allow read:   if request.auth != null
+                      && (request.auth.token.coworkingApproved == true
+                          || request.auth.token.email == 'eprosillo@gmail.com');
+        allow create: if request.auth != null
+                      && (request.auth.token.coworkingApproved == true
+                          || request.auth.token.email == 'eprosillo@gmail.com')
+                      && request.resource.data.userId == request.auth.uid;
+        allow update: if request.auth != null
+                      && (request.auth.token.coworkingApproved == true
+                          || request.auth.token.email == 'eprosillo@gmail.com');
+        allow delete: if request.auth != null
+                      && resource.data.userId == request.auth.uid;
+      }
+    }
+
   }
 }

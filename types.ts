@@ -50,9 +50,8 @@ export interface Session {
   scoutNotes?: string;
   type?: SessionType;
   priority?: AssignmentPriority;
-  deadline?: string;   // ISO date YYYY-MM-DD — submission due date
-  dueDate?: string;    // ISO date YYYY-MM-DD — separate due date field
-  brief?: string;      // assignment brief / requirements
+  brief?: string;          // assignment brief / requirements
+  followUpNotes?: string;  // post-shoot follow-up, action items, client notes
 }
 
 export type GearCategory = 'Body' | 'Lens' | 'Flash' | 'Modifier' | 'Support' | 'Accessory';
@@ -289,4 +288,56 @@ export interface DailyInspiration {
   concept:      { title: string; description: string };
   read:         { title: string; author: string; type: string; description: string };
   follow:       { handle: string; platform: string; name: string; why: string };
+}
+
+// ── Studio / Coworking ────────────────────────────────────────────────────────
+
+export type StudioRole = 'admin' | 'member';
+
+export interface StudioJob {
+  id: string;
+  title: string;
+  date: string;                    // YYYY-MM-DD
+  location: string;
+  genre: Genre;
+  brief: string;
+  photographersNeeded: number;
+  shootingHours?: number;          // estimated shoot duration
+  editingHours?: number;           // estimated editing time
+  equipmentNotes?: string;
+  clientName?: string;
+  responseDeadline?: string;       // YYYY-MM-DD
+  status: 'open' | 'filled' | 'cancelled';
+  assignedUserIds: string[];
+  createdBy: string;               // uid
+  createdAt: number;
+}
+
+export interface StudioJobResponse {
+  id: string;
+  jobId: string;
+  userId: string;
+  userDisplayName: string;
+  availability: 'available' | 'unavailable';
+  note?: string;
+  createdAt: number;
+}
+
+export interface StudioChannel {
+  id: string;
+  name: string;                    // lowercase, no spaces
+  description?: string;
+  isDefault: boolean;
+  createdBy: string;
+  createdAt: number;
+}
+
+export interface ChannelMessage {
+  id: string;
+  channelId: string;
+  userId: string;
+  userDisplayName: string;
+  text: string;
+  createdAt: number;
+  reactions: { [emoji: string]: string[] };
 }

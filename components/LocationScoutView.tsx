@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ScoutLocation, ScoutTag, BestTimeOfDay, Session } from '../types';
+import { ScoutLocation, ScoutTag, BestTimeOfDay, Session, PhotographerProfile } from '../types';
 import { suggestScoutLocations, ScoutLocationSuggestion } from '../services/geminiService';
 import { GENRE_ICONS } from '../constants';
 
@@ -619,6 +619,8 @@ function FilterPill({ label, active, onClick }: { key?: React.Key | null; label:
 interface LocationScoutViewProps {
   locations: ScoutLocation[];
   sessions: Session[];
+  profile: PhotographerProfile;
+  profileContext: string;
   onAdd: (location: ScoutLocation) => void;
   onUpdate: (location: ScoutLocation) => void;
   onDelete: (id: string) => void;
@@ -629,6 +631,8 @@ interface LocationScoutViewProps {
 const LocationScoutView: React.FC<LocationScoutViewProps> = ({
   locations,
   sessions,
+  profile: _profile,
+  profileContext,
   onAdd,
   onUpdate,
   onDelete,
@@ -694,6 +698,7 @@ const LocationScoutView: React.FC<LocationScoutViewProps> = ({
       : `Search radius: within ${searchRadius} miles of the assignment location.`;
 
     const context = [
+      profileContext.trim() ? profileContext : '',
       sessionPart,
       radiusPart,
       scoutContext.trim() ? `Additional context: ${scoutContext.trim()}` : '',

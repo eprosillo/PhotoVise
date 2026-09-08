@@ -37,25 +37,27 @@ const NAV_GROUPS = [
   {
     label: 'PLAN',
     items: [
-      { id: 'calendar',  label: 'Calendar',       index: '05' },
-      { id: 'cfe',       label: 'Bulletin Board', index: '06' },
+      { id: 'cowork',    label: 'Coworking',      index: '05' },
+      { id: 'calendar',  label: 'Calendar',       index: '06' },
+      { id: 'cfe',       label: 'Bulletin Board', index: '07' },
     ],
   },
   {
     label: 'GROW',
     items: [
-      { id: 'today',      label: 'Missions',       index: '07' },
-      { id: 'skills',     label: 'Skill Tree',    index: '08' },
-      { id: 'askpro',     label: 'Ask a Pro',     index: '09' },
-      { id: 'inspire',    label: 'Inspiration',   index: '10' },
+      { id: 'today',      label: 'Missions',          index: '08' },
+      { id: 'skills',     label: 'Skill Tree',        index: '09' },
+      { id: 'askpro',     label: 'Ask a Pro',         index: '10' },
+      { id: 'inspire',    label: 'Inspiration',       index: '11' },
+      { id: 'exposure',   label: 'Exposure Calc',     index: '12' },
     ],
   },
   {
     label: 'YOU',
     items: [
-      { id: 'profile',   label: 'Profile',        index: '11' },
-      { id: 'gear',      label: 'Gear Locker',    index: '12' },
-      { id: 'archive',   label: 'Archive',        index: '13' },
+      { id: 'profile',   label: 'Profile',        index: '13' },
+      { id: 'gear',      label: 'Gear Locker',    index: '14' },
+      { id: 'archive',   label: 'Archive',        index: '15' },
     ],
   },
 ];
@@ -184,24 +186,33 @@ const Layout: React.FC<LayoutProps> = ({
           {/* Footer chip */}
           <div
             style={{ borderTop: '1px solid rgba(23,25,26,0.12)' }}
-            className="flex-shrink-0 flex items-center gap-[10px] px-6 py-[18px]"
+            className="flex-shrink-0 flex flex-col"
           >
-            <div className="w-[26px] h-[26px] rounded-full bg-brand-ink flex items-center justify-center shrink-0">
-              <span className="font-mono text-[9px] font-semibold text-brand-panel">{userInitials}</span>
+            <div className="flex items-center gap-[10px] px-6 py-[18px]">
+              <div className="w-[26px] h-[26px] rounded-full bg-brand-ink flex items-center justify-center shrink-0">
+                <span className="font-mono text-[9px] font-semibold text-brand-panel">{userInitials}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-medium text-brand-ink truncate">{userName || 'Eduardo'}</div>
+                <div className="font-mono text-[9px] tracking-[0.14em] text-brand-ink/38 uppercase">Signed In</div>
+              </div>
+              {onSignOut && (
+                <button
+                  onClick={onSignOut}
+                  title="Sign out"
+                  className="text-brand-ink/40 hover:text-brand-ink/70 transition-colors text-[11px]"
+                >
+                  <i className="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
+              )}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[11px] font-medium text-brand-ink truncate">{userName || 'Eduardo'}</div>
-              <div className="font-mono text-[9px] tracking-[0.14em] text-brand-ink/38 uppercase">Signed In</div>
-            </div>
-            {onSignOut && (
-              <button
-                onClick={onSignOut}
-                title="Sign out"
-                className="text-brand-ink/40 hover:text-brand-ink/70 transition-colors text-[11px]"
-              >
-                <i className="fa-solid fa-arrow-right-from-bracket"></i>
-              </button>
-            )}
+            <button
+              onClick={() => setIsFeedbackOpen(true)}
+              style={{ borderTop: '1px solid rgba(23,25,26,0.08)' }}
+              className="font-mono text-[9px] tracking-[0.14em] uppercase text-brand-ink/38 hover:text-brand-ink/70 px-6 py-3 text-left transition-colors"
+            >
+              Send Feedback
+            </button>
           </div>
         </>
       )}
@@ -280,13 +291,6 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
         )}
 
-        <button
-          onClick={() => setIsFeedbackOpen(true)}
-          style={{ bottom: isFieldMode ? '4.5rem' : '5.5rem' }}
-          className="fixed right-4 z-50 font-mono text-[9px] tracking-[0.14em] uppercase bg-brand-ink text-brand-panel/80 px-3 py-2 transition-colors hover:bg-brand-accent hover:text-brand-ink"
-        >
-          Feedback
-        </button>
         <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} currentPage={activeTab} />
       </div>
     );
@@ -303,13 +307,6 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
         </main>
       </div>
-
-      <button
-        onClick={() => setIsFeedbackOpen(true)}
-        className="fixed bottom-5 right-5 z-50 font-mono text-[9px] tracking-[0.14em] uppercase bg-brand-ink text-brand-panel/80 px-3 py-2 transition-colors hover:bg-brand-accent hover:text-brand-ink"
-      >
-        Feedback
-      </button>
       <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} currentPage={activeTab} />
     </div>
   );

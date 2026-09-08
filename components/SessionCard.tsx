@@ -97,10 +97,9 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
   const [editLocation, setEditLocation] = useState(session.location);
   const [editGenre, setEditGenre] = useState(session.genre[0]);
   const [editNotes, setEditNotes] = useState(session.notes);
+  const [editFollowUpNotes, setEditFollowUpNotes] = useState(session.followUpNotes || '');
   const [editType, setEditType] = useState<SessionType | ''>(session.type || '');
   const [editPriority, setEditPriority] = useState<AssignmentPriority | ''>(session.priority || '');
-  const [editDeadline, setEditDeadline] = useState(session.deadline || '');
-  const [editDueDate, setEditDueDate] = useState(session.dueDate || '');
   const [editBrief, setEditBrief] = useState(session.brief || '');
 
   const [strategyExpanded, setStrategyExpanded] = useState(false);
@@ -124,11 +123,10 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
       location: editLocation,
       genre: [editGenre],
       notes: editNotes,
+      followUpNotes: editFollowUpNotes.trim() || undefined,
       name: newName,
       type: editType || undefined,
       priority: editPriority || undefined,
-      deadline: editDeadline || undefined,
-      dueDate: editDueDate || undefined,
       brief: editBrief.trim() || undefined,
     });
     setEditing(false);
@@ -140,10 +138,9 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
     setEditLocation(session.location);
     setEditGenre(session.genre[0]);
     setEditNotes(session.notes);
+    setEditFollowUpNotes(session.followUpNotes || '');
     setEditType(session.type || '');
     setEditPriority(session.priority || '');
-    setEditDeadline(session.deadline || '');
-    setEditDueDate(session.dueDate || '');
     setEditBrief(session.brief || '');
     setEditing(false);
   };
@@ -159,7 +156,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
           <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Assignment title (optional)" style={FIELD} />
 
           <div className="grid grid-cols-2 gap-2">
-            <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} style={FIELD} />
+            <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} style={FIELD} title="Due date" />
             <LocationAutocomplete name="editLocation" placeholder="Location" initialValue={editLocation} onChange={setEditLocation}
               className="w-full" style={{ padding: '9px 12px', fontSize: '12px', color: '#17191a', background: 'rgba(23,25,26,0.04)', border: '1px solid rgba(23,25,26,0.14)', outline: 'none', fontFamily: 'inherit' }} />
           </div>
@@ -168,7 +165,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
             {GENRE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
           </select>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <select value={editType} onChange={e => setEditType(e.target.value as SessionType | '')} style={FIELD}>
               <option value="">Category</option>
               {SESSION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -177,12 +174,10 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
               <option value="">Priority</option>
               {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
             </select>
-            <input type="date" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} style={FIELD} title="Due date" />
           </div>
 
-          <input type="date" value={editDeadline} onChange={e => setEditDeadline(e.target.value)} style={FIELD} title="Submission deadline (optional)" placeholder="Submission deadline" />
-
           <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Notes" style={{ ...FIELD, minHeight: '70px', resize: 'vertical' }} />
+          <textarea value={editFollowUpNotes} onChange={e => setEditFollowUpNotes(e.target.value)} placeholder="Follow-up notes — action items, client feedback, next steps…" style={{ ...FIELD, minHeight: '70px', resize: 'vertical', borderColor: editFollowUpNotes ? 'rgba(201,162,39,0.50)' : 'rgba(23,25,26,0.14)' }} />
           <textarea value={editBrief} onChange={e => setEditBrief(e.target.value)} placeholder="Assignment brief / requirements (optional)" style={{ ...FIELD, minHeight: '70px', resize: 'vertical' }} />
 
           {(session.strategy || session.dayPlan || session.scoutNotes) && (
@@ -281,8 +276,8 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
                   </span>
                 );
               })()}
-              {(session.dueDate || session.deadline) && (
-                <DueDateChip date={(session.dueDate || session.deadline)!} />
+              {session.date && (
+                <DueDateChip date={session.date} />
               )}
             </div>
           </div>
@@ -318,6 +313,14 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onUpdateStatus, onUp
           <div className="mb-4" style={{ borderLeft: '2px solid rgba(23,25,26,0.18)', paddingLeft: '12px' }}>
             <p className="font-mono text-[8px] tracking-[0.14em] uppercase mb-1" style={{ color: 'rgba(23,25,26,0.38)' }}>Notes</p>
             <p style={{ fontSize: '12px', color: 'rgba(23,25,26,0.75)', lineHeight: 1.6 }}>{session.notes}</p>
+          </div>
+        )}
+
+        {/* Follow-up Notes */}
+        {session.followUpNotes && (
+          <div className="mb-4" style={{ borderLeft: '2px solid #c9a227', paddingLeft: '12px' }}>
+            <p className="font-mono text-[8px] tracking-[0.14em] uppercase mb-1" style={{ color: '#8a6b0f' }}>Follow-up</p>
+            <p style={{ fontSize: '12px', color: 'rgba(23,25,26,0.75)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{session.followUpNotes}</p>
           </div>
         )}
 

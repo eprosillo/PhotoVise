@@ -123,23 +123,39 @@ export async function parseAssignment(text: string): Promise<ParsedAssignment> {
   return result.data.assignment;
 }
 
-export async function getDailyInspiration(genre: string, date: string): Promise<DailyInspiration> {
-  const fn = getFn<{ genre: string; date: string }, { inspiration: DailyInspiration }>('getDailyInspiration', 60_000);
-  const result = await fn({ genre, date });
+export async function getJournalImageBase64(imageId: string): Promise<string> {
+  const fn = getFn<{ imageId: string }, { base64: string }>('getJournalImageBytes', 30_000);
+  const result = await fn({ imageId });
+  return result.data.base64;
+}
+
+export async function getDailyInspiration(genre: string, date: string, profileContext?: string): Promise<DailyInspiration> {
+  const fn = getFn<{ genre: string; date: string; profileContext?: string }, { inspiration: DailyInspiration }>('getDailyInspiration', 60_000);
+  const result = await fn({ genre, date, profileContext });
   return { ...result.data.inspiration, date };
+}
+
+export async function parseEventFromUrl(
+  url: string,
+  pastedText?: string,
+): Promise<Record<string, unknown>> {
+  const fn = getFn<{ url: string; pastedText?: string }, { event: Record<string, unknown> }>('parseEventFromUrl', 60_000);
+  const result = await fn({ url, pastedText });
+  return result.data.event;
 }
 
 export async function fetchBulletinEvents(
   genre: string,
   region: string,
   type = 'All',
+  city?: string,
 ): Promise<CfeBulletinItem[]> {
   try {
     const fn     = getFn<
-      { genre: string; region: string; type: string },
+      { genre: string; region: string; type: string; city?: string },
       { items: CfeBulletinItem[] }
     >('fetchBulletinEvents');
-    const result = await fn({ genre, region, type });
+    const result = await fn({ genre, region, type, city });
     return result.data.items ?? [];
   } catch (error) {
     console.error('Photovise: Failed to fetch bulletin events', error);
