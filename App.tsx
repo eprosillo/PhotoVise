@@ -826,10 +826,15 @@ const App: React.FC = () => {
   // lightweight data (images stripped to storageUrl only) to Firestore.
   // Base64 blobs can easily exceed Firestore's 1 MB document limit.
   useEffect(() => {
-    localStorage.setItem('pingstudio_journal', JSON.stringify(journalEntries));
+    try {
+      localStorage.setItem('pingstudio_journal', JSON.stringify(journalEntries));
+    } catch {
+      // QuotaExceededError — localStorage full (base64 images); Firestore still saves.
+      console.warn('Journal: localStorage quota exceeded — falling back to Firestore only');
+    }
     const firestoreEntries = journalEntries.map(entry => ({
       ...entry,
-      images: entry.images.map(({ dataUrl: _omit, ...img }) => img),
+      images: (entry.images ?? []).map(({ dataUrl: _omit, ...img }) => img),
     }));
     saveUserData({ journal: firestoreEntries });
   }, [journalEntries]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -3125,6 +3130,7 @@ const App: React.FC = () => {
       )}
 
       {activeTab === 'journal' && (
+        <ErrorBoundary>
         <div>
           {/* Screen header */}
           <div style={{ borderBottom: '1px solid rgba(23,25,26,0.14)', paddingBottom: '18px', marginBottom: '28px' }} className="flex items-end justify-between gap-4 flex-wrap">
@@ -3424,6 +3430,7 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
+        </ErrorBoundary>
       )}
     </Layout>
 
